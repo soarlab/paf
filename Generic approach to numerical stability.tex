@@ -1,0 +1,417 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{stmaryrd}
+%\usepackage{mnsymbol}
+\usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
+\usepackage[all]{xy}
+\usepackage{nicefrac}
+\usepackage{enumerate}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\newtheorem{example}[theorem]{Example}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\newtheorem{remark}[theorem]{Remark}
+
+
+%% CATEGORIES
+\newcommand{\CSM}{\mathbf{CSM}}
+%% OBJECTS
+\newcommand{\F}[1][n,p]{\mathbb{F}_{#1}}
+\newcommand{\Ff}[1][n,p]{\overline{\mathbb{F}}_{#1}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\R}{\mathbb{R}}
+%% MORPHISMS
+\newcommand{\Rep}[1][n,p]{\mathrm{i}_{#1}}
+\newcommand{\Round}[1][n,p]{\mathrm{r}_{#1}}
+\newcommand{\inc}{\hookrightarrow}
+\newcommand{\epi}{\twoheadrightarrow}
+\newcommand{\id}{\mathrm{id}}
+%% FUNCTORS
+\newcommand{\Haus}{\mathsf{H}}
+\newcommand{\Giry}{\mathsf{G}}
+\newcommand{\Pro}{\mathcal{G}}
+\newcommand{\Pow}{\mathcal{P}}
+\newcommand{\Meas}{\mathcal{M}}
+\newcommand{\Id}{\mathsf{Id}}
+%% MATHS
+\newcommand{\uro}[1][n,p]{\mathrm{u}_{#1}}
+\newcommand{\sem}[1]{\hspace{2pt}\llbracket #1 \rrbracket\hspace{2pt}}
+\newcommand{\osem}[1]{\langle\!\langle #1 \rangle\!\rangle}
+\newcommand{\absv}[1]{\vert #1\vert}
+\newcommand{\dg}{^\dagger}
+\newcommand{\inv}{^{-1}}
+\newcommand{\ceil}[1]{\lceil #1 \rceil}
+\newcommand{\floor}[1]{\lfloor #1 \rfloor}
+\newcommand{\nd}[1][n,p]{\mathrm{n}_{#1}}
+%% PROG
+\newcommand{\NaN}{\mathtt{NaN}}
+
+\title{A generic approach to numerical stability}
+\author{Fredrik Dahlqvist}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Floating-point and real numbers}
+
+For $n,p\in\N$ we define the set $\F$ of $(n,p)$-\emph{floating-point numbers} as the set of binary tuples given by
+\begin{align*}
+\F:=&~2\times \left(2^n\setminus\{(\underbrace{1\cdots 1}_n)\}\right)\times 2^p &\text{Normal and sub-normal numbers}\\
+&\cup \{(0,(\underbrace{1,\ldots,1}_n),(\underbrace{0,\ldots, 0}_p))\}&+\text{ infinity}\\
+&\cup \{(1,(\underbrace{1,\ldots,1}_n),(\underbrace{0,\ldots, 0}_p))\}&-\text{ infinity}\\
+\end{align*}
+where $2:=\{0,1\}$. The first component of the triples in $\F$ will be called the \emph{sign}, the second component will be called the \emph{exponent} and the third component will be called the \emph{significant}. We will denote the two special triples $(0,(1,\ldots,1),(0,\ldots, 0))$ and $(1,(1,\ldots,1),(0,\ldots, 0))$ by $+\infty$ and $-\infty$ respectively, and we define  the set $\Ff$ of \emph{finite} $(n,p)$-\emph{floating-point numbers} as 
+\[
+\Ff:=\F \setminus \{+\infty,-\infty\}
+\]
+We can now define the set of $(n,p)$-\emph{floating-point-representable numbers} as the image of $\Ff$ in $\R$ under the \emph{representation map}
+\[
+\Rep: \Ff \to \R
+\]
+defined by
+\begin{align*}
+(b_s,(b^e_1,\ldots,b^e_n),(b^s_1,\ldots,b^s_p))\mapsto
+\begin{cases}
+(-1)^{b_s}2^{2-2^{n-1}}\sum_{i=1}^p b^s_i2^{-i} & \text{if }b^e_1=\cdots=b^e_n=0\\ \\
+(-1)^{b_s}2^{1+\sum_{i=1}^n b_i^e 2^{i-1} -2^{n-1}} \left(1+\sum_{i=1}^p b^s_i2^{-i}\right)& \text{else }
+\end{cases}
+\end{align*}
+Conversely, we define the \emph{rounding map} $\Round: \R\to\F$ by
+\begin{align*}
+x\mapsto 
+\begin{cases}
+-\infty&\text{if } x< \inf\{\Rep(b)\mid b\in \Ff\}\\
++\infty&\text{if } x> \sup\{\Rep(b)\mid b\in \Ff\}\\
+x&\text{if }x=\ceil{x}=\floor{x}\\
+\floor{x} &\text{if } \absv{x-\floor{x}}< \absv{x-\ceil{x}} \\ 
+\ceil{x} &\text{if } \absv{x-\ceil{x}}< \absv{x-\floor{x}} \\ 
+\floor{x} &\text{if last component of significant of }\floor{x}=0\\ 
+\ceil{x} &\text{if last component of significant of }\ceil{x}=0
+\end{cases}
+\end{align*}
+where $\floor{x}=\inf \{\Rep(b)\mid b\in \Ff, \Rep(b)\leq x \}$ and $\ceil{x}=\sup \{\Rep(b)\mid b\in \Ff, \Rep(b)\geq x\}$. Note that in the case of a tie (last two options), exactly one of the two possibilities hold. For each $n,p$ we define the \emph{unit roundoff} $\uro$ as
+\[
+\uro=2^{-(p+1)}
+\]
+\begin{proposition}[Higham]\label{prop:roundoff}
+For each $x\in \R$ and each $n,p\in\N$, 
+\[
+\exists\delta\in\R, \absv{\delta}\leq \uro\text{ s.th. } \Rep(\Round(x))=x(1+\delta)
+\]
+\end{proposition}
+
+\begin{proposition}
+$\Round$ is surjective, $\Rep$ is injective and $\Round\circ\Rep=\id_{\Ff}$.
+\end{proposition}
+
+\noindent When $n\leq m$ and $p\leq q$ we can embed $\F$ in $\F[m,q]$ via 
+\[
+\Rep^{m,q}:\F\to \F[m,q]
+\]
+which is defined by $+\infty  \mapsto +\infty,-\infty \mapsto -\infty$
+and for any finite element $x\in \Ff$ by computing the triple of $\Ff[m,q]$ which encodes the same real, i.e. the $y\in\Ff[m,q]$ such that $\Rep(x)=\Rep[m,q](y)$. This element $y$ always exist if $m\geq n$ and $q\geq p$ and is unique. Conversely, we can also define the rounding maps
+\[
+\Round^{m,q}: \F[m,q]\to \F
+\]
+mapping $+\infty\mapsto+\infty$ and $-\infty\mapsto-\infty$ and defined as $\Round\circ \Rep[m,q]$ otherwise. 
+
+\begin{proposition}
+$\Round^{m,q}\circ \Rep^{m,q}=\id_{\F}$, and in particular $\Round^{m,q}$ is surjective and $\Rep^{m,q}$ is injective.
+\end{proposition}
+It follows that: 
+\begin{proposition}
+The collection of sets $(\F)_{n,p\in\N}$ forms a co-directed/inverse system: given $n,p$ and $n',p'$ we can always find $m,q$ and rounding maps $\Round^{m,q}: \F[m,q]\to \F$ and $\Round[n',p']^{m,q}: \F[m,q]\to\F[n',p']$. Moreover if $n\leq m\leq m'$ and $p\leq q\leq q'$ then $\Round^{m',q'}=\Round^{m,q}\circ \Round[m,q]^{m',q'}$.
+\end{proposition}
+
+By endowing each $\F$ with the discrete topology, each rounding map $\Round^{m,q}$ is trivially continuous and $(\F)_{n,p\in\N}$ forms a co-directed/inverse system of \emph{topological spaces}. 
+
+\begin{proposition}\label{prop:projlim}
+The projective/inverse limit of the system $(\F)_{n,p\in\N}$of topological spaces is given by 
+\[
+\varprojlim_{n,p}\F =\R
+\]
+where $\R$ is equipped with the initial topology induced by the rounding maps $\Round: \R\to\F$. In particular it is compact, zero-dimensional and Polish.
+\end{proposition}
+
+In the context of floating-point approximations of real numbers it therefore seems to make sense to think of the reals as being equipped not with the usual topology, but with the topology generated by the clopen sets of the form
+\[
+C_b=\{x\in\R\mid \Round(x)=b\}.
+\]
+Since this topology is Polish, it is metrizable and the distance between $x,y$ should be understood as a function of the minimum precision level $p\in\N$ such that $\Round(x)\neq\Round(y)$. 
+\begin{proposition}[Conjecture!]\label{prop:metric}
+The topology described in Prop. \ref{prop:projlim} can be metrized by the distance function
+\[
+d(x,y)=\frac{1}{2^{\min\{p~\mid~ \exists n.\Round(x)\neq\Round(y)\}}}.
+\]
+Moreover, $\Round(x)=\Round(y)$ iff $d(x,y)\leq \uro$.
+\end{proposition}
+
+The fact that $\R$ is compact for this topology means that every basic clopen is also compact. This will come in handy in what follows.
+
+\section{Two useful monads}
+
+
+
+Monads describe computational effects, and in what follows we will consider two types of computational effects: non-determinism and probabilistic behaviour. When working with sets, these computational effects are modelled by the powerset monad and the distribution monad. The latter only captures probability distributions with finite support; moreover, as we just saw, it is natural to put a compact Polish topology on the set $\R$, and in fact to single out a metric (Prop. \ref{prop:metric}). Because of this, we choose the much richer setting of complete, separable metric spaces to define our monads. This means we can consider continuous probability distributions, and work with the `natural' topology on $\R$ defined in Prop. \ref{prop:projlim}.
+
+Let $\CSM$ denote the category of complete separable metric spaces. We first define the Hausdorff-Vietoris monad $\Haus: \CSM\to\CSM$. On an object $(X,d)$ the functor $\Haus$ is defined by
+\[
+\Haus(X,d)=\left(\{K\subseteq X\mid K\text{ compact}\}, \Haus d)\right)
+\]
+where $\Haus d$ is the usual Hausdorff distance defined by
+\[
+\Haus d(K_1,K_2)=\max\left\{\sup_{x\in K_1}\inf_{y\in K_2} d(x,y), \sup_{y\in K_2}\inf_{x\in K_1} d(x,y)\right\}
+\]
+Note: the topology generated by $\Haus d$ can alternatively be described by the so-called Vietoris topology on $\{K\subseteq X\mid K\text{ compact}\}$ (see Kechris? Need a reference for this!).
+On a continuous map\footnote{Can we get away with continuous maps rather than 1-Lipschitz maps?} $f: (X,d_X)\to (Y,d_Y)$ we simply take $\Haus f: \Haus (X,d_X)\to \Haus(Y,d_Y)$, $K\mapsto f[K]$ (continuous maps send compact sets to compact sets, so this is well-defined). 
+
+\begin{theorem}
+Let $(X,d)$ be a metric space, then
+\begin{enumerate}
+\item If $(X,d)$ is complete, so is $\Haus(X,d)$
+\item If $(X,d)$ is separable, so is $\Haus(X,d)$
+\item If $(X,d)$ is compact, so is $\Haus(X,d)$
+\end{enumerate}
+\end{theorem}
+
+It follows that $\Haus$ is indeed an endofunctor on $\CSM$. Next, we need to define the monad structure. The unit is simply defined by
+\[
+\eta^{\Haus}: \Id\to\Haus,\quad \eta_{(X,d)}^{\Haus}(x)=\{x\}
+\]
+which is finite and therefore compact. The multiplication is given by
+\[
+\mu^{\Haus}: \Haus\Haus\to\Haus,\quad\mu_{(X,d)}^{\Haus}(\mathcal{K})=\bigcup\mathcal{K}
+\]
+The multiplication is well defined in the sense that if $\mathcal{K}$ is compact then so is $\bigcup\mathcal{K}$ (NEED A REFERENCE FOR THIS!), moreover we have:
+\begin{theorem}
+The unit $\eta^{\Haus}$ and the multiplication $\mu^{\Haus}$ are component-wise continuous (in fact 1-Lipschitz).
+\end{theorem}
+Thus $\Haus:\CSM\to\CSM$ is indeed a monad. As a generalisation of the powerset monad it will model non-deterministic behaviours.
+
+The next monad will model probabilistic behaviour. We define the Kantorovich-Giry monad  
+on $\CSM$ as follows. On objects $(X,d)$:
+\[
+\Giry(X,d)=\left(\{\text{Probability measures on the Borel }\sigma\text{-algebra of }(X,d)\}, \Giry d\right)
+\]
+where $\Giry d$ is the Kantorovich-Wasserstein metric given by either of the following (dual) representations:
+\begin{align*}
+\Giry d(\mu,\nu)&=\inf_{\gamma\in\Gamma(\mu,\nu)}\int_{X\times X} d(x,y)~d\gamma\\
+&=\sup\left\{\int_X f~d(\mu-\nu)\mid f: X\to \R, f\text{ is 1-Lipschitz}\right\}
+\end{align*}
+where $\Gamma(\mu,\nu)$ is the set of couplings with marginals $\mu,\nu$.
+Note: just as the Hausdorff distance metrizes the well-known Vietoris topology, the Kantorovich metric metrizes the well-known weak convergence topology (see Villani?).
+On a continuous (and therefore Borel-measurable) map $f:(X,d_X)\to(Y,d_Y)$ we define $\Giry f: \Giry(X,d_X)\to\Giry(Y,d_Y), \mu\mapsto f_\ast\mu$, the pushforward measure.
+
+\begin{theorem}[Kechris, Aliprantis]
+Let $(X,d)$ be a metric space, then
+\begin{enumerate}
+\item If $(X,d)$ is complete, so is $\Giry(X,d)$
+\item If $(X,d)$ is separable, so is $\Giry(X,d)$
+\item If $(X,d)$ is compact, so is $\Giry(X,d)$
+\end{enumerate}
+(in fact we can replace the implication for (2) and (3) by an `iff', what about (1)?).
+\end{theorem}
+
+It follows that $\Giry$ is indeed an endofunctor on $\CSM$. The monad structure of $\Giry$ is defined by the unit
+\[
+\eta^{\Giry}: \Id\to\Giry,\quad\eta^{\Giry}_{(X,d)}(x)=\delta_x
+\]
+and the multiplication
+\[
+\mu^{\Giry}:\Giry\Giry\to\Giry,\quad\mu^{\Giry}_{(X,d)}(\mathbb{P})=\lambda B.\int_X \mu(B)~d\mathbb{P}(\mu)
+\]
+\begin{theorem}[Parthasarathy, van Breugel]
+The unit $\eta^{\Giry}$ and the multiplication $\mu^{\Giry}$ are component-wise continuous (in fact 1-Lipschitz).
+\end{theorem}
+Thus $\Giry:\CSM\to\CSM$ is indeed a monad.
+
+\section{Classical forward and backward numerical stability.}
+
+Consider a function $f:\R^k\to\R$ and a deterministic algorithm $f^\ast:(\F)^k\to\F$ implementing this function at a given discretization level $n,p\in\N$. The finite-precision nature of the computation generates rounding errors which we want to quantify. Classically, the algorithm is considered \emph{numerically stable} if the rounding errors are bounded, in relative terms, in one of three ways:
+\begin{enumerate}
+\item Either the algorithm $f^\ast$ computes the correct answer, but for a neighbouring set of inputs which are unknown but bounded in relative terms, i.e.\@ for all $x\in (\F)^k$
+\[
+f^\ast(x)=f(x(1+\delta)) \qquad\text{for some uniformly bounded }\delta.
+\]
+In this case the algorithm $f^\ast$ is said to be \emph{backward stable} (w.r.t.\@ $f$).
+\item Or the algorithm $f^\ast$ computes an answer which belongs to a neighbourhood of the correct answer, and this neighbourhood is bounded, in relative terms, w.r.t.\@ the correct answer, i.e.\@ for all $x\in (\F)^k$
+\[
+f^\ast(x)=f(x)(1+\delta) \qquad\text{for some uniformly bounded }\delta.
+\]
+In this case the algorithm $f^\ast$ is said to be \emph{forward stable} (w.r.t.\@ $f$).
+\item Or the algorithm $f^\ast$ computes for a neighbouring set of inputs an answer which  neighbours the correct one, i.e.\@ for all $x\in (\F)^k$
+\[
+f^\ast(x)=f(x(1+\delta))(1+\delta') \qquad\text{for some uniformly bounded }\delta,\delta'.
+\]
+In this case the algorithm $f^\ast$ is said to be \emph{(mixed) stable} (w.r.t.\@ $f$).
+\end{enumerate}
+Typically the uniform bound will be given by the unit roundoff $\uro$. Thanks to the construction of $\R$ as $\varprojlim_{n,p}\F$ and the characterisation of the metric given in Prop. \ref{prop:metric}, we can read the term `neighbourhood' in the statements above in its technical sense, as we shall now see. We define the map
+\begin{equation}\label{eq:nd}
+\nd: \R\to\Haus \R, \quad x\mapsto B_x:=\left\{y\mid d(x,y)\leq \uro\right\}
+\end{equation}
+(where $\mathrm{n}$ stands for `bounded \underline{n}on-deterministic choice'). By Prop. \ref{prop:metric}, $\nd$ associates to any $x$ the set of reals which round to the same element of $\F$. The topology described above allows us to (1) view this set of reals as a ball in a metric space, and (2) view this ball as a closed set in a compact set, i.e.\@ as a compact set -- hence the typing using $\Haus$. It also follows that we taking the inverse image of a singleton under the rounding map $\Round$ yields a compact set, and we can therefore define:
+\[
+\Round\inv: \F\to\Haus \R
+\]
+Using this map and $\nd$ we can now formalise the three notions of stability described above:
+
+\paragraph{Backward stability.} $f^\ast$ is backward stable (w.r.t.\@ $f$) if the following diagram commutes:
+\begin{equation}\label{diag:back}
+\xymatrix
+{
+\R^k\ar[r]^{(\nd)^k} & (\Haus\R)^k\ar[r]^{\Haus f\circ \times} & \Haus \R\\
+(\Ff)^k\ar[rr]_{f^\ast}\ar[u]^{(\Rep)^k} & & \F\ar[u]_{\Round\inv}
+}
+\end{equation}
+where $\times: (\Haus X)^k\to\Haus (X^k)$ is the cartesian product map, $K_1,\ldots,K_k\mapsto K_1\times \ldots\times K_k$.
+\paragraph{Forward stability.} $f^\ast$ is forward stable (w.r.t.\@ $f$) if the following diagram commutes:
+\begin{equation}\label{diag:for}
+\xymatrix
+{
+\R^k\ar[r]^{f} & \R\ar[r]^{\nd} & \Haus \R\\
+(\Ff)^k\ar[rr]_{f^\ast}\ar[u]^{(\Rep)^k} & & \F\ar[u]_{\Round\inv}
+}
+\end{equation}
+\paragraph{Mixed stability.} $f^\ast$ is stable (w.r.t.\@ $f$) if the following diagram commutes:
+\begin{equation}\label{diag:mixed}
+\xymatrix@C=8ex
+{
+\R^k\ar[r]^{(\nd)^k} & (\Haus\R)^k\ar[r]^{\Haus f\circ \times} & \Haus \R\ar[r]^{\mu^{\Haus}\circ \Haus \nd} & \Haus\R \\
+(\Ff)^k\ar[rrr]_{f^\ast}\ar[u]^{(\Rep)^k} & & & \F\ar[u]_{\Round\inv}
+}
+\end{equation}
+
+\begin{proposition}
+Backward stability implies stability. Similarly, forward stability implies stability. 
+\end{proposition}
+
+
+\begin{example}
+Addition following the IEEE 754 standard is backward stable. Let us denote machine addition by $+^\ast$, i.e.\@ the machine addition of $x,y\in \F$ will be denoted $x+^\ast y$. Following Diagram \eqref{diag:back} counter-clockwise we get by definition of the IEEE 754 standard that:
+\begin{equation}\label{eq:addition1}
+x,y\mapsto \Round\inv\{x+^\ast y\}=\left\{(x+y)(1+\delta): \absv{\delta}\leq \uro\right\}
+\end{equation}
+The clockwise path of the diagram computes
+\begin{equation}\label{eq:addition2}
+x,y\mapsto \left\{x(1+\delta)+y(1+\delta') :  \absv{\delta},\absv{\delta'}\leq \uro\right\}
+\end{equation}
+It is clear by using distributivity and taking $\delta=\delta'$ in \eqref{eq:addition2} that 
+\[
+\left\{(x+y)(1+\delta): \absv{\delta}\leq \uro\right\}\subseteq \left\{x(1+\delta)+y(1+\delta') : \absv{\delta},\absv{\delta'}\leq \uro\right\}
+\]
+Conversely, given $\delta,\delta'$, define $\delta'':=\frac{x\delta+y\delta'}{x+y}$ and note first that
+\begin{align*}
+\left\vert \frac{x\delta+y\delta'}{x+y}\right\vert & = \frac{\absv{x\delta+y\delta'}}{\absv{x+y}}\\
+&\leq \frac{\absv{x}\absv{\delta}+\absv{y}\absv{\delta'}}{\absv{x+y}}\\
+&\leq \frac{\absv{x}\uro+\absv{y}\uro}{\absv{x+y}}=\uro
+\end{align*}
+i.e. $\absv{\delta''}\leq \uro$. Moreover
+\begin{align*}
+(x+y)(1+\delta'')&=(x+y)\left(1+\frac{x\delta+y\delta'}{x+y}\right)\\
+&=(x+y)+x\delta+y\delta'\\
+&=x(1+\delta)+y(1+\delta')
+\end{align*}
+which shows that 
+\[
+\left\{x(1+\delta)+y(1+\delta'): \absv{\delta},\absv{\delta'}\leq \uro\right\}\subseteq \left\{(x+y)(1+\delta): \absv{\delta}\leq \uro\right\}
+\]
+and the two sets are therefore equal. It follows that Diagram \eqref{diag:back} commutes, i.e.\@ that IEEE 754-compliant addition is backward stable. The proof that it is also forward stable is immediate.
+\end{example}
+
+\begin{example}
+The unary operation $-+^\ast 1: \F\to\F$ (still assuming IEEE 754 standard) is easily seen to be forward stable. However it is not backward stable. Following Diagram \eqref{diag:back} counter-clockwise we get by definition of the IEEE 754 standard
+\[
+x,y\mapsto \Round\inv\{x+^\ast y\}=\left\{(x+1)(1+\delta): \absv{\delta}\leq \uro\right\}
+\]
+and following it clockwise we get
+\[
+x,y\mapsto \{x(1+\delta)+1:\absv{\delta}\leq \uro\}
+\]
+which is a strictly smaller set that does not contain, for example
+\[
+(x+1)(1+\uro)=x(1+\uro)+1+\uro>x(1+\delta)+1 \text{ for any }\absv{\delta}\leq\uro
+\]
+\end{example}
+
+\begin{remark}
+Conjecture: I think that $\Haus$ preserves countable projective limits, i.e.
+\[
+\Haus \R=\Haus \varprojlim_{n,p}\F=\varprojlim_{n,p}\Haus\F
+\]
+If this is the case we can build $\Round\inv$ as a the map associated with choosing the canonical sequence of compacts associated with a singleton $\{x\}$ of $\Haus\F$, viz.\@ the one generated by the inverse images $(\Round^{m,q})\inv(\{x\})$. This would parallel exactly what I want to do in the next section.
+\end{remark}
+
+\section{Probabilistic forward and backward numerical stability.}
+The abstract picture developed so far allows us to give a straightforward definition of probabilistic numerical stability. All we need to do is to replace bounded non-determinism by a suitable probabilistic notion. For this we will probably make heavy use of the following important result.
+
+\begin{theorem}[Bochner]
+The Kantorovitch-Giry monad preserves countable projective limits, i.e.
+\[
+\Giry \varprojlim_{i} X_i=\varprojlim_{i} \Giry _i
+\]
+(this holds for standard Borel spaces, does it hold in $\CSM$, i.e.\@ are the projection maps $\Giry \varprojlim_{i} X_i\to\Giry X_i$ continuous?). 
+\end{theorem}
+
+Since $\R=\varprojlim_{n,p}\F$ this theorem says that any probability measure on $\R$ can be seen as a sequence of compatible probabilities on $\F, n,p\in\N$. 
+
+%In particular we can consider the following sequence of probabilities: fix $n,p$, take $b\in \F$ and consider the probability $\delta_{b}$. The inverse image under $\Round^{m,q}$ of $b$ is a finite set and we can put the uniform distribution $\mu_{m,q}^x$ on $(\Round^{m,q})\inv(b)$. The probabilities in the sequence $\mu_{m,q}^x$, $m,q\in \N$ are compatible.
+
+\vspace{1em}
+WOULD LIKE DEFINITIONS OF THE TYPE:
+
+\newcommand{\pro}[1][n,p]{p}
+\newcommand{\prob}{p'}
+
+\paragraph{Probabilistic backward stability.} $f^\ast$ is backward stable (w.r.t.\@ $f$) if the following diagram commutes:
+\begin{equation}\label{diag:backpro}
+\xymatrix
+{
+\R^k\ar[r]^{(\pro)^k} & (\Giry\R)^k\ar[r]^{\Giry f\circ \otimes} & \Giry \R\\
+(\Ff)^k\ar[rr]_{f^\ast}\ar[u]^{(\Rep)^k} & & \F\ar[u]_{\prob}
+}
+\end{equation}
+where $\otimes: (\Giry X)^k\to\Giry (X^k)$ is the product of measures map, $\mu_1,\ldots,\mu_k\mapsto \mu_1\otimes \ldots\otimes \mu_k$.
+\paragraph{Probabilistic forward stability.} $f^\ast$ is forward stable (w.r.t.\@ $f$) if the following diagram commutes:
+\begin{equation}\label{diag:forpro}
+\xymatrix
+{
+\R^k\ar[r]^{f} & \R\ar[r]^{\pro} & \Giry \R\\
+(\Ff)^k\ar[rr]_{f^\ast}\ar[u]^{(\Rep)^k} & & \F\ar[u]_{\prob}
+}
+\end{equation}
+\paragraph{Probabilistic mixed stability.} $f^\ast$ is stable (w.r.t.\@ $f$) if the following diagram commutes:
+\begin{equation}\label{diag:mixedpro}
+\xymatrix@C=8ex
+{
+\R^k\ar[r]^{(\pro)^k} & (\Giry\R)^k\ar[r]^{\Giry f\circ \otimes} & \Giry \R\ar[r]^{\mu^{\Giry}\circ \Giry \pro} & \Giry\R \\
+(\Ff)^k\ar[rrr]_{f^\ast}\ar[u]^{(\Rep)^k} & & & \F\ar[u]_{\prob}
+}
+\end{equation}
+
+\noindent QUESTION: what do we substitute for  $\pro$ and $\prob$ ?
+
+\noindent HUNCH: $\forall$ $\exists$ quantification of the type $\forall$ probability $\pro$ with support given by $\nd$ $\exists$ a probability $\prob$ with support given by $\nd$ making the square commute...
+
+\begin{example}
+Returning to IEEE 754 addition, for backward stability, if we assume that $p$ in Diagram \eqref{diag:backpro} sends $x$ to the uniform distribution on $\nd(x)$, then in order to make the diagram commute, $p'$ cannot be a uniform distribution.  
+\end{example}
+
+\begin{example}
+For forward stability we can use $p=p'=$ the uniform distribution on points rounding to the same value. In which case we'll have classically forward stable $\Rightarrow$ probabilistically forward stable.
+\end{example}
+\bibliographystyle{plain}
+\bibliography{george}
+\end{document}
