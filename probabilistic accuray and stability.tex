@@ -1,0 +1,158 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{relsize}
+\usepackage{nicefrac}
+\usepackage{bbm}
+\usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
+
+%% OBJECTS
+\newcommand{\F}[1][n,p]{\mathbb{F}_{#1}}
+\newcommand{\Ff}[1][n,p]{\overline{\mathbb{F}}_{#1}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\R}{\mathbb{R}}
+
+%% MORPHISMS
+\newcommand{\Rep}[1][n,p]{\mathrm{i}_{#1}}
+\newcommand{\Round}[1][n,p]{\mathrm{r}_{#1}}
+\newcommand{\one}{\mathbbm{1}}
+
+%% DISTRIBUTIONS
+\newcommand{\Unif}{\mathsf{Uniform}}
+
+%% MATHS
+\newcommand{\ceil}[1]{\lceil #1 \rceil}
+\newcommand{\floor}[1]{\lfloor #1 \rfloor}
+\newcommand{\intvl}[1]{\mathlarger{\left[\right.}  #1 \mathlarger{\left.\right]}}
+\newcommand{\inv}{^{-1}}
+\newcommand{\fintvl}[1][x]{\intvl{\floor{#1},\ceil{#1}}}
+\newcommand{\fp}{_{\mathrm{fp}}}
+\newcommand{\absv}[1]{\vert #1\vert}
+
+\begin{document}
+\subsection*{Notation}
+Let $\Round:\R\to\F$ be the rounding map and $\Rep: \F\to \R$ the representation map. Since $\Round$ is monotone it follows that for each $n\in\F$ the set $\Round\inv(n):=\{x\in\R\mid \Round(x)=n\}$ is an interval (closed or open, it doesn't matter for what follows). In particular, given $x\in \R$ the set
+\[
+\Round\inv(\Round(x))=\{z\in\R\mid \Round(z)=\Round(x)\}
+\]
+is an interval. We define
+\begin{enumerate}
+\item $\ceil{x}=\sup \Round\inv(\Round(x))$
+\item $\floor{x}=\inf \Round\inv(\Round(x))$
+\end{enumerate}
+Moreover, each interval $\fintvl$ contains a machine representable real which we denote by $\hat{x}$ and which is defined by
+\[
+\hat{x}:=\Rep(\Round(x))\in \intvl{\floor{x},\ceil{x}}
+\]
+
+\subsection*{Modelling floating-point arithmetic probabilistically.}
+
+Using the notation above we can define a Markov chain $u$ on $\R$ as follows
+\[
+u(x):=\Unif(\fintvl),
+\]
+the uniform distribution on $\fintvl$ whose pdf is given by $f(t)=\frac{1}{(\ceil{x}-\floor{x})}\one_{\fintvl}(t)$
+
+We now model floating-point arithmetic operations. Given $\diamond\in \{+,-,\times,/\}$ we define $\widehat{\diamond}:\F\times \F\to \F$ as the machine implementation of $\diamond$, and we also define $\diamond\fp$ as the Markov chain on $\R\times \R$ given by
+\[
+\diamond\fp:=u\circ\diamond.
+\]
+For example:
+\[
+x+\fp y:=\Unif\fintvl[x+y]
+\]
+It follows from the IEEE 754 standard that
+\[
+(\Round)_\ast(x\diamond\fp y)=\delta_{\Round(x)~\widehat{\diamond}~\Round(y)}
+\]
+or, alternatively for $x,y\in\F$
+\[
+\Rep(x~\widehat{\diamond}~y)=\widehat{\Rep(x)\diamond \Rep(y)}
+\]
+
+\subsection*{Probabilistic floating-point arithmetic on probabilistic inputs.}
+
+Given two probability measure $\mu,\nu$ on the inputs of an arithmetic operation (i.e.\@ on $\R$), we can compute the probability of the output as the probability measure given by
+\[
+(\diamond\fp)_\ast(\mu\times\nu)=u_\ast\circ \diamond_\ast (\mu\times \nu)
+\]
+which assigns to an interval $\intvl{a,b}$ the probability
+\begin{equation}\label{eq:noisyoperation}
+\int_{-\infty}^{\infty} u(x)\left(\intvl{a,b}\right) ~d\diamond_\ast(\mu\times \nu)
+\end{equation}
+If we assume that $\mu,\nu$ are absolutely continuous w.r.t. the Lebesgue measure $\lambda$ we can find two density functions $\nicefrac{d\mu}{d\lambda}:=f_\mu,\nicefrac{d\nu}{d\lambda}:=f_\nu$ such that
+\[
+\mu(A)=\int_A f_\mu(x)~dx\qquad\text{and}\qquad\nu(A)=\int_A f_\nu(x)~dx
+\]
+The probability measure $\diamond\ast(\mu\times \nu)$ is then absolutely continuous with respect to the Lebesgue measure and we can then compute it density (see \cite{springer1979algebra}).
+
+\begin{align*}
+\frac{d(+)_\ast(\mu\times\nu)}{d\lambda}(t)&=\int_{-\infty}^{\infty} f_\mu(x)f_\nu(t-x)~dx\\
+\frac{d(-)_\ast(\mu\times\nu)}{d\lambda}(t)&=\int_{-\infty}^{\infty} f_\mu(x)f_\nu(x-t)~dx\\
+\frac{d(\times)_\ast(\mu\times\nu)}{d\lambda}(t)&=\int_{-\infty}^{\infty} \frac{1}{\absv{x}}f_\mu(x)f_\nu\left(\frac{t}{x}\right)dx\\
+\frac{d(/)_\ast(\mu\times\nu)}{d\lambda}(t)&=\int_{-\infty}^{\infty} \absv{x}f_\mu(x)f_\nu(tx)dx
+\end{align*}
+
+From this we can compute \eqref{eq:noisyoperation}. Let $f$ be any of the densities above, \eqref{eq:noisyoperation} amounts to computing
+\[
+\int_a^b u(x)\left(\intvl{a,b}\right) f(x) ~dx
+\]
+Assume that $a,b$ are machine representable numbers and that $a\neq b$. Given $x\in \R$ there are four possibilities
+\begin{enumerate}
+\item $\fintvl \cap \intvl{a,b}=\emptyset$, i.e.\ $\ceil{x}<a$ or $b>\floor{x}$ in which case 
+\[
+u(x)\left(\intvl{a,b}\right)=0
+\]
+\item  $\floor{x}\leq a\leq \ceil{x}<b$ in which case
+\[
+u(x)\left(\intvl{a,b}\right)=\frac{\ceil{x}-a}{\ceil{x}-\floor{x}}
+\]
+\item $\fintvl \subseteq \intvl{a,b}$, i.e.\ $a<\floor{x}, \ceil{x}<b$ in which case
+\[
+u(x)\left(\intvl{a,b}\right)=1
+\]
+\item  $a< \floor{x}\leq b<\ceil{x}$ in which case
+\[
+u(x)\left(\intvl{a,b}\right)=\frac{b-\floor{x}}{\ceil{x}-\floor{x}}
+\]
+\end{enumerate}
+Since we've assumed that $a<b$ are machine representable, as $x$ varies from $-\infty$ to $\infty$ each of the cases described above occur in the order 1.2.3.4.1. We can thus partition $\R$ into five intervals. 
+\begin{enumerate}
+\item On $\left(-\infty,\floor{a}\right)$ we have $\ceil{x}<a$ and thus
+\[
+\int_{-\infty}^{\floor{a}} u(x)\left(\intvl{a,b}\right) f(x) ~dx=0
+\]
+\item On $\fintvl[a]$ we have $\floor{x}=\floor{a}\leq a\leq \ceil{a}=\ceil{x}$ and thus
+\[
+\int_{\floor{a}}^{\ceil{a}} u(x)\left(\intvl{a,b}\right) f(x) ~dx=\frac{\ceil{a}-a}{\ceil{a}-\floor{a}}\int_{\floor{a}}^{\ceil{a}}  f(x) ~dx
+\]
+\item On $\left(\ceil{a},\floor{b}\right)$ we have  i.e.\ $a<\floor{x}, \ceil{x}<b$ and thus
+\[
+\int_{\ceil{a}}^{\floor{b}} u(x)\left(\intvl{a,b}\right) f(x) ~dx=\int_{\ceil{a}}^{\floor{b}} f(x)~dx
+\]
+(Note that if $b$ is the next machine representable number after $a$ we have $\left(\ceil{a},\floor{b}\right)=\emptyset$ and this case drops out.)
+\item On $\fintvl[b]$ we have $\floor{x}=\floor{b}\leq b\leq \ceil{b}=\ceil{x}$ and thus
+\[
+\int_{\floor{b}}^{\ceil{b}} u(x)\left(\intvl{a,b}\right) f(x) ~dx=\frac{b-\floor{b}}{\ceil{b}-\floor{b}}\int_{\floor{b}}^{\ceil{b}}  f(x) ~dx
+\]
+\item Finally, on $\left(\ceil{b},\infty\right)$ we have
+\[
+\int_{\ceil{b}}^{\infty} u(x)\left(\intvl{a,b}\right) f(x) ~dx=0
+\]
+\end{enumerate}
+
+It follows that when $a<b$ are machine representable we can write \eqref{eq:noisyoperation} as
+\begin{align*}
+\int_{-\infty}^{\infty} u(x)\left(\intvl{a,b}\right) ~d\diamond_\ast(\mu\times \nu)=\frac{\ceil{a}-a}{\ceil{a}-\floor{a}}\int_{\floor{a}}^{\ceil{a}}  f(x) ~dx + \int_{\ceil{a}}^{\floor{b}} f(x)~dx +
+\frac{b-\floor{b}}{\ceil{b}-\floor{b}}\int_{\floor{b}}^{\ceil{b}}  f(x) ~dx
+\end{align*}
+
+\subsection*{Simple test programs}
+
+
+
+\bibliographystyle{plain}
+\bibliography{george} 
+\end{document}
