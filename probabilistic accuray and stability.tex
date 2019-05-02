@@ -149,6 +149,22 @@ It follows that when $a<b$ are machine representable we can write \eqref{eq:nois
 \frac{b-\floor{b}}{\ceil{b}-\floor{b}}\int_{\floor{b}}^{\ceil{b}}  f(x) ~dx
 \end{align*}
 
+We can also compute the pdf of the probability measure $(\diamond\fp)_\ast(\mu\times \nu)$ defined by \eqref{eq:noisyoperation}. We have
+\begin{align*}
+(\diamond\fp)_\ast(\mu\times \nu)((-\infty,t))&=\int_{-\infty}^\infty u(x)(-\infty,t))f(x) ~dx\\
+&=\int_{-\infty}^\infty \int_{-\infty}^t \frac{1}{\ceil{x}-\floor{x}} \one_{\fintvl}(y) f(x) ~dy dx
+&=\int_{-\infty}^t\int_{-\infty}^\infty\frac{1}{\ceil{x}-\floor{x}} \one_{\fintvl}(y) f(x) ~dx dy
+\end{align*}
+where the last step is imply an application of Fubini's theorem. It follows that
+\begin{align*}
+\frac{d}{dt}(\diamond\fp)_\ast(\mu\times \nu)((-\infty,t))&=\int_{-\infty}^\infty\frac{1}{\ceil{x}-\floor{x}} \one_{\fintvl}(t) f(x) ~dx\\
+&=\int_{\floor{t}}^{\ceil{t}}\frac{f(x)}{\ceil{t}-\floor{t}} ~dx
+\end{align*}
+This holds for \emph{any} initial density, in other words if $\mu$ is a probability measure with Lebesgue density $\nicefrac{d\mu}{d\lambda}=f$, then $u_\ast(\mu)$ has density
+\[
+\frac{du_\ast(\mu)}{d\lambda}(t)=\int_{\floor{t}}^{\ceil{t}}\frac{f(x)}{\ceil{t}-\floor{t}} ~dx
+\]
+
 \subsection*{Simple test programs}
 
 
