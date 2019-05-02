@@ -6,13 +6,25 @@
 \usepackage{relsize}
 \usepackage{nicefrac}
 \usepackage{bbm}
+\usepackage{color}
+\usepackage[all]{xy}
+\usepackage{listings}
+\lstset{
+	language=C,
+	basicstyle=\ttfamily,
+	keywordstyle=\color{blue},
+	morekeywords={half}
+}
 \usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
+
+
 
 %% OBJECTS
 \newcommand{\F}[1][n,p]{\mathbb{F}_{#1}}
 \newcommand{\Ff}[1][n,p]{\overline{\mathbb{F}}_{#1}}
 \newcommand{\N}{\mathbb{N}}
 \newcommand{\R}{\mathbb{R}}
+\newcommand{\B}{\mathbb{B}}
 
 %% MORPHISMS
 \newcommand{\Rep}[1][n,p]{\mathrm{i}_{#1}}
@@ -30,6 +42,7 @@
 \newcommand{\fintvl}[1][x]{\intvl{\floor{#1},\ceil{#1}}}
 \newcommand{\fp}{_{\mathrm{fp}}}
 \newcommand{\absv}[1]{\vert #1\vert}
+\newcommand{\Pro}[1]{\mathbb{P}\left[ #1 \right]}
 
 \begin{document}
 \subsection*{Notation}
@@ -143,16 +156,15 @@ Since we've assumed that $a<b$ are machine representable, as $x$ varies from $-\
 \]
 \end{enumerate}
 
-It follows that when $a<b$ are machine representable we can write \eqref{eq:noisyoperation} as
+\noindent It follows that when $a<b$ are machine representable we can write \eqref{eq:noisyoperation} as
 \begin{align*}
 \int_{-\infty}^{\infty} u(x)\left(\intvl{a,b}\right) ~d\diamond_\ast(\mu\times \nu)=\frac{\ceil{a}-a}{\ceil{a}-\floor{a}}\int_{\floor{a}}^{\ceil{a}}  f(x) ~dx + \int_{\ceil{a}}^{\floor{b}} f(x)~dx +
 \frac{b-\floor{b}}{\ceil{b}-\floor{b}}\int_{\floor{b}}^{\ceil{b}}  f(x) ~dx
 \end{align*}
-
 We can also compute the pdf of the probability measure $(\diamond\fp)_\ast(\mu\times \nu)$ defined by \eqref{eq:noisyoperation}. We have
 \begin{align*}
 (\diamond\fp)_\ast(\mu\times \nu)((-\infty,t))&=\int_{-\infty}^\infty u(x)(-\infty,t))f(x) ~dx\\
-&=\int_{-\infty}^\infty \int_{-\infty}^t \frac{1}{\ceil{x}-\floor{x}} \one_{\fintvl}(y) f(x) ~dy dx
+&=\int_{-\infty}^\infty \int_{-\infty}^t \frac{1}{\ceil{x}-\floor{x}} \one_{\fintvl}(y) f(x) ~dy dx\\
 &=\int_{-\infty}^t\int_{-\infty}^\infty\frac{1}{\ceil{x}-\floor{x}} \one_{\fintvl}(y) f(x) ~dx dy
 \end{align*}
 where the last step is imply an application of Fubini's theorem. It follows that
@@ -166,6 +178,50 @@ This holds for \emph{any} initial density, in other words if $\mu$ is a probabil
 \]
 
 \subsection*{Simple test programs}
+
+\begin{lstlisting}
+/* Precondition: Input is distributed uniformly on [0,1] */
+
+half x = ReadInput();
+if (x>0.25){
+  return TRUE;}
+else{
+  return FALSE;} 
+\end{lstlisting}
+
+Let us call the program above $\tt Prog$ and assume that the input is a real number drawn randomly and uniformly from $\intvl{0,1}$. The function \texttt{ReadInput} rounds the input to a half-precision floating-point number. The variable $\tt x$ is thus distributed according to
+\[
+(\Round[5,10])_\ast(\Unif(0,1))
+\]
+For $X\sim\Unif(0,1)$ we are interested in computing the probability of misclassification, i.e.\@
+\[
+\Pro{\mathtt{Prog}(X)=\mathtt{FALSE}\mid X> 0.25}
+\]
+This can be computed explicitly as
+\begin{align*}
+\Pro{\mathtt{Prog}(X)=\mathtt{FALSE}\mid X\leq 0.25}&=\frac{\Pro{\mathtt{Prog}(X)=\mathtt{FALSE} \wedge X\leq 0.25}}{\Pro{X> 0.25}}\\
+&=\frac{\Pro{X\in \{x\mid x>0.25 \wedge \Round[5,10](x)\leq 0.25\}}}{0.75}\\
+&=\frac{\ceil{0.25}-0.25}{0.75}
+\end{align*}
+
+\[
+\xymatrix@C=12em
+{
+\R\ar[r]^{\Round[5,10]} & \F[5,10]\ar[r]^{->0.25} & \B
+}
+\]
+
+
+\begin{lstlisting}
+/* Precondition: Input is distributed uniformly on [0,1] */
+
+half x = ReadInput();
+half y = ReadInput();
+if (x+y>0.25){
+  return TRUE;}
+else{
+  return FALSE;} 
+\end{lstlisting}
 
 
 
