@@ -334,11 +334,11 @@ and the two sets are therefore equal. It follows that Diagram \eqref{diag:back} 
 \begin{example}
 The unary operation $-+^\ast 1: \F\to\F$ (still assuming IEEE 754 standard) is easily seen to be forward stable. However it is not backward stable. Following Diagram \eqref{diag:back} counter-clockwise we get by definition of the IEEE 754 standard
 \[
-x,y\mapsto \Round\inv\{x+^\ast y\}=\left\{(x+1)(1+\delta): \absv{\delta}\leq \uro\right\}
+x\mapsto \Round\inv\{x+^\ast 1\}=\left\{(x+1)(1+\delta): \absv{\delta}\leq \uro\right\}
 \]
 and following it clockwise we get
 \[
-x,y\mapsto \{x(1+\delta)+1:\absv{\delta}\leq \uro\}
+x\mapsto \{x(1+\delta)+1:\absv{\delta}\leq \uro\}
 \]
 which is a strictly smaller set that does not contain, for example
 \[
