@@ -204,12 +204,17 @@ This can be computed explicitly as
 &=\frac{\ceil{0.25}-0.25}{0.75}
 \end{align*}
 
+More generally if $X$ is distributed according to some density $f_X$ and $C$ is the machine-representable value of the threshold we have
 \[
-\xymatrix@C=12em
-{
-\R\ar[r]^{\Round[5,10]} & \F[5,10]\ar[r]^{->0.25} & \B
-}
+\Pro{\mathtt{Prog}(X)=\mathtt{FALSE}\mid X> C}=\frac{\int_C^{\ceil{C}} f_X(x)~dx}{\int_{x>C} f_X(x)~dx}
 \]
+
+%\[
+%\xymatrix@C=12em
+%{
+%\R\ar[r]^{\Round[5,10]} & \F[5,10]\ar[r]^{->0.25} & \B
+%}
+%\]
 
 
 \begin{lstlisting}
@@ -223,7 +228,18 @@ else{
   return FALSE;} 
 \end{lstlisting}
 
-
+This time we want to compute:
+\[
+\Pro{\mathtt{Prog}(X,Y)=\mathtt{FALSE}\mid X+Y> C}.
+\]
+This is more complex because we model $\mathtt{Prog}(X,Y)$ by using $+\fp$. We get
+\begin{align*}
+\Pro{\mathtt{Prog}(X,Y)=\mathtt{FALSE}\mid X+Y> C}&=\Pro{X+\fp Y\in\{(-\infty,C]\}\mid X+Y>C}\\
+&=\Pro{u(X+Y)\in\{(-\infty,C]\}\mid X+Y>C}\\
+&=\int_C^\infty u(z)((-\infty,C]) f_+(z)~dz\\
+&=\int_C^{\ceil{C}} u(z)((-\infty,C]) f_+(z)~dz\\
+&=\int_C^{\ceil{C}} \frac{\ceil{C}-C}{\ceil{C}-\floor{C}} f_+(z)~dz
+\end{align*}
 
 \bibliographystyle{plain}
 \bibliography{george} 
