@@ -24,7 +24,8 @@ class Test:
         plt.plot(prec,err)
         plt.xlabel('precision (bits)')
         plt.ylabel('probability of error (%)')
-        plt.show()
+        plt.savefig("pics/no_op_precision")
+        plt.clf()
 
     def plot_against_threshold(self):
         th=[]
@@ -37,7 +38,8 @@ class Test:
         plt.plot(th,err)
         plt.xlabel('threshold')
         plt.ylabel('probability of error (%)')
-        plt.show()
+        plt.savefig("pics/no_op_threshold")
+        plt.clf()
 
 # A class for testing a variable against a threshold
 class TestUniformVariable(Test):

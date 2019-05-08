@@ -1,10 +1,10 @@
 import simple_tests
 from pacal import *
 import time
-# test1=simple_tests.TestUniformVariable(0,100,32,10)
-# test1.plot_against_precision(4,32)
-# test1.precision=10
-# test1.plot_against_threshold()
+test1=simple_tests.TestUniformVariable(0,1,0.25,10)
+test1.plot_against_precision(4,32)
+test1.precision=10
+test1.plot_against_threshold()
 
 #test1=simple_tests.TestUniformVariable(0,2,0.75,10)
 #test1.compute()
@@ -15,12 +15,12 @@ import time
 #test1.plot_against_precision(4,32)
 #test2.plot_against_precision(4,32)
 
-start = time. time()
-#X =
-Y=0.01*UniformDistr(0,1)
-for i in range(1,80):
-    Y=Y+0.01*UniformDistr(0,1)
-Y.plot()
-#show()
-end = time. time()
-print(end - start)
+# start = time. time()
+# #X =
+# Y=0.01*UniformDistr(0,1)
+# for i in range(1,80):
+#     Y=Y+0.01*UniformDistr(0,1)
+# Y.plot()
+# #show()
+# end = time. time()
+# print(end - start)
