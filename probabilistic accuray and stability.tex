@@ -30,6 +30,7 @@
 \newcommand{\Rep}[1][n,p]{\mathrm{i}_{#1}}
 \newcommand{\Round}[1][n,p]{\mathrm{r}_{#1}}
 \newcommand{\one}{\mathbbm{1}}
+\newcommand{\id}{\mathrm{Id}}
 
 %% DISTRIBUTIONS
 \newcommand{\Unif}{\mathsf{Uniform}}
@@ -101,12 +102,12 @@ If we assume that $\mu,\nu$ are absolutely continuous w.r.t. the Lebesgue measur
 \]
 The probability measure $\diamond\ast(\mu\times \nu)$ is then absolutely continuous with respect to the Lebesgue measure and we can then compute it density (see \cite{springer1979algebra}).
 
-\begin{align*}
-\frac{d(+)_\ast(\mu\times\nu)}{d\lambda}(t)&=\int_{-\infty}^{\infty} f_\mu(x)f_\nu(t-x)~dx\\
-\frac{d(-)_\ast(\mu\times\nu)}{d\lambda}(t)&=\int_{-\infty}^{\infty} f_\mu(x)f_\nu(x-t)~dx\\
-\frac{d(\times)_\ast(\mu\times\nu)}{d\lambda}(t)&=\int_{-\infty}^{\infty} \frac{1}{\absv{x}}f_\mu(x)f_\nu\left(\frac{t}{x}\right)dx\\
-\frac{d(/)_\ast(\mu\times\nu)}{d\lambda}(t)&=\int_{-\infty}^{\infty} \absv{x}f_\mu(x)f_\nu(tx)dx
-\end{align*}
+\begin{align}
+\frac{d(+)_\ast(\mu\times\nu)}{d\lambda}(t)&=\int_{-\infty}^{\infty} f_\mu(x)f_\nu(t-x)~dx\label{eq:pdfplus}\\
+\frac{d(-)_\ast(\mu\times\nu)}{d\lambda}(t)&=\int_{-\infty}^{\infty} f_\mu(x)f_\nu(x-t)~dx\label{eq:pdfminus}\\
+\frac{d(\times)_\ast(\mu\times\nu)}{d\lambda}(t)&=\int_{-\infty}^{\infty} \frac{1}{\absv{x}}f_\mu(x)f_\nu\left(\frac{t}{x}\right)dx\label{eq:pdftimes}\\
+\frac{d(/)_\ast(\mu\times\nu)}{d\lambda}(t)&=\int_{-\infty}^{\infty} \absv{x}f_\mu(x)f_\nu(tx)dx\label{eq:pdfdiv}
+\end{align}
 
 From this we can compute \eqref{eq:noisyoperation}. Let $f$ be any of the densities above, \eqref{eq:noisyoperation} amounts to computing
 \[
@@ -173,9 +174,9 @@ where the last step is imply an application of Fubini's theorem. It follows that
 &=\int_{\floor{t}}^{\ceil{t}}\frac{f(x)}{\ceil{t}-\floor{t}} ~dx
 \end{align*}
 This holds for \emph{any} initial density, in other words if $\mu$ is a probability measure with Lebesgue density $\nicefrac{d\mu}{d\lambda}=f$, then $u_\ast(\mu)$ has density
-\[
-\frac{du_\ast(\mu)}{d\lambda}(t)=\int_{\floor{t}}^{\ceil{t}}\frac{f(x)}{\ceil{t}-\floor{t}} ~dx
-\]
+\begin{equation}
+\frac{du_\ast(\mu)}{d\lambda}(t)=\int_{\floor{t}}^{\ceil{t}}\frac{f(x)}{\ceil{t}-\floor{t}} ~dx \label{eq:updf}
+\end{equation}
 
 \subsection*{Simple test programs}
 
@@ -218,7 +219,7 @@ More generally if $X$ is distributed according to some density $f_X$ and $C$ is 
 
 
 \begin{lstlisting}
-/* Precondition: Input is distributed uniformly on [0,1] */
+/* Precondition: Inputs are distributed uniformly on [0,1] */
 
 half x = ReadInput();
 half y = ReadInput();
@@ -241,6 +242,47 @@ This is more complex because we model $\mathtt{Prog}(X,Y)$ by using $+\fp$. We g
 &=\int_C^{\ceil{C}} \frac{\ceil{C}-C}{\ceil{C}-\floor{C}} f_+(z)~dz
 \end{align*}
 
+\subsection{More than one operation}
+
+Consider now a program of the shape
+\begin{lstlisting}
+/* Precondition: Inputs are distributed uniformly on [0,1] */
+
+half x = ReadInput();
+half y = ReadInput();
+half z = ReadInput();
+if (1+x+(y*z)/2>0.25){
+  return TRUE;}
+else{
+  return FALSE;} 
+\end{lstlisting}
+
+The function $\mathtt{1+x+(y*z)/2}$ provides an over-approximation of the distribution of $\mathtt{1+x+(x*x)/2}$, a common approximation of $\mathtt{exp(x)}$. We can consider (1) the distribution of $\mathtt{1+x+(y*z)/2}$ and (2) the probability of misclassification.
+
+Let's start with computing the distribution of $\mathtt{1+x+(y*z)/2}$. We define $\upsilon$ to be the uniform measure on $\intvl{0,1}$. The measure we're looking for is given by the pushforward of the measure $\upsilon\times\upsilon\times\upsilon$ through the sequence of (probabilistic) maps
+\[
+\xymatrix@C=12ex
+{
+\R^3\ar[r]^{\langle \id, \times\rangle} & \R^2\ar[r]^{\langle\id,\frac{-}{2}\rangle} & \R^2\ar[r]^{\langle\id,u\rangle} & \R^2 \ar[r]^{+} & \R\ar[r]^{-+1} &\R\ar[r]^{u}&\R
+}
+\]
+Here we assume for simplicity's sake that we can do $(\cdot\times\cdot)/2$ and $1+\cdot+\cdot$ in one operation. We know that the pdf of $((\cdot \times \cdot)/2)_\ast(\upsilon\times\upsilon)$ is given via \eqref{eq:pdftimes} by
+\begin{align*}
+\phi(t)&=\frac{1}{2}\int_{-\infty}^\infty \frac{1}{\absv{x}} \one_{\intvl{0,1}}(x) \one_{\intvl{0,1}}\left(\frac{t}{x}\right)~dx\\
+&=\frac{1}{2}\int_0^\infty \frac{1}{x}\one_{\intvl{0,1}}(x) \one_{\intvl{0,1}}\left(\frac{t}{x}\right)~dx+\int_{-\infty}^0 -\frac{1}{x}\one_{\intvl{0,1}}(x) \one_{\intvl{0,1}}\left(\frac{t}{x}\right)~dx\\
+&=\frac{1}{2}\int_0^1 \frac{1}{x}\one_{\intvl{0,1}}\left(\frac{t}{x}\right)~dx\\
+&=\frac{1}{2}\one_{\intvl{0,1}}(t)\int_t^1 \frac{1}{x}~dx \\
+&=\frac{1}{2}\one_{\intvl{0,1}}(t) (-\log(t))
+\end{align*}
+And thus thus, the pdf of $(u\circ (\cdot \times \cdot)/2))_\ast(\upsilon\times\upsilon)$ is given via \eqref{eq:updf} by
+\begin{align*}
+\hat{\phi}(t)&=\sum_{i\in \Rep \left[\F\right]} \one_{\intvl{\floor{i},\ceil{i}}}(t) \int_{\floor{i}}^{\ceil{i}}\frac{\phi(x)}{\ceil{i}-\floor{i}} ~dx\\
+&=\sum_{i\in \Rep \left[\F\right]\cap\intvl{0,1}}  \one_{\intvl{\floor{i},\ceil{i}}}(t) \frac{\ceil{i}(1-\log(\ceil{i})-\floor{i}(1-\log(\floor{i})}{\ceil{i}-\floor{i}}
+\end{align*}
+We can now compute the density of $(1+\cdot+\cdot)\ast$ applied to the product of $(u\circ (\cdot \times \cdot)/2))_\ast(\upsilon\times\upsilon)$  and $\upsilon$ via \eqref{eq:pdftimes}:
+\begin{align*}
+\psi(t)=\int_{-\infty}^\infty \hat{\phi}(x) \one_{\intvl{1,2}}(t-x)~dx
+\end{align*}
 \bibliographystyle{plain}
 \bibliography{george} 
 \end{document}
