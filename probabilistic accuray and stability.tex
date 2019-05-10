@@ -1,6 +1,7 @@
 \documentclass[10pt,a4paper]{article}
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
+\usepackage{amsthm}
 \usepackage{amsfonts}
 \usepackage{amssymb}
 \usepackage{relsize}
@@ -17,7 +18,17 @@
 }
 \usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
 
-
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\newtheorem{example}[theorem]{Example}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\newtheorem{remark}[theorem]{Remark}
 
 %% OBJECTS
 \newcommand{\F}[1][n,p]{\mathbb{F}_{#1}}
@@ -235,14 +246,44 @@ This time we want to compute:
 \]
 This is more complex because we model $\mathtt{Prog}(X,Y)$ by using $+\fp$. We get
 \begin{align*}
-\Pro{\mathtt{Prog}(X,Y)=\mathtt{FALSE}\mid X+Y> C}&=\Pro{X+\fp Y\in\{(-\infty,C]\}\mid X+Y>C}\\
-&=\Pro{u(X+Y)\in\{(-\infty,C]\}\mid X+Y>C}\\
-&=\int_C^\infty u(z)((-\infty,C]) f_+(z)~dz\\
-&=\int_C^{\ceil{C}} u(z)((-\infty,C]) f_+(z)~dz\\
-&=\int_C^{\ceil{C}} \frac{\ceil{C}-C}{\ceil{C}-\floor{C}} f_+(z)~dz
+&\Pro{\mathtt{Prog}(X,Y)=\mathtt{FALSE}\mid X+Y> C}\\
+=&\Pro{(u\circ + \circ (\Round\times \Round))(X,Y)\in\{(-\infty,C]\}\mid X+Y>C}\\
+&=\int_{C}^{\infty}\left( \int_{\R^2}(u\circ + \circ (\Round\times \Round))(x,y)(-\infty,C]
+~\frac{\phi_\mu(x)\phi_\nu(y)}{\phi_\mu\ast\phi_\nu(z)}\delta(z-x-y) ~dx~dy\right)\phi_\mu\ast\phi_\nu(z)~dz\\
+&=\int_{C}^{\infty} \int_{-\infty}^\infty (u\circ + \circ (\Round\times \Round))(x,z-x)(-\infty,C]~\phi_\mu(x)\phi_\nu(z-x)~dx~dz\\
+&=\int_{C}^{\infty} \int_{-\infty}^\infty u(\Round(x)+\Round(z-x))(-\infty,C]\phi_\mu(x)\phi_\nu(z-x)~dx~dz 
 \end{align*}
 
-\subsection{More than one operation}
+
+
+
+\begin{itemize}
+\item $u(t)(-\infty,C]=0$ if $t>\ceil{C}$. Moreover, 
+\item $u(t)(-\infty,C]=\frac{C-\floor{C}}{\ceil{C}-\floor{C}}$ if $\floor{C}\leq t\leq \ceil{C}$
+\item $u(t)(-\infty,C]=1$ if $t\leq \floor{C}$
+\item $C\leq z$
+\end{itemize} 
+
+\begin{lemma}
+The following equivalences hold:
+\begin{enumerate}
+\item $\Round(x)+\Round(z-x)>\ceil{C}\Leftrightarrow \Round(z)>\ceil{C}$
+\item $\Round(x)+\Round(z-x)<\floor{C}\Leftrightarrow\Round(z)<\floor{C}$
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+\end{proof}
+
+From the first equivalence we get that $u(\Round(x)+\Round(z-x))(-\infty,C]=0$ when  $z>\ceil{C}$ and from the second inequality we get a contradiction with $C\leq z$, i.e. this case does not present itself. Thus the only non-zero contribution is when 
+\[
+\floor{C}<\Round(z)<\ceil{C}
+\]
+and the integral above become
+\begin{align*}
+=&\int_C^{\ceil{C}}\int_{-\infty}^\infty \frac{C-\floor{C}}{\ceil{C}-\floor{C}}\phi_\mu(x)\phi_\nu(z-x)~dx~dz \\
+=&\int_C^{\ceil{C}}\int_{-\infty}^\infty \frac{C-\floor{C}}{\ceil{C}-\floor{C}}~\phi_\mu\ast\phi_\nu(z)~dz
+\end{align*}
+\subsection*{More than one operation}
 
 Consider now a program of the shape
 \begin{lstlisting}
