@@ -51,14 +51,21 @@
 \newcommand{\floor}[1]{\lfloor #1 \rfloor}
 \newcommand{\intvl}[1]{\mathlarger{\left[\right.}  #1 \mathlarger{\left.\right]}}
 \newcommand{\inv}{^{-1}}
-\newcommand{\fintvl}[1][x]{\intvl{\floor{#1},\ceil{#1}}}
+\newcommand{\fintvl}[1][x]{\mathlarger{\lfloor}#1,#1\mathlarger{\rceil}}
 \newcommand{\fp}{_{\mathrm{fp}}}
 \newcommand{\absv}[1]{\vert #1\vert}
 \newcommand{\Pro}[1]{\mathbb{P}\left[ #1 \right]}
 
+\author{Fredrik Dahlqvist}
+\title{Probabilistic accuracy and stability}
+
 \begin{document}
-\subsection*{Notation}
-Let $\Round:\R\to\F$ be the rounding map and $\Rep: \F\to \R$ the representation map. Since $\Round$ is monotone it follows that for each $n\in\F$ the set $\Round\inv(n):=\{x\in\R\mid \Round(x)=n\}$ is an interval (closed or open, it doesn't matter for what follows). In particular, given $x\in \R$ the set
+\maketitle
+
+\section{Probabilistic modelling}
+
+\subsection{Notation}
+Let $\F$ denote the set of floating-point numbers with exponent size $n$ and mantissa size $p$, let $\Round:\R\to\F$ and $\Rep: \F\to \R$ be the corresponding rounding and representation maps respectively. Since $\Round$ is monotone it follows that for each $n\in\F$ the set $\Round\inv(n):=\{x\in\R\mid \Round(x)=n\}$ is an interval (closed or open, it doesn't matter for what follows). In particular, given $x\in \R$ the set
 \[
 \Round\inv(\Round(x))=\{z\in\R\mid \Round(z)=\Round(x)\}
 \]
@@ -67,20 +74,21 @@ is an interval. We define
 \item $\ceil{x}=\sup \Round\inv(\Round(x))$
 \item $\floor{x}=\inf \Round\inv(\Round(x))$
 \end{enumerate}
+For notational clarity we denote the interval $\left[\floor{x},\ceil{x}\right]$ as $\fintvl$.
 Moreover, each interval $\fintvl$ contains a machine representable real which we denote by $\hat{x}$ and which is defined by
 \[
-\hat{x}:=\Rep(\Round(x))\in \intvl{\floor{x},\ceil{x}}
+\hat{x}:=\Rep(\Round(x))\in \fintvl
 \]
 
-\subsection*{Modelling floating-point arithmetic probabilistically.}
+\subsection{Modelling floating-point arithmetic probabilistically.}
 
 Using the notation above we can define a Markov chain $u$ on $\R$ as follows
 \[
-u(x):=\Unif(\fintvl),
+u(x):=\Unif\left(\fintvl\right),
 \]
-the uniform distribution on $\fintvl$ whose pdf is given by $f(t)=\frac{1}{(\ceil{x}-\floor{x})}\one_{\fintvl}(t)$
+the uniform distribution on $\fintvl$ whose pdf is given by $f(t)=\frac{1}{(\ceil{x}-\floor{x})}\one_{\fintvl}(t)$. We now model floating-point arithmetic operations. 
 
-We now model floating-point arithmetic operations. Given $\diamond\in \{+,-,\times,/\}$ we define $\widehat{\diamond}:\F\times \F\to \F$ as the machine implementation of $\diamond$, and we also define $\diamond\fp$ as the Markov chain on $\R\times \R$ given by
+Given $\diamond\in \{+,-,\times,/\}$ we define $\widehat{\diamond}:\F\times \F\to \F$ as the machine implementation of $\diamond$, and we also define $\diamond\fp$ as the Markov chain on $\R\times \R$ given by
 \[
 \diamond\fp:=u\circ\diamond.
 \]
@@ -88,16 +96,18 @@ For example:
 \[
 x+\fp y:=\Unif\fintvl[x+y]
 \]
-It follows from the IEEE 754 standard that
+It follows from the IEEE 754 standard (in particular the `correct rounding requirement') that the machine implementation $\hat{\diamond}$ and the probabilistic model $\diamond\fp$ must be related related via:
 \[
 (\Round)_\ast(x\diamond\fp y)=\delta_{\Round(x)~\widehat{\diamond}~\Round(y)}
 \]
 or, alternatively for $x,y\in\F$
 \[
-\Rep(x~\widehat{\diamond}~y)=\widehat{\Rep(x)\diamond \Rep(y)}
+\Rep(x)\diamond\fp \Rep(y)=\Unif\left(\fintvl[\Rep(x~\hat{\diamond}~y)]\right)
 \]
 
-\subsection*{Probabilistic floating-point arithmetic on probabilistic inputs.}
+
+
+\subsection{Probabilistic floating-point arithmetic on probabilistic inputs.}
 
 Given two probability measure $\mu,\nu$ on the inputs of an arithmetic operation (i.e.\@ on $\R$), we can compute the probability of the output as the probability measure given by
 \[
@@ -111,7 +121,7 @@ If we assume that $\mu,\nu$ are absolutely continuous w.r.t. the Lebesgue measur
 \[
 \mu(A)=\int_A f_\mu(x)~dx\qquad\text{and}\qquad\nu(A)=\int_A f_\nu(x)~dx
 \]
-The probability measure $\diamond\ast(\mu\times \nu)$ is then absolutely continuous with respect to the Lebesgue measure and we can then compute it density (see \cite{springer1979algebra}).
+The probability measure $\diamond_\ast(\mu\times \nu)$ is then absolutely continuous with respect to the Lebesgue measure and we can then compute its density (see \cite{springer1979algebra}) as:
 
 \begin{align}
 \frac{d(+)_\ast(\mu\times\nu)}{d\lambda}(t)&=\int_{-\infty}^{\infty} f_\mu(x)f_\nu(t-x)~dx\label{eq:pdfplus}\\
@@ -119,7 +129,6 @@ The probability measure $\diamond\ast(\mu\times \nu)$ is then absolutely continu
 \frac{d(\times)_\ast(\mu\times\nu)}{d\lambda}(t)&=\int_{-\infty}^{\infty} \frac{1}{\absv{x}}f_\mu(x)f_\nu\left(\frac{t}{x}\right)dx\label{eq:pdftimes}\\
 \frac{d(/)_\ast(\mu\times\nu)}{d\lambda}(t)&=\int_{-\infty}^{\infty} \absv{x}f_\mu(x)f_\nu(tx)dx\label{eq:pdfdiv}
 \end{align}
-
 From this we can compute \eqref{eq:noisyoperation}. Let $f$ be any of the densities above, \eqref{eq:noisyoperation} amounts to computing
 \[
 \int_a^b u(x)\left(\intvl{a,b}\right) f(x) ~dx
@@ -189,7 +198,90 @@ This holds for \emph{any} initial density, in other words if $\mu$ is a probabil
 \frac{du_\ast(\mu)}{d\lambda}(t)=\int_{\floor{t}}^{\ceil{t}}\frac{f(x)}{\ceil{t}-\floor{t}} ~dx \label{eq:updf}
 \end{equation}
 
-\subsection*{Simple test programs}
+\subsection{The quantization operator $Q$}
+
+\newcommand{\Mes}{\mathrm{M}}
+
+The Markov chain $u$ defines a linear operator acting on measures on $\R$ via 
+\[
+Q: \Mes(\R)\to\Mes(\R), \mu\mapsto u_\ast(\mu)
+\]
+If a measure $\mu$ on $\R$ is absolutely continuous w.r.t. to the Lebesgue measure $\lambda$, then the operator $Q$ transform its density according to \eqref{eq:updf}, i.e.
+\[
+\frac{dQ(\mu)}{d\lambda}(t)=\int_{\floor{t}}^{\ceil{t}} \frac{1}{\ceil{t}-\floor{t}} \frac{d\mu}{d\lambda}~d\lambda 
+\] 
+We note immediately that $\frac{dQ(\mu)}{d\lambda}$ is piecewise constant, in fact constant over each interval $\fintvl[\Rep(i)], i\in \F$, which is why we will call $Q$ the $\F$-quantization operator, or simply the quantization operator if there is no ambiguity about $n,p$.
+
+\subsection{Arithmetic of quantized distributions}
+
+We compute \eqref{eq:pdfplus}-\eqref{eq:pdfdiv} for pdfs. It is clear from \eqref{eq:updf} that these are piecewise constant, i.e. a quantized pdf can always be expressed as a weighted sum of indicator functions:
+\[
+\sum_{i=1}^N \alpha_i \one_{\left[a_i,b_i\right]}
+\]
+Let us therefore start by computing \eqref{eq:pdfplus}-\eqref{eq:pdfdiv} for (scaled) indicator functions.
+
+\subsubsection{Sums}
+We denote by $\oplus$ the convolution of \eqref{eq:pdfplus} and we first compute the convolution of two weighted indicators:
+\begin{align*}
+\alpha\one_{[a,b]}\oplus\beta\one_{[c,d]}(t)& =\int_{-\infty}^\infty\alpha\one_{[a,b]}(x)\beta\one_{[c,d]}(t-x)dx \\
+&=\alpha\beta\int_a^b \one_{[c,d]}(t-x)~dx\\
+&= \begin{cases}
+\alpha\beta(b-a)&c+b\leq t\text{ and }t\leq d+a\\
+\alpha\beta((d+b)-t) & c+b\leq t\text{ and } d+a\leq t \\
+\alpha\beta(t-(a+c)) & t\leq c+b\text{ and }t\leq d+a\\
+\alpha\beta(d-c) & t\leq c+b\text{ and } d+a\leq t\\
+0 &\text{else}
+\end{cases}
+\end{align*}
+
+Note that convolutions are commutative and it follows by linearity of integration that
+\begin{align*}
+\sum_{i=1}^N \alpha_i \one_{\left[a_i,b_i\right]} \oplus \sum_{i=1}^N \alpha_i \one_{\left[a_i,b_i\right]}(t)&=\sum_{i,j=1}^N \alpha_i\one_{[a_1,b_1]}\oplus\beta_j\one_{[c_j,d_j]}(t) \\
+&= 2\sum_{i\leq j=1}^N \alpha_i\one_{[a_1,b_1]}\oplus\beta_j\one_{[c_j,d_j]}(t)
+\end{align*}
+
+
+\subsubsection{Differences}
+
+In the same way as above we compute 
+\begin{align*}
+\alpha\one_{[a,b]}\ominus\beta\one_{[c,d]}(t)&=\int_{-\infty}^{\infty} \alpha\one_{[a,b]}(x)\beta\one_{[c,d]}(x-t)~dx\\
+&=\alpha\beta\int_a^b \one_{[c,d]}(x-t)~dx\\
+&=\begin{cases}
+\alpha\beta(d-c)&\text{if }a-c\leq t\text{ and }t\leq b-d\\
+\alpha\beta((b-c)-t) &\text{if }a-c\leq t\text{ and }b-d\leq t\\
+\alpha\beta(t-(a-d)) & \text{if }t\leq a-c\text{ and }t\leq b-d\\
+\alpha\beta(b-a) & \text{if } t\leq a-c\text{ and }b-d\leq t\\
+0&\text{else}
+\end{cases}
+\end{align*}
+Note that, just like substraction, $\ominus$ is not commutative.
+
+\subsection{Multiplication}
+For notational clarity we assume $\alpha=\beta=1$
+\begin{align*}
+\int_{-\infty}^\infty \frac{1}{\absv{x}}\one_{[a,b]}(x)\one_{[c,d]}\left(\frac{t}{x}\right)~dx = &\int_{a}^b \frac{1}{\absv{x}}\one_{[c,d]}\left(\frac{t}{x}\right)~dx\\
+=& \int_{\min(a,0)}^{\min(b,0)}\frac{1}{\absv{x}}\one_{[c,d]}\left(\frac{t}{x}\right)~dx+\int_{\max(a,0)}^{\max(b,0)}\frac{1}{\absv{x}}\one_{[c,d]}\left(\frac{t}{x}\right)~dx\\
+=& \int_{\min(a,0)}^{\min(b,0)}\frac{1}{\absv{x}}\one_{[\min(c,0),\min(d,0)]}\left(\frac{t}{x}\right)~dx+\int_{\min(a,0)}^{\min(b,0)}\frac{1}{\absv{x}}\one_{[\max(c,0),\max(d,0)]}\left(\frac{t}{x}\right)~dx \\
+& +\int_{\max(a,0)}^{\max(b,0)}\frac{1}{\absv{x}}\one_{[\min(c,0),\min(d,0)]}\left(\frac{t}{x}\right)~dx+\int_{\max(a,0)}^{\max(b,0)}\frac{1}{\absv{x}}\one_{[\max(c,0),\max(d,0)]}\left(\frac{t}{x}\right)~dx\\
+:= & A+B+C+D
+\end{align*}
+
+\paragraph{Term D:}
+\begin{align*}
+D& =\int_{\max(a,0)}^{\max(b,0)}\frac{1}{\absv{x}}\one_{[\max(c,0),\max(d,0)]}\left(\frac{t}{x}\right)~dx\\
+&=\begin{cases}
+\int_{\frac{t}{\max(d,0)}}^{\frac{t}{\max(c,d)}}\frac{1}{x}~dx=\log\max(d,0)-\log\max(c,0)&\text{if }\max(a,0)\leq \frac{t}{\max(d,0)}\leq \frac{t}{\max(c,0)}\leq \max(b,0)\\
+0&\text{else}
+\end{cases}
+\end{align*}
+
+\section{Computing instability probabilities}
+
+We now show how to compute some simple instability probabilities.
+
+\subsection{Programs with no operation}
+
 
 \begin{lstlisting}
 /* Precondition: Input is distributed uniformly on [0,1] */
@@ -201,9 +293,9 @@ else{
   return FALSE;} 
 \end{lstlisting}
 
-Let us call the program above $\tt Prog$ and assume that the input is a real number drawn randomly and uniformly from $\intvl{0,1}$. The function \texttt{ReadInput} rounds the input to a half-precision floating-point number. The variable $\tt x$ is thus distributed according to
+Let us call the program above $\tt Prog$ and assume that the input is a real number drawn randomly and uniformly from $\intvl{0,1}$. The function \texttt{ReadInput} rounds the input to a floating-point number in $\F$. The variable $\tt x$ is thus distributed according to
 \[
-(\Round[5,10])_\ast(\Unif(0,1))
+(\Round)_\ast(\Unif(0,1))
 \]
 For $X\sim\Unif(0,1)$ we are interested in computing the probability of misclassification, i.e.\@
 \[
@@ -228,6 +320,9 @@ More generally if $X$ is distributed according to some density $f_X$ and $C$ is 
 %}
 %\]
 
+\subsubsection*{b) Programs with one operation}
+
+\newcommand{\rRound}{\mathrm{Round}}
 
 \begin{lstlisting}
 /* Precondition: Inputs are distributed uniformly on [0,1] */
@@ -244,45 +339,60 @@ This time we want to compute:
 \[
 \Pro{\mathtt{Prog}(X,Y)=\mathtt{FALSE}\mid X+Y> C}.
 \]
-This is more complex because we model $\mathtt{Prog}(X,Y)$ by using $+\fp$. We get
+This is more complex because we model $\mathtt{Prog}(X,Y)$ by using $+\fp$. For notational clarity we define $\rRound:=\Rep\circ \Round$.
 \begin{align*}
 &\Pro{\mathtt{Prog}(X,Y)=\mathtt{FALSE}\mid X+Y> C}\\
-=&\Pro{(u\circ + \circ (\Round\times \Round))(X,Y)\in\{(-\infty,C]\}\mid X+Y>C}\\
-&=\int_{C}^{\infty}\left( \int_{\R^2}(u\circ + \circ (\Round\times \Round))(x,y)(-\infty,C]
+:=&\Pro{(u\circ + \circ (\rRound\times \rRound))(X,Y)\in\{(-\infty,C]\}\mid X+Y>C}\\
+=&\int_{C}^{\infty}\left( \int_{\R^2}(u\circ + \circ (\rRound\times \rRound))(x,y)(-\infty,C]
 ~\frac{\phi_\mu(x)\phi_\nu(y)}{\phi_\mu\ast\phi_\nu(z)}\delta(z-x-y) ~dx~dy\right)\phi_\mu\ast\phi_\nu(z)~dz\\
-&=\int_{C}^{\infty} \int_{-\infty}^\infty (u\circ + \circ (\Round\times \Round))(x,z-x)(-\infty,C]~\phi_\mu(x)\phi_\nu(z-x)~dx~dz\\
-&=\int_{C}^{\infty} \int_{-\infty}^\infty u(\Round(x)+\Round(z-x))(-\infty,C]\phi_\mu(x)\phi_\nu(z-x)~dx~dz 
+=&\int_{C}^{\infty} \int_{-\infty}^\infty (u\circ + \circ (\rRound\times \rRound))(x,z-x)(-\infty,C]~\phi_\mu(x)\phi_\nu(z-x)~dx~dz\\
+=&\int_{C}^{\infty} \int_{-\infty}^\infty u(\rRound(x)+\rRound(z-x))(-\infty,C]\phi_\mu(x)\phi_\nu(z-x)~dx~dz 
 \end{align*}
-
-
-
-
-\begin{itemize}
-\item $u(t)(-\infty,C]=0$ if $t>\ceil{C}$. Moreover, 
-\item $u(t)(-\infty,C]=\frac{C-\floor{C}}{\ceil{C}-\floor{C}}$ if $\floor{C}\leq t\leq \ceil{C}$
-\item $u(t)(-\infty,C]=1$ if $t\leq \floor{C}$
-\item $C\leq z$
-\end{itemize} 
-
-\begin{lemma}
-The following equivalences hold:
-\begin{enumerate}
-\item $\Round(x)+\Round(z-x)>\ceil{C}\Leftrightarrow \Round(z)>\ceil{C}$
-\item $\Round(x)+\Round(z-x)<\floor{C}\Leftrightarrow\Round(z)<\floor{C}$
-\end{enumerate}
-\end{lemma}
-\begin{proof}
-\end{proof}
-
-From the first equivalence we get that $u(\Round(x)+\Round(z-x))(-\infty,C]=0$ when  $z>\ceil{C}$ and from the second inequality we get a contradiction with $C\leq z$, i.e. this case does not present itself. Thus the only non-zero contribution is when 
-\[
-\floor{C}<\Round(z)<\ceil{C}
-\]
-and the integral above become
-\begin{align*}
-=&\int_C^{\ceil{C}}\int_{-\infty}^\infty \frac{C-\floor{C}}{\ceil{C}-\floor{C}}\phi_\mu(x)\phi_\nu(z-x)~dx~dz \\
-=&\int_C^{\ceil{C}}\int_{-\infty}^\infty \frac{C-\floor{C}}{\ceil{C}-\floor{C}}~\phi_\mu\ast\phi_\nu(z)~dz
-\end{align*}
+%Note that:
+%\begin{itemize}
+%\item $u(t)(-\infty,C]=0$ if $t>\ceil{C}$. Moreover, 
+%\item $u(t)(-\infty,C]=\frac{C-\floor{C}}{\ceil{C}-\floor{C}}$ if $\floor{C}\leq t\leq \ceil{C}$
+%\item $u(t)(-\infty,C]=1$ if $t<\floor{C}$
+%\item $C\leq z$
+%\end{itemize} 
+%Note also that
+%\begin{lemma}\label{lem:distrib}
+%The following equivalences hold:
+%\begin{enumerate}
+%\item $\rRound(x)+\rRound(z-x)>\ceil{C}\Leftrightarrow z>\ceil{C}$
+%\item $\rRound(x)+\rRound(z-x)<\floor{C}\Leftrightarrow z<\floor{C}$
+%\end{enumerate}
+%\end{lemma}
+%\begin{proof}
+%We have:
+%\begin{align*}
+%&\rRound(x)+\rRound(z-x)>\ceil{C}\\
+%\Leftrightarrow & \floor{\rRound(x)+\rRound(z-x)}>\ceil{C}\\
+%\Leftrightarrow &\floor{\rRound(\rRound(x)+\rRound(z-x))}>\ceil{C}\\
+%\Leftrightarrow & (1-u)(\rRound(x)+\rRound(z-x))>\ceil{C}\\
+%\Leftrightarrow & (1-u)\rRound(x)+(1-u)\rRound(z-x)>\ceil{C}\\
+%\Leftrightarrow & \floor{\rRound(x)}+\floor{\rRound(z-x)}>\ceil{C}\\
+%\Leftrightarrow & \floor{x}+\floor{z-x}>\ceil{C}\\
+%\Leftrightarrow & (1-u)x+(1-u)(z-x)>\ceil{C}\\
+%\Leftrightarrow &\floor{z}>\ceil{C}\\
+%\Leftrightarrow & z>\ceil{C}
+%\end{align*}
+%and similarly for the second equivalence.
+%\end{proof}
+%
+%From the first equivalence we get that $u(\rRound(x)+\rRound(z-x))(-\infty,C]=0$ when  $z>\ceil{C}$ and from the second equivalence we see that $u(\rRound(x)+\rRound(z-x))(-\infty,C]=1$ if $z<\floor{C}$, which contradicts $C\leq z$, i.e. this case does not present itself. Thus the only non-zero contribution is when 
+%\[
+%\floor{C}<\rRound(z)<\ceil{C}
+%\]
+%The integral above now become
+%\begin{align*}
+%\Pro{\mathtt{Prog}(X,Y)=\mathtt{FALSE}\mid X+Y> C}=&\int_C^{\ceil{C}}\int_{-\infty}^\infty \frac{C-\floor{C}}{\ceil{C}-\floor{C}}\phi_\mu(x)\phi_\nu(z-x)~dx~dz \\
+%=&\int_C^{\ceil{C}}\frac{C-\floor{C}}{\ceil{C}-\floor{C}}~\phi_\mu\ast\phi_\nu(z)~dz
+%\end{align*}
+%
+%\begin{remark}
+%Lemma \ref{lem:distrib} does \textbf{not} hold for multiplication and division since it relies on the distributivity of $+$ over $\times$. It also does \textbf{not} hold for fixed point representation since it also relies on expressing $\floor{x}$ and $(1-u)x$. 
+%\end{remark}
 \subsection*{More than one operation}
 
 Consider now a program of the shape
