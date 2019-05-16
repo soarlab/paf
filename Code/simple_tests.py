@@ -3,7 +3,7 @@ import gmpy2
 from gmpy2 import mpfr
 import matplotlib.pyplot as plt
 
-# An class for simple test programs
+# A class for simple test programs
 class Test:
     def __init__(self, threshold, precision):
         self.threshold=threshold

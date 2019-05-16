@@ -1,10 +1,16 @@
 import simple_tests
+from quantized import QDIst
+from pacal import NormalDistr
 from pacal import *
 import time
-test1=simple_tests.TestUniformVariable(0,1,0.25,10)
-test1.plot_against_precision(4,32)
-test1.precision=10
-test1.plot_against_threshold()
+
+Q=QDIst(11, 5,  NormalDistr(0,1))
+
+
+# test1=simple_tests.TestUniformVariable(0,1,0.25,10)
+# test1.plot_against_precision(4,32)
+# test1.precision=10
+# test1.plot_against_threshold()
 
 #test1=simple_tests.TestUniformVariable(0,2,0.75,10)
 #test1.compute()
