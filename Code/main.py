@@ -1,10 +1,11 @@
 import simple_tests
-from quantized import QDIst
-from pacal import NormalDistr
-from pacal import *
+from stats import plot_error
+import pacal
 import time
 
-Q=QDIst(11, 5,  NormalDistr(0,1))
+#plot_error(pacal.NormalDistr(2,0.001),11,100000)
+plot_error(pacal.UniformDistr(-0.01,0.01),11,100000)
+
 
 
 # test1=simple_tests.TestUniformVariable(0,1,0.25,10)
