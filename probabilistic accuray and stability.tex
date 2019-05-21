@@ -80,15 +80,48 @@ Moreover, each interval $\fintvl$ contains a machine representable real which we
 \hat{x}:=\Rep(\Round(x))\in \fintvl
 \]
 
-\subsection{Modelling floating-point arithmetic probabilistically.}
+\subsection{Two models probabilistic models of floating-point arithmetic.}
 
-Using the notation above we can define a Markov chain $u$ on $\R$ as follows
+\subsubsection{Model 1: uniform error}
+
+Any real number $x\in\R$ and its rounding $\Round(x)$ are related by
+\begin{equation}\label{eq:roundrelation}
+\Round(x)=x(1+\epsilon)\qquad\absv{\epsilon}\leq u_{n,p}
+\end{equation}
+ 
+where $u_{n,p}$ is the unit roundoff for the set of floating points $\F$. The first model consists in saying that $\epsilon$ is distributed uniformly on $\left[ -u_{n,p},u_{n,p}\right]$, that it to say, each time a rounding operation occurs (explicitly or implicitly -- e.g. in floating-point an arithmetic operation), an error given by sampling uniformly from $\left[ -u_{n,p},u_{n,p}\right]$ is added to the computation. More formally, we define the Markov chain on $\R$ given by
+\[
+v_{n,p}(x)=\Unif\left(\left[x(1-u),x(1+u)\right]\right)
+\]
+whose pdf is given by $f_v(t)=\frac{1}{2xu}\one_{\left[x(1-u),x(1+u)\right]}(t)$. 
+
+Using this model we interpret the following program 
+\begin{lstlisting}
+/* Precondition: Inputs are distributed uniformly on [0,1] */
+
+half x = ReadInput();
+half y = ReadInput();
+return (x+y) 
+\end{lstlisting}
+as the Markov kernel
+\[
+\xymatrix@C=10ex
+{
+\R^2 \ar[r]^{\langle v,v\rangle} & \R^2\ar[r]^{+} & \R\ar[r]^{v} & \R
+}
+\]
+where we've denoted $v_{5,11}$ (for half-precision) as $v$ for notational clarity. To see why this is the case, note that $\mathtt{ReadInput()}$ preforms a rounding on each input, this explains the first kernel $\langle v,v\rangle$. The program then performs a floating-point addition, which by the IEEE 754 standard is equivalent to computing the addition in infinite precision (the deterministic kernel $+:\R^2\to\R$), follows by a rounding operation (the last $v:\R\to\R$).
+
+\begin{remark}
+This model does not round correctly in the sense that if $x$ is sufficiently close to $\ceil{x}$, then it is entirely possible for $v(x)$ to land in $\fintvl{y}$, where $y$ is the  first floating-point representable number following $\ceil{x}$, and similarly if $x$ is sufficiently close to $\floor{x}$.
+\end{remark}
+
+\subsubsection{Model 2: correctly rounded error}
+We introduce another probabilistic model using the Markov chain $u$ on $\R$ defined as:
 \[
 u(x):=\Unif\left(\fintvl\right),
 \]
-the uniform distribution on $\fintvl$ whose pdf is given by $f(t)=\frac{1}{(\ceil{x}-\floor{x})}\one_{\fintvl}(t)$. We now model floating-point arithmetic operations. 
-
-Given $\diamond\in \{+,-,\times,/\}$ we define $\widehat{\diamond}:\F\times \F\to \F$ as the machine implementation of $\diamond$, and we also define $\diamond\fp$ as the Markov chain on $\R\times \R$ given by
+the uniform distribution on $\fintvl$ whose pdf is given by $f(t)=\frac{1}{(\ceil{x}-\floor{x})}\one_{\fintvl}(t)$. We now model floating-point arithmetic operations. Given $\diamond\in \{+,-,\times,/\}$ we define $\widehat{\diamond}:\F\times \F\to \F$ as the machine implementation of $\diamond$, and we also define $\diamond\fp$ as the Markov chain on $\R\times \R$ given by
 \[
 \diamond\fp:=u\circ\diamond.
 \]
@@ -105,10 +138,16 @@ or, alternatively for $x,y\in\F$
 \Rep(x)\diamond\fp \Rep(y)=\Unif\left(\fintvl[\Rep(x~\hat{\diamond}~y)]\right)
 \]
 
-
+\begin{remark}
+This model rounds correctly, but does not satisfy \eqref{eq:roundrelation}. Indeed, a number arbitrary close to $\\ceil{x}$ can transition through $u$ to a number arbitrary close to $\floor{x}$, in which case the relative error is arbitrary close to $(1+2u)$.
+\end{remark}
 
 \subsection{Probabilistic floating-point arithmetic on probabilistic inputs.}
 
+
+\subsubsection{Model 1}
+
+\subsubsection{Model 2}
 Given two probability measure $\mu,\nu$ on the inputs of an arithmetic operation (i.e.\@ on $\R$), we can compute the probability of the output as the probability measure given by
 \[
 (\diamond\fp)_\ast(\mu\times\nu)=u_\ast\circ \diamond_\ast (\mu\times \nu)
