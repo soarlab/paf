@@ -3,8 +3,8 @@ from stats import plot_error
 import pacal
 import time
 
-#plot_error(pacal.NormalDistr(2,0.001),11,100000)
-plot_error(pacal.UniformDistr(-0.01,0.01),11,100000)
+plot_error(pacal.NormalDistr(0.9,0.1),11,100000)
+plot_error(pacal.UniformDistr(0.9,1),11,100000)
 
 
 

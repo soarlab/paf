@@ -4,6 +4,7 @@
 \usepackage{amsthm}
 \usepackage{amsfonts}
 \usepackage{amssymb}
+\usepackage{stmaryrd}
 \usepackage{relsize}
 \usepackage{nicefrac}
 \usepackage{bbm}
@@ -35,6 +36,7 @@
 \newcommand{\Ff}[1][n,p]{\overline{\mathbb{F}}_{#1}}
 \newcommand{\N}{\mathbb{N}}
 \newcommand{\R}{\mathbb{R}}
+\newcommand{\eR}{\overline{\R}}
 \newcommand{\B}{\mathbb{B}}
 
 %% MORPHISMS
@@ -46,15 +48,23 @@
 %% DISTRIBUTIONS
 \newcommand{\Unif}{\mathsf{Uniform}}
 
+%% FUNCTORS
+\newcommand{\Mes}{\mathrm{M}}
+
 %% MATHS
 \newcommand{\ceil}[1]{\lceil #1 \rceil}
 \newcommand{\floor}[1]{\lfloor #1 \rfloor}
+\newcommand{\cceil}[1]{\llceil #1 \rrceil}
+\newcommand{\ffloor}[1]{\llfloor #1 \rrfloor}
 \newcommand{\intvl}[1]{\mathlarger{\left[\right.}  #1 \mathlarger{\left.\right]}}
 \newcommand{\inv}{^{-1}}
 \newcommand{\fintvl}[1][x]{\mathlarger{\lfloor}#1,#1\mathlarger{\rceil}}
+\newcommand{\ffintvl}[1][x]{\mathlarger{\llfloor}#1,#1\mathlarger{\rrceil}}
 \newcommand{\fp}{_{\mathrm{fp}}}
 \newcommand{\absv}[1]{\vert #1\vert}
 \newcommand{\Pro}[1]{\mathbb{P}\left[ #1 \right]}
+\newcommand{\uro}[1][p]{u_{#1}}
+\newcommand{\NaN}{\mathtt{NaN}}
 
 \author{Fredrik Dahlqvist}
 \title{Probabilistic accuracy and stability}
@@ -62,10 +72,10 @@
 \begin{document}
 \maketitle
 
-\section{Probabilistic modelling}
+\section{Modelling}
 
 \subsection{Notation}
-Let $\F$ denote the set of floating-point numbers with exponent size $n$ and mantissa size $p$, let $\Round:\R\to\F$ and $\Rep: \F\to \R$ be the corresponding rounding and representation maps respectively. Since $\Round$ is monotone it follows that for each $n\in\F$ the set $\Round\inv(n):=\{x\in\R\mid \Round(x)=n\}$ is an interval (closed or open, it doesn't matter for what follows). In particular, given $x\in \R$ the set
+Let $\F$ denote the set of floating-point numbers with exponent size $n$ and mantissa size $p$, let $\Round:\R\to\F$ and $\Rep: \F\to \R$ be the corresponding rounding and representation maps respectively. We will denote by $\uro$ the unit roundoff corresponding to the precision $p$. Since $\Round$ is monotone it follows that for each $n\in\F$ the set $\Round\inv(n):=\{x\in\R\mid \Round(x)=n\}$ is an interval (closed or open, it doesn't matter for what follows). In particular, given $x\in \R$ the set
 \[
 \Round\inv(\Round(x))=\{z\in\R\mid \Round(z)=\Round(x)\}
 \]
@@ -79,44 +89,22 @@ Moreover, each interval $\fintvl$ contains a machine representable real which we
 \[
 \hat{x}:=\Rep(\Round(x))\in \fintvl
 \]
+Dually, we will also consider 
+\begin{align*}
+\cceil{x}= \inf \Rep\inv\left(\left[x,+\infty\right)\right) \\
+\ffloor{x}=\sup \Rep\inv\left(\left(-\infty,x\right]\right)
+\end{align*}
+i.e. $\cceil{x}$ is the smallest machine representable number above $x$ and $\ffloor{x}$ is the largest machine representable number preceding it. Again, for notational clarity we will denote the interval  $\left[\hspace{1pt}\ffloor{x},\cceil{x}\hspace{2pt}\right]$ as $\ffintvl$.
+We also define the smallest and largest real numbers which do not get rounded to $-\infty$ and $+\infty$ respectively:
+\begin{align*}
+U&:=\sup\{x\mid \Round(x)\neq\infty\}\\
+D&:=\inf\{x\mid \Round(x)\neq-\infty\}
+\end{align*}
+As usual $\eR:=\R\cup\{-\infty,\infty\}$ denotes the \emph{extended real line}.
 
-\subsection{Two models probabilistic models of floating-point arithmetic.}
+\subsection{Three models probabilistic models of floating-point arithmetic.}
 
-\subsubsection{Model 1: uniform error}
-
-Any real number $x\in\R$ and its rounding $\Round(x)$ are related by
-\begin{equation}\label{eq:roundrelation}
-\Round(x)=x(1+\epsilon)\qquad\absv{\epsilon}\leq u_{n,p}
-\end{equation}
- 
-where $u_{n,p}$ is the unit roundoff for the set of floating points $\F$. The first model consists in saying that $\epsilon$ is distributed uniformly on $\left[ -u_{n,p},u_{n,p}\right]$, that it to say, each time a rounding operation occurs (explicitly or implicitly -- e.g. in floating-point an arithmetic operation), an error given by sampling uniformly from $\left[ -u_{n,p},u_{n,p}\right]$ is added to the computation. More formally, we define the Markov chain on $\R$ given by
-\[
-v_{n,p}(x)=\Unif\left(\left[x(1-u),x(1+u)\right]\right)
-\]
-whose pdf is given by $f_v(t)=\frac{1}{2xu}\one_{\left[x(1-u),x(1+u)\right]}(t)$. 
-
-Using this model we interpret the following program 
-\begin{lstlisting}
-/* Precondition: Inputs are distributed uniformly on [0,1] */
-
-half x = ReadInput();
-half y = ReadInput();
-return (x+y) 
-\end{lstlisting}
-as the Markov kernel
-\[
-\xymatrix@C=10ex
-{
-\R^2 \ar[r]^{\langle v,v\rangle} & \R^2\ar[r]^{+} & \R\ar[r]^{v} & \R
-}
-\]
-where we've denoted $v_{5,11}$ (for half-precision) as $v$ for notational clarity. To see why this is the case, note that $\mathtt{ReadInput()}$ preforms a rounding on each input, this explains the first kernel $\langle v,v\rangle$. The program then performs a floating-point addition, which by the IEEE 754 standard is equivalent to computing the addition in infinite precision (the deterministic kernel $+:\R^2\to\R$), follows by a rounding operation (the last $v:\R\to\R$).
-
-\begin{remark}
-This model does not round correctly in the sense that if $x$ is sufficiently close to $\ceil{x}$, then it is entirely possible for $v(x)$ to land in $\fintvl{y}$, where $y$ is the  first floating-point representable number following $\ceil{x}$, and similarly if $x$ is sufficiently close to $\floor{x}$.
-\end{remark}
-
-\subsubsection{Model 2: correctly rounded error}
+\subsubsection{Model 1: correctly-rounded error model}
 We introduce another probabilistic model using the Markov chain $u$ on $\R$ defined as:
 \[
 u(x):=\Unif\left(\fintvl\right),
@@ -139,7 +127,71 @@ or, alternatively for $x,y\in\F$
 \]
 
 \begin{remark}
-This model rounds correctly, but does not satisfy \eqref{eq:roundrelation}. Indeed, a number arbitrary close to $\\ceil{x}$ can transition through $u$ to a number arbitrary close to $\floor{x}$, in which case the relative error is arbitrary close to $(1+2u)$.
+This model rounds correctly, but does not satisfy \eqref{eq:roundrelation}. Indeed, a number arbitrary close to $\\ceil{x}$ can transition through $u$ to a number arbitrary close to $\floor{x}$, in which case the relative error is arbitrary close to $\frac{2u}{1-u}>2u>u$.
+\end{remark}
+
+\subsubsection{Model 2: uniform error model}
+
+Any real number $x\in\R$ with $D< x< U$ satisfies (\cite[Th. 2.2]{higham2002accuracy}):
+\begin{equation}\label{eq:roundrelation}
+\Round(x)=x(1+\epsilon)\qquad\absv{\epsilon}\leq \uro
+\end{equation}
+where $\uro$ is the unit roundoff at precision $p$. Our first model consists in saying that $\epsilon$ is distributed uniformly on $\left[ -\uro,\uro\right]$, that it to say, each time a rounding operation occurs (explicitly or implicitly -- e.g. in a floating-point arithmetic operation), an error given by sampling uniformly from $\left[ -\uro,\uro\right]$ is added to the computation. More formally, we define the Markov chain on $\R$ given by
+\[
+v_{p}(x)=\begin{cases}
+\Unif\left(\left[x(1-\uro),x(1+\uro)\right]\right) & D<x<U\\
+\delta_{-\infty}& x< D\\
+\delta_{\infty} & x>U
+\end{cases}
+\]
+Note that the pdf of $\Unif\left(\left[x(1-\uro),x(1+\uro)\right]\right)$ is given by $f_v(t)=\frac{1}{2xu}\one_{\left[x(1-u),x(1+u)\right]}(t)$. 
+Using this model we interpret the following program:
+\begin{lstlisting}
+/* Precondition: Inputs are distributed uniformly on [0,1] */
+
+half x = ReadInput();
+half y = ReadInput();
+return (x+y) 
+\end{lstlisting}
+as the Markov kernel
+\[
+\xymatrix@C=10ex
+{
+\R^2 \ar[r]^{\langle v,v\rangle} & \R^2\ar[r]^{+} & \R\ar[r]^{v} & \R
+}
+\]
+where we've denoted $v_{11}$ (for half-precision) as $v$ for notational clarity. To see why this is the case, note that $\mathtt{ReadInput()}$ preforms a rounding on each input, this explains the first kernel $\langle v,v\rangle$. The program then performs a floating-point addition, which by the IEEE 754 standard is equivalent to computing the addition in infinite precision (the deterministic kernel $+:\R^2\to\R$), follows by a rounding operation (the last $v:\R\to\R$).
+
+\begin{remark}
+This model does not round correctly in the sense that if $x$ is sufficiently close to $\ceil{x}$, then it is entirely possible for $v(x)$ to land in $\fintvl[y]$, where $y=\cceil{\ceil{x}}$ is the  first floating-point representable number following $\ceil{x}$ (which therefore does not round to the same number as $x$), and similarly if $x$ is sufficiently close to $\floor{x}$.
+\end{remark}
+
+
+
+\subsubsection{Model 3: machine-representable model}
+
+Our third model is defined using the Markov chain defined by
+\[
+w(x)=\Unif\left(\ffintvl\right)
+\]
+This rounding-model is a probabilistic version of the interval-arithmetic model of rounding provided by the tool Daisy \cite{darulova2018daisy}. Note that Markov kernel $w$ is defined exclusively with uniform distributions on intervals whose bounds are machine-representable. Using this rounding model, the program 
+\begin{lstlisting}
+/* Precondition: Inputs are distributed uniformly on [0,1] */
+
+half x = ReadInput();
+half y = ReadInput();
+return (x+y) 
+\end{lstlisting}
+is interpreted as the Markov kernel
+\[
+\xymatrix@C=10ex
+{
+\R^2 \ar[r]^{\langle w,w\rangle} & \R^2\ar[r]^{+} & \R\ar[r]^{w} & \R
+}
+\]
+
+\begin{remark}
+This model does not always round correctly or provide tight error bounds.
 \end{remark}
 
 \subsection{Probabilistic floating-point arithmetic on probabilistic inputs.}
@@ -147,7 +199,7 @@ This model rounds correctly, but does not satisfy \eqref{eq:roundrelation}. Inde
 
 \subsubsection{Model 1}
 
-\subsubsection{Model 2}
+
 Given two probability measure $\mu,\nu$ on the inputs of an arithmetic operation (i.e.\@ on $\R$), we can compute the probability of the output as the probability measure given by
 \[
 (\diamond\fp)_\ast(\mu\times\nu)=u_\ast\circ \diamond_\ast (\mu\times \nu)
@@ -237,9 +289,11 @@ This holds for \emph{any} initial density, in other words if $\mu$ is a probabil
 \frac{du_\ast(\mu)}{d\lambda}(t)=\int_{\floor{t}}^{\ceil{t}}\frac{f(x)}{\ceil{t}-\floor{t}} ~dx \label{eq:updf}
 \end{equation}
 
-\subsection{The quantization operator $Q$}
+\subsubsection{Model 2}
 
-\newcommand{\Mes}{\mathrm{M}}
+\subsection{Quantization operators }
+
+
 
 The Markov chain $u$ defines a linear operator acting on measures on $\R$ via 
 \[
