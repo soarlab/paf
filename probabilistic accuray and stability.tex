@@ -65,6 +65,8 @@
 \newcommand{\Pro}[1]{\mathbb{P}\left[ #1 \right]}
 \newcommand{\uro}[1][p]{u_{#1}}
 \newcommand{\NaN}{\mathtt{NaN}}
+\newcommand{\minfty}{\mathtt{infty}}
+\newcommand{\supp}{\mathrm{supp}}
 
 \author{Fredrik Dahlqvist}
 \title{Probabilistic accuracy and stability}
@@ -72,42 +74,85 @@
 \begin{document}
 \maketitle
 
-\section{Modelling}
-
-\subsection{Notation}
-Let $\F$ denote the set of floating-point numbers with exponent size $n$ and mantissa size $p$, let $\Round:\R\to\F$ and $\Rep: \F\to \R$ be the corresponding rounding and representation maps respectively. We will denote by $\uro$ the unit roundoff corresponding to the precision $p$. Since $\Round$ is monotone it follows that for each $n\in\F$ the set $\Round\inv(n):=\{x\in\R\mid \Round(x)=n\}$ is an interval (closed or open, it doesn't matter for what follows). In particular, given $x\in \R$ the set
+\subsection*{Notation}
+As usual $\eR:=\R\cup\{-\infty,\infty\}$ denotes the \emph{extended real line}. 
+Let $\F$ denote the set of floating-point numbers with exponent size $n$ and mantissa size $p$, let $\Round:\eR\to\F$ and $\Rep: \F\to \eR$ be the corresponding rounding and representation maps respectively. We will denote by $\uro$ the unit roundoff corresponding to the precision $p$. Since $\Round$ is monotone it follows that for each $n\in\F$ the set $\Round\inv(n):=\{x\in\eR\mid \Round(x)=n\}$ is an interval (closed or open, it doesn't matter for what follows). In particular, given $x\in \eR$ the set
 \[
 \Round\inv(\Round(x))=\{z\in\R\mid \Round(z)=\Round(x)\}
 \]
-is an interval. We define
+is an interval (possibly with $-\infty$ or $\infty$ as one of its bounds). We define
 \begin{enumerate}
 \item $\ceil{x}=\sup \Round\inv(\Round(x))$
 \item $\floor{x}=\inf \Round\inv(\Round(x))$
 \end{enumerate}
-For notational clarity we denote the interval $\left[\floor{x},\ceil{x}\right]$ as $\fintvl$.
+where, of course, $\inf \eR=-\infty$ and $\sup\eR=\infty$. For notational clarity we denote the interval $\left[\floor{x},\ceil{x}\right]$ as $\fintvl$.
 Moreover, each interval $\fintvl$ contains a machine representable real which we denote by $\hat{x}$ and which is defined by
 \[
 \hat{x}:=\Rep(\Round(x))\in \fintvl
 \]
-Dually, we will also consider 
+We denote the positive and negative `machine infinities' (both elements of $\F$) by $\minfty$ and $-\minfty$ to distinguish them from the `usual' positive and negative infinities $\infty$ and $-\infty$. We also define the smallest and largest real numbers which do not get rounded to machine infinities by:
 \begin{align*}
-\cceil{x}= \inf \Rep\inv\left(\left[x,+\infty\right)\right) \\
-\ffloor{x}=\sup \Rep\inv\left(\left(-\infty,x\right]\right)
+U&:=\sup\{x\mid \Round(x)\neq\mathtt{infty}\}\\
+D&:=\inf\{x\mid \Round(x)\neq-\mathtt{infty}\}
 \end{align*}
-i.e. $\cceil{x}$ is the smallest machine representable number above $x$ and $\ffloor{x}$ is the largest machine representable number preceding it. Again, for notational clarity we will denote the interval  $\left[\hspace{1pt}\ffloor{x},\cceil{x}\hspace{2pt}\right]$ as $\ffintvl$.
-We also define the smallest and largest real numbers which do not get rounded to $-\infty$ and $+\infty$ respectively:
+In particular, if $x\leq D$ then $\fintvl=\left[-\infty,D\right]$ and if $x\geq U$ then $\fintvl=\left[U,+\infty\right]$.
+We will also consider 
+\begin{enumerate}
+\item $\cceil{x}= \Rep\left(\inf \Rep\inv\left(\left[x,+\infty\right]\right)\right) $
+\item $\ffloor{x}=\Rep\left(\sup \Rep\inv\left(\left[-\infty,x\right]\right)\right)$
+\end{enumerate}
+where of course i.e. $\inf \F=-\minfty$ and $\sup\F=\minfty$. In other words, $\cceil{x}$ is the smallest machine representable number above $x$ and $\ffloor{x}$ is the largest machine representable number preceding it. Again, for notational clarity we will denote the interval  $\left[\hspace{1pt}\ffloor{x},\cceil{x}\hspace{2pt}\right]$ as $\ffintvl$.
+
+
+
+
+\section{Error distribution.}
+
+We define the (relative) rounding error as the quantity
+\[
+\frac{\absv{x-\Rep(\Round(x))}}{x}
+\]
+Suppose $x$ is sampled randomly from a probability distribution $\mu$ on $\R$ and then rounded by a map $\Round:\R\to\F$, \emph{what is the distribution of the (relative) error}?
+
+Note first that if $x\in (-\infty,D)$ then $\Round(x)=-\mathtt{infty}$, and the relative error introduced by rounding is then ill-defined/infinite:
+\[
+\frac{\absv{\Rep(\Round(x)))-x}}{x}=\frac{\absv{\infty-x}}{x}=\infty
+\]
+and similarly, if $x\in (U,\infty)$. We will therefore assume throughout that $\mu$ is supported by $[D,U]$. Morally, this is justified: any program receiving a probabilistic input $x$ should be able (at least most of the time) to read and quantize such an input without overflow. 
+
+Suppose thus that $\supp(\mu)\subseteq [D,U]$, can we compute the distribution of the rounding error? We assume that $\mu$ has a density $f$ w.r.t. the Lebesgue measure $\lambda$ on $\R$ (in particular $\mu(\infty)=\mu(-\infty)=0$).
+
+First we partition $\eR$ as the disjoint union
+\[
+\eR=\bigcup_{x\in \F}\Round\inv(x).
+\]
+On each element of the partition we can compute the c.d.f. of the rounding error 
 \begin{align*}
-U&:=\sup\{x\mid \Round(x)\neq\infty\}\\
-D&:=\inf\{x\mid \Round(x)\neq-\infty\}
+\mu\left(\left\{x\mid \frac{\absv{x-\hat{x}}}{x}\leq t\right\}\right).
 \end{align*}
-As usual $\eR:=\R\cup\{-\infty,\infty\}$ denotes the \emph{extended real line}.
+where $t$ is of course bounded by $0\leq t\leq \uro$.
+Supposing first that $\hat{x}\geq 0$ and distinguishing the cases where $x<\hat{x}$ and $\hat{x}\leq x$ we get
+\begin{align*}
+&\mu\left(\left\{x\mid x<\hat{x}, \frac{\hat{x}-x}{x}\leq t\right\}\right)+\mu\left(\left\{x\mid \hat{x}<x, \frac{x-\hat{x}}{x}\leq t\right\}\right)\\
+&=\mu\left(\left\{x\mid x<\hat{x}, \frac{\hat{x}}{x}-1\leq t\right\}\right)+\mu\left(\left\{x\mid \hat{x}<x, 1-\frac{\hat{x}}{x}\leq t\right\}\right)\\
+&=\mu\left(\left\{x\mid x<\hat{x}, \frac{\hat{x}}{1+t}\leq x\right\}\right)+\mu\left(\left\{x\mid \hat{x}<x, \frac{\hat{x}}{1-t}\geq x\right\}\right)\\
+&=\int_{\frac{\hat{x}}{1+t}}^{\hat{x}} f(u)~du+\int_{\hat{x}}^{\frac{\hat{x}}{1-t}}f(u)~du\\
+&=\int_{\frac{\hat{x}}{1+t}}^{\frac{\hat{x}}{1-t}}f(u)~du
+\end{align*}
+
+\section{Modelling}
+
+
 
 \subsection{Three models probabilistic models of floating-point arithmetic.}
 
 \subsubsection{Model 1: correctly-rounded error model}
-We introduce another probabilistic model using the Markov chain $u$ on $\R$ defined as:
+We introduce a first probabilistic model using the Markov chain $u$ on $\R$ defined as:
 \[
-u(x):=\Unif\left(\fintvl\right),
+u(x):=\begin{cases}
+\Unif\left(\fintvl\right)& D\leq x\leq U\\
+\delta_{-\infty}& x< D\\
+\delta_{\infty} & x>U\end{cases}
 \]
 the uniform distribution on $\fintvl$ whose pdf is given by $f(t)=\frac{1}{(\ceil{x}-\floor{x})}\one_{\fintvl}(t)$. We now model floating-point arithmetic operations. Given $\diamond\in \{+,-,\times,/\}$ we define $\widehat{\diamond}:\F\times \F\to \F$ as the machine implementation of $\diamond$, and we also define $\diamond\fp$ as the Markov chain on $\R\times \R$ given by
 \[
@@ -127,7 +172,7 @@ or, alternatively for $x,y\in\F$
 \]
 
 \begin{remark}
-This model rounds correctly, but does not satisfy \eqref{eq:roundrelation}. Indeed, a number arbitrary close to $\\ceil{x}$ can transition through $u$ to a number arbitrary close to $\floor{x}$, in which case the relative error is arbitrary close to $\frac{2u}{1-u}>2u>u$.
+This model rounds correctly, but does not satisfy \eqref{eq:roundrelation}. Indeed, a number arbitrary close to $\ceil{x}$ can transition through $u$ to a number arbitrary close to $\floor{x}$, in which case the relative error is arbitrary close to $\frac{2u}{1-u}>2u>u$.
 \end{remark}
 
 \subsubsection{Model 2: uniform error model}
@@ -136,7 +181,7 @@ Any real number $x\in\R$ with $D< x< U$ satisfies (\cite[Th. 2.2]{higham2002accu
 \begin{equation}\label{eq:roundrelation}
 \Round(x)=x(1+\epsilon)\qquad\absv{\epsilon}\leq \uro
 \end{equation}
-where $\uro$ is the unit roundoff at precision $p$. Our first model consists in saying that $\epsilon$ is distributed uniformly on $\left[ -\uro,\uro\right]$, that it to say, each time a rounding operation occurs (explicitly or implicitly -- e.g. in a floating-point arithmetic operation), an error given by sampling uniformly from $\left[ -\uro,\uro\right]$ is added to the computation. More formally, we define the Markov chain on $\R$ given by
+where $\uro$ is the unit roundoff at precision $p$. We now introduce a model which consists in saying that $\epsilon$ is distributed uniformly on $\left[ -\uro,\uro\right]$, that it to say, each time a rounding operation occurs (explicitly or implicitly -- e.g. in a floating-point arithmetic operation), an error given by sampling uniformly from $\left[ -\uro,\uro\right]$ is added to the computation. More formally, we define the Markov chain on $\R$ given by
 \[
 v_{p}(x)=\begin{cases}
 \Unif\left(\left[x(1-\uro),x(1+\uro)\right]\right) & D<x<U\\
