@@ -62,6 +62,7 @@
 \newcommand{\ffintvl}[1][x]{\mathlarger{\llfloor}#1,#1\mathlarger{\rrceil}}
 \newcommand{\fp}{_{\mathrm{fp}}}
 \newcommand{\absv}[1]{\vert #1\vert}
+\newcommand{\norm}[1]{\Vert #1\Vert}
 \newcommand{\Pro}[1]{\mathbb{P}\left[ #1 \right]}
 \newcommand{\uro}[1][p]{u_{#1}}
 \newcommand{\NaN}{\mathtt{NaN}}
@@ -76,7 +77,11 @@
 
 \subsection*{Notation}
 As usual $\eR:=\R\cup\{-\infty,\infty\}$ denotes the \emph{extended real line}. 
-Let $\F$ denote the set of floating-point numbers with exponent size $n$ and mantissa size $p$, let $\Round:\eR\to\F$ and $\Rep: \F\to \eR$ be the corresponding rounding and representation maps respectively. We will denote by $\uro$ the unit roundoff corresponding to the precision $p$. Since $\Round$ is monotone it follows that for each $n\in\F$ the set $\Round\inv(n):=\{x\in\eR\mid \Round(x)=n\}$ is an interval (closed or open, it doesn't matter for what follows). In particular, given $x\in \eR$ the set
+Let $\F$ denote the set of floating-point numbers with exponent size $n$ and mantissa size $p$, let $\Round:\eR\to\F$ and $\Rep: \F\to \eR$ be the corresponding rounding and representation maps respectively. We denote the positive and negative `machine infinities' of $\F$ by $\minfty$ and $-\minfty$ to distinguish them from the `usual' positive and negative infinities $\infty$ and $-\infty$. Ignoring $\NaN$, both $\F$ and $\eR$ carry a natural linear order with $\inf \F=-\minfty,\sup\F=\minfty$ and $\inf \eR=-\infty,\sup\eR=\infty$.
+
+
+
+We will denote by $\uro$ the unit roundoff corresponding to the precision $p$. Since $\Round$ is monotone it follows that for each $n\in\F$ the set $\Round\inv(n):=\{x\in\eR\mid \Round(x)=n\}$ is an interval (closed or open, it doesn't matter for what follows). In particular, given $x\in \eR$ the set
 \[
 \Round\inv(\Round(x))=\{z\in\R\mid \Round(z)=\Round(x)\}
 \]
@@ -85,12 +90,12 @@ is an interval (possibly with $-\infty$ or $\infty$ as one of its bounds). We de
 \item $\ceil{x}=\sup \Round\inv(\Round(x))$
 \item $\floor{x}=\inf \Round\inv(\Round(x))$
 \end{enumerate}
-where, of course, $\inf \eR=-\infty$ and $\sup\eR=\infty$. For notational clarity we denote the interval $\left[\floor{x},\ceil{x}\right]$ as $\fintvl$.
+For notational clarity we denote the interval $\left[\floor{x},\ceil{x}\right]$ as $\fintvl$.
 Moreover, each interval $\fintvl$ contains a machine representable real which we denote by $\hat{x}$ and which is defined by
 \[
 \hat{x}:=\Rep(\Round(x))\in \fintvl
 \]
-We denote the positive and negative `machine infinities' (both elements of $\F$) by $\minfty$ and $-\minfty$ to distinguish them from the `usual' positive and negative infinities $\infty$ and $-\infty$. We also define the smallest and largest real numbers which do not get rounded to machine infinities by:
+We also define the smallest and largest real numbers which do not get rounded to machine infinities by:
 \begin{align*}
 U&:=\sup\{x\mid \Round(x)\neq\mathtt{infty}\}\\
 D&:=\inf\{x\mid \Round(x)\neq-\mathtt{infty}\}
@@ -101,7 +106,7 @@ We will also consider
 \item $\cceil{x}= \Rep\left(\inf \Rep\inv\left(\left[x,+\infty\right]\right)\right) $
 \item $\ffloor{x}=\Rep\left(\sup \Rep\inv\left(\left[-\infty,x\right]\right)\right)$
 \end{enumerate}
-where of course i.e. $\inf \F=-\minfty$ and $\sup\F=\minfty$. In other words, $\cceil{x}$ is the smallest machine representable number above $x$ and $\ffloor{x}$ is the largest machine representable number preceding it. Again, for notational clarity we will denote the interval  $\left[\hspace{1pt}\ffloor{x},\cceil{x}\hspace{2pt}\right]$ as $\ffintvl$.
+In other words, $\cceil{x}$ is the smallest machine representable number above $x$ and $\ffloor{x}$ is the largest machine representable number preceding it. Again, for notational clarity we will denote the interval  $\left[\hspace{1pt}\ffloor{x},\cceil{x}\hspace{2pt}\right]$ as $\ffintvl$.
 
 
 
@@ -118,28 +123,63 @@ Note first that if $x\in (-\infty,D)$ then $\Round(x)=-\mathtt{infty}$, and the 
 \[
 \frac{\absv{\Rep(\Round(x)))-x}}{x}=\frac{\absv{\infty-x}}{x}=\infty
 \]
-and similarly, if $x\in (U,\infty)$. We will therefore assume throughout that $\mu$ is supported by $[D,U]$. Morally, this is justified: any program receiving a probabilistic input $x$ should be able (at least most of the time) to read and quantize such an input without overflow. 
+and similarly, if $x\in (U,\infty)$. We will therefore assume throughout that $\mu$ is supported by $[D,U]$. Morally, this is justified: any program receiving a probabilistic input $x$ should be able (at least most of the time) to read and quantize such an input without overflowing. 
 
 Suppose thus that $\supp(\mu)\subseteq [D,U]$, can we compute the distribution of the rounding error? We assume that $\mu$ has a density $f$ w.r.t. the Lebesgue measure $\lambda$ on $\R$ (in particular $\mu(\infty)=\mu(-\infty)=0$).
 
 First we partition $\eR$ as the disjoint union
 \[
-\eR=\bigcup_{x\in \F}\Round\inv(x).
+\eR=\bigcup_{n\in \F}\Round\inv(n).
 \]
-On each element of the partition we can compute the c.d.f. of the rounding error 
+On each element $x\in\Round\inv(n)$ of the partition we can compute the c.d.f. of the rounding error 
 \begin{align*}
-\mu\left(\left\{x\mid \frac{\absv{x-\hat{x}}}{x}\leq t\right\}\right).
+\mu\left(\left\{x\mid  x\in\Round\inv(n), \frac{\absv{x-\hat{x}}}{x}\leq t\right\}\right).
 \end{align*}
 where $t$ is of course bounded by $0\leq t\leq \uro$.
 Supposing first that $\hat{x}\geq 0$ and distinguishing the cases where $x<\hat{x}$ and $\hat{x}\leq x$ we get
 \begin{align*}
-&\mu\left(\left\{x\mid x<\hat{x}, \frac{\hat{x}-x}{x}\leq t\right\}\right)+\mu\left(\left\{x\mid \hat{x}<x, \frac{x-\hat{x}}{x}\leq t\right\}\right)\\
-&=\mu\left(\left\{x\mid x<\hat{x}, \frac{\hat{x}}{x}-1\leq t\right\}\right)+\mu\left(\left\{x\mid \hat{x}<x, 1-\frac{\hat{x}}{x}\leq t\right\}\right)\\
-&=\mu\left(\left\{x\mid x<\hat{x}, \frac{\hat{x}}{1+t}\leq x\right\}\right)+\mu\left(\left\{x\mid \hat{x}<x, \frac{\hat{x}}{1-t}\geq x\right\}\right)\\
-&=\int_{\frac{\hat{x}}{1+t}}^{\hat{x}} f(u)~du+\int_{\hat{x}}^{\frac{\hat{x}}{1-t}}f(u)~du\\
-&=\int_{\frac{\hat{x}}{1+t}}^{\frac{\hat{x}}{1-t}}f(u)~du
+&\mu\left(\left\{x\mid  x\in\Round\inv(n), \frac{\absv{x-\hat{x}}}{x}\leq t\right\}\right)\\
+=&\mu\left(\left\{x\mid x\in\Round\inv(n), x<\hat{x}, \frac{\hat{x}-x}{x}\leq t\right\}\right)+\mu\left(\left\{x\mid x\in\Round\inv(n), \hat{x}<x, \frac{x-\hat{x}}{x}\leq t\right\}\right)\\
+=&\mu\left(\left\{x\mid x\in\Round\inv(n), x<\hat{x}, \frac{\hat{x}}{x}-1\leq t\right\}\right)+\mu\left(\left\{x\mid x\in\Round\inv(n), \hat{x}<x, 1-\frac{\hat{x}}{x}\leq t\right\}\right)\\
+=&\mu\left(\left\{x\mid x\in\Round\inv(n), x<\hat{x}, \frac{\hat{x}}{1+t}\leq x\right\}\right)+\mu\left(\left\{x\mid x\in\Round\inv(n), \hat{x}<x, \frac{\hat{x}}{1-t}\geq x\right\}\right)\\
+=&\int_{\frac{\hat{x}}{1+t}}^{\hat{x}} f(u)~du+\int_{\hat{x}}^{\frac{\hat{x}}{1-t}}f(u)~du\qquad\qquad\text{where }\hat{x}=\Rep(n)\\
+=&\int_{\frac{\hat{x}}{1+t}}^{\frac{\hat{x}}{1-t}}f(u)~du
 \end{align*}
+Similarly, we get if $\hat{x}<0$ that
+\[
+\mu\left(\left\{x\mid x\in\Round\inv(n), \frac{\absv{x-\hat{x}}}{x}\leq t\right\}\right)=\int^{\frac{\hat{x}}{1+t}}_{\frac{\hat{x}}{1-t}}f(u)~du\qquad\qquad\text{where }\hat{x}=\Rep(n)\\
+\]
+We can now add up the contributions on each element of the partition to get
+\begin{align*}
+\mu\left(\left\{x\mid  \frac{\absv{x-\hat{x}}}{x}\leq t\right\}\right)=\sum_{n\in\F, \Rep(n)<0} \int^{\frac{\Rep(n)}{1+t}}_{\frac{\Rep(n)}{1-t}}f(u)~du +\sum_{n\in\F, \Rep(n)> 0} \int^{\frac{\Rep(n)}{1-t}}_{\frac{\Rep(n)}{1+t}}f(u)~du 
+\end{align*}
+Provided that $f$ is well-behaved (in a way which we shall make precise in an instant), we can provide a good approximation of each summand. For this we use the \emph{midpoint rule}:
+\begin{theorem}[Midpoint rule]
+Let $f\in C^2\left[a,b\right]$, then
+\begin{equation}
+\int_a^b f(u)~du =(b-a)f((a+b)/2)+ \varepsilon(a,b,f)\qquad\text{ where }\qquad \varepsilon(a,b,f)\leq\frac{\absv{b-a}^3}{24}\norm{f''}_{\infty} 
+\end{equation}
+\end{theorem}
+Assuming that terms of order $\uro^2$ (and thus $t^2\leq \uro^2)$ can be ignored we get from the midpoint rule that
+\begin{align*}
+\mu\left(\left\{x\mid  \frac{\absv{x-\hat{x}}}{x}\leq t\right\}\right)&=\sum_{n\in \F} \frac{2\Rep(n) t}{1+t^2}f\left(\frac{\Rep(n)}{1+t^2}\right)+\varepsilon\left(\frac{\Rep(n)}{1+t},\frac{\Rep(n)}{1-t},f\right)\\
+&\approx \sum_{n\in \F} 2\Rep(n) tf\left(\Rep(n)\right)+\varepsilon\left(\frac{\Rep(n)}{1+t},\frac{\Rep(n)}{1-t},f\right)\\
+&= \sum_{n\in \F}2\Rep(n) \uro f(\Rep(n)) \frac{t}{\uro}+\varepsilon\left(\frac{\Rep(n)}{1+t},\frac{\Rep(n)}{1-t},f\right)\\
+&\approx \sum_{n\in \F} \frac{2\Rep(n) \uro}{1+u^2}f\left(\frac{\Rep(n)}{1+u^2}\right)\frac{t}{\uro}+\varepsilon\left(\frac{\Rep(n)}{1+t},\frac{\Rep(n)}{1-t},f\right)\\
+&=\frac{t}{\uro}\left(\int_{-\infty}^{\infty} f(u)~du -\sum_{\in\F}\varepsilon\left(\frac{\Rep(n)}{1+u},\frac{\Rep(n)}{1-u},f\right)\right)+\sum_{\in\F}\varepsilon\left(\frac{\Rep(n)}{1+t},\frac{\Rep(n)}{1-t},f\right)\\
+&=\frac{t}{\uro}\left(1-\sum_{\in\F}\varepsilon\left(\frac{\Rep(n)}{1+u},\frac{\Rep(n)}{1-u},f\right)\right)+\sum_{\in\F}\varepsilon\left(\frac{\Rep(n)}{1+t},\frac{\Rep(n)}{1-t},f\right)\\
+&=\frac{t}{\uro}+\frac{t}{\uro}\sum_{\in\F}\frac{\Rep(n)^3(u^3-t^3)}{3(1+t^2)^3(1+u^2)^3}\norm{f''}_{\infty,n}
+\end{align*}
+For the second term in the last line to be small it is necessary that $\norm{f''}_\infty$ decays fast enough. If we want this term to be smaller that $\uro^2$ we need $\norm{f''}_{\infty,n}<\frac{3}{\Rep(n)^3\uro}$. 
 
+Conclusion: if $f''(x)$ can be bounded from above by something of the order of $\frac{3}{x^3\uro}$, then 
+\[
+\mu\left(\left\{x\mid  \frac{\absv{x-\hat{x}}}{x}\leq t\right\}\right)\approx \frac{t}{\uro}
+\]
+in other words the distribution of relative errors is, to a very good approximation, uniform on the interval $\left[0,\uro\right]$. If we can to include the sign of the error we would get an approximately uniform distribution on the interval $\left[-\uro,\uro\right]$ (maybe this is a slightly neater calculation). Since $f$ must be a density, it must decay very rapidly, and if the data is centred then it must decay very rapidly from 0, thus assuming $f''(x)<\frac{3}{x^3\uro}$ is not a very dramatic requirement.
+
+
+TODO: Deal with the interval $\fintvl[0]$, sort out notation for elements of $\F$ (cannot use $n$!).
 \section{Modelling}
 
 
