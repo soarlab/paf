@@ -481,8 +481,8 @@ For $X\sim\Unif(0,1)$ we are interested in computing the probability of misclass
 \]
 This can be computed explicitly as
 \begin{align*}
-\Pro{\mathtt{Prog}(X)=\mathtt{FALSE}\mid X\leq 0.25}&=\frac{\Pro{\mathtt{Prog}(X)=\mathtt{FALSE} \wedge X\leq 0.25}}{\Pro{X> 0.25}}\\
-&=\frac{\Pro{X\in \{x\mid x>0.25 \wedge \Round[5,10](x)\leq 0.25\}}}{0.75}\\
+\Pro{\mathtt{Prog}(X)=\mathtt{FALSE}\mid X> 0.25}&=\frac{\Pro{\mathtt{Prog}(X)=\mathtt{FALSE} \wedge X> 0.25}}{\Pro{X> 0.25}}\\
+&=\frac{\Pro{X\in \{x\mid\Round[5,10](x)\leq 0.25\wedge  x>0.25  \}}}{0.75}\\
 &=\frac{\ceil{0.25}-0.25}{0.75}
 \end{align*}
 
