@@ -6,13 +6,17 @@ import pacal
 import time
 
 def test_error_model():
-    error=ErrorModel(pacal.UniformDistr(-100,100),10,-14,15)
-
+    #error=ErrorModel(pacal.NormalDistr(1,2),10,-14,15)
+    N = 1024+pacal.BetaDistr(10,2)
+    error=ErrorModel(N,10,-14,15)
+    error.compute()
 
 
 def test_plot_error():
-    plot_error(pacal.NormalDistr(0.9,0.1),11,100000)
-    plot_error(pacal.UniformDistr(0.9,1),11,100000)
+    #plot_error(pacal.NormalDistr(1,2),10,100000)
+    N = 1024+pacal.BetaDistr(10,2)
+    plot_error(N,10,100000)
+
 
 def test_simple_tests():
     test1=simple_tests.TestUniformVariable(0,1,0.25,10)
@@ -25,6 +29,7 @@ def test_simple_tests():
 #main:
 start = time.time()
 test_error_model()
+test_plot_error()
 end = time.time()
 print('Elapsed time:'+repr(end - start)+'s')
 
