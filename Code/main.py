@@ -5,17 +5,13 @@ from stats import plot_error
 import pacal
 import time
 
-def test_error_model():
-    N = 1024+pacal.BetaDistr(10,2)
-    error=ErrorModel(N,10,-14,15)
-    error=ErrorModel(N,10,-14,15)
+def test_error_model(distribution):
+    error=ErrorModel(distribution,10,-14,15)
     error.compute()
 
 
-def test_plot_error():
-    #plot_error(pacal.NormalDistr(1,2),10,100000)
-    N = 1024+pacal.BetaDistr(10,2)
-    plot_error(N,10,100000)
+def test_plot_error(distribution):
+    plot_error(distribution,10,100000)
 
 
 def test_simple_tests():
@@ -28,8 +24,9 @@ def test_simple_tests():
 
 #main:
 start = time.time()
-test_error_model()
-test_plot_error()
+dist = pacal.UniformDistr(-100,100)
+test_error_model(dist)
+test_plot_error(dist)
 end = time.time()
 print('Elapsed time:'+repr(end - start)+'s')
 
