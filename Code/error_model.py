@@ -24,8 +24,8 @@ class ErrorModel:
         z=self.pdf(x)
         print(repr(self.pdf.integ(lbnd=-1)(1)))
         plt.plot(x, z)
-        #plt.savefig('pics/TH_'+repr(self.inputdistribution.getName()).replace("'",'')+'_'+repr(self.precision))
-        plt.savefig('pics/TH_reallyweird_'+repr(self.precision))
+        plt.savefig('pics/TH_'+repr(self.inputdistribution.getName()).replace("'",'')+'_'+repr(self.precision))
+        #plt.savefig('pics/TH_reallyweird_'+repr(self.precision))
         plt.clf()
 
 

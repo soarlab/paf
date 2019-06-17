@@ -16,6 +16,6 @@ def plot_error(distribution, precision, samplesize):
     n, bins, patches =  plt.hist(errors,bins=bin_nb, density=True)
     axes = plt.gca()
     axes.set_xlim([-1,1])
-    plt.savefig('pics/reallyweird_'+repr(precision))
-    #plt.savefig('pics/'+repr(distribution.getName()).replace("'",'')+'_'+repr(precision))
+    #plt.savefig('pics/reallyweird_'+repr(precision))
+    plt.savefig('pics/'+repr(distribution.getName()).replace("'",'')+'_'+repr(precision))
     plt.clf()

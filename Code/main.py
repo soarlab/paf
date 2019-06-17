@@ -6,8 +6,8 @@ import pacal
 import time
 
 def test_error_model():
-    #error=ErrorModel(pacal.NormalDistr(1,2),10,-14,15)
     N = 1024+pacal.BetaDistr(10,2)
+    error=ErrorModel(N,10,-14,15)
     error=ErrorModel(N,10,-14,15)
     error.compute()
 
