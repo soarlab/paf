@@ -31,6 +31,10 @@
 \newtheorem{assumption}[theorem]{Assumption}
 \newtheorem{remark}[theorem]{Remark}
 
+%% EDITING etc
+\newcommand{\ie}{i.e.\ }
+\newcommand{\eg}{e.g.\ }
+
 %% OBJECTS
 \newcommand{\F}[1][n,p]{\mathbb{F}_{#1}}
 \newcommand{\Ff}[1][n,p]{\overline{\mathbb{F}}_{#1}}
@@ -50,6 +54,7 @@
 
 %% FUNCTORS
 \newcommand{\Mes}{\mathrm{M}}
+\newcommand{\Giry}{\mathcal{G}}
 
 %% MATHS
 \newcommand{\ceil}[1]{\lceil #1 \rceil}
@@ -63,6 +68,7 @@
 \newcommand{\fp}{_{\mathrm{fp}}}
 \newcommand{\absv}[1]{\vert #1\vert}
 \newcommand{\norm}[1]{\Vert #1\Vert}
+\newcommand{\sem}[1]{\llbracket #1 \rrbracket}
 \newcommand{\Pro}[1]{\mathbb{P}\left[ #1 \right]}
 \newcommand{\uro}[1][p]{u_{#1}}
 \newcommand{\NaN}{\mathtt{NaN}}
@@ -186,6 +192,7 @@ TODO: Deal with the interval $\fintvl[0]$, sort out notation for elements of $\F
 
 \subsection{Three models probabilistic models of floating-point arithmetic.}
 
+
 \subsubsection{Model 1: correctly-rounded error model}
 We introduce a first probabilistic model using the Markov chain $u$ on $\R$ defined as:
 \[
@@ -278,6 +285,40 @@ is interpreted as the Markov kernel
 \begin{remark}
 This model does not always round correctly or provide tight error bounds.
 \end{remark}
+
+\subsection{The suggested work-flow:}
+
+\paragraph{Input Data:}
+\begin{enumerate}
+\item A joint input distribution $\mu$ on the program's $k$ real variables. For simplicity's sake we assume that the variables are independent, \ie $\mu=\mu_1\times\ldots\times \mu_k$ with $\mu_k\in\Giry\R$ 
+\item A program using a sequential composition of arithmetic operations $\{+,-,\times,\div,\min,\max,\sqrt{}\}$ only. Specifically
+\[
+\tt{prog:=p_n\circ\ldots\circ p_1 (x_1,\ldots,x_k)}
+\]
+with each $\tt{p}_i$ binary or unary.
+\end{enumerate} 
+
+\paragraph{Output:} the rounding-error distribution of the output.
+
+\paragraph{Work-flow:}
+
+\begin{enumerate}
+\item If $\tt{p}_1$ takes as inputs the variables $\tt{x_i,x_j}$, compute 
+\begin{align}
+p_1:=\sem{\tt{p}_1}_\ast(\mu_i \times \mu_j)\label{eq:step1}
+\end{align}
+\item Compute the error distribution 
+\begin{align}
+e_1=E(p_1)\label{eq:step2}
+\end{align}
+\item Push $p_1$ through the kernel 
+\begin{align}
+q_1:=(k_1)_\ast(p_1)\qquad\text{ where }\qquad k_1: \R\to\R, \qquad x\mapsto x\ast(1+e_1)\label{eq:step3}
+\end{align}
+\end{enumerate}
+
+Note that \eqref{eq:step3} is an arithmetic operation on two random variables/probability measures: $x\sim p_1$ and $e_1$. 
+
 
 \subsection{Probabilistic floating-point arithmetic on probabilistic inputs.}
 
