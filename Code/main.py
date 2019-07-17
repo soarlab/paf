@@ -7,7 +7,7 @@ import time
 
 def test_error_model(distribution):
     error=ErrorModel(distribution,10,-15,16,32)
-    error.plot()
+    error.plot('pics/test0')
 
 
 def test_plot_error(distribution):
@@ -20,13 +20,39 @@ def test_simple_tests():
     test1.precision=10
     test1.plot_against_threshold()
 
+def test_operations():
+    prec=10
+    emin=-15
+    emax=16
+    poly_prec=64
+    eps=2**-prec
+    X=pacal.NormalDistr()
+    Y=pacal.NormalDistr()
+    Z=pacal.NormalDistr()
+    U=X+Y
+    Uerr=ErrorModel(U, prec, emin, emax, poly_prec)
+    print('error(U) error:  '+repr(Uerr.distribution.int_error()))
+    strFile='pics/test1'
+    #strFile ='pics/TH_'+repr(U.getName()).replace("'",'')+'_'+repr(prec)
+    Uerr.plot(strFile)
+    Ucor=U*(1+eps*Uerr.distribution)
+    strFile='pics/test2'
+    V=U/Z
+    Verr=ErrorModel(V, prec, emin, emax, poly_prec)
+    print('error(V) error:  '+repr(Verr.distribution.int_error()))
+    Verr.plot(strFile)
+    Vcor=V*(1+eps*Uerr.distribution)
+
+
+
 
 
 #main:
 start = time.time()
-dist = pacal.UniformDistr(0 ,1 )
-test_error_model(dist)
+#dist = pacal.UniformDistr(0 ,1 )
+#test_error_model(U)
 #test_plot_error(dist)
+test_operations()
 end = time.time()
 print('Elapsed time:'+repr(end - start)+'s')
 

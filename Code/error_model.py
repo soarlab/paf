@@ -29,7 +29,7 @@ class ErrorModel:
         # Test if the range of floating point number covers enough of the inputdistribution
         x=gmpy2.next_above(gmpy2.inf(-1))
         y=gmpy2.next_below(gmpy2.inf(1))
-        coverage=self.inputdistribution.get_piecewise_pdf().integrate(x,y)
+        coverage=self.inputdistribution.get_piecewise_pdf().integrate(float(x),float(y))
         if (1.0-coverage)>0.001:
             raise Exception('The range of floating points is too narrow, increase maxexp and increase minexp')
         # Builds the Chebyshev polynomial rerpesentation of the density function
@@ -39,11 +39,10 @@ class ErrorModel:
 
 
         # Quick and dirty plotting function
-    def plot(self):
+    def plot(self,strFile):
         x=np.linspace(-1,1,201)
         y=self.pdf(x)
         plt.plot(x, y)
-        strFile ='pics/TH_'+repr(self.inputdistribution.getName()).replace("'",'')+'_'+repr(self.precision)
         plt.savefig(strFile)
         plt.clf()
 
@@ -83,7 +82,7 @@ class ErrorModel:
                 xmax=(xmin+float(y))/2.0
                 xp=xmin/(1.0-err)
                 if xmin < xp < xmax:
-                    sum+=self.inputdistribution.pdf(xp)*xp*eps/(1.0-err)
+                    sum+=self.inputdistribution.pdf(xp)*abs(xp)*eps/(1.0-err)
                 # Deal with all standard intervals
                 while gmpy2.is_finite(z):
                     ctx.precision=53
@@ -93,7 +92,7 @@ class ErrorModel:
                     xmax=(float(y) + float(z))/2.0
                     xp=float(y)/(1.0-err)
                     if xmin < float(xp) < xmax:
-                        sum+=self.inputdistribution.pdf(xp)*xp*eps/(1.0-err)
+                        sum+=self.inputdistribution.pdf(xp)*abs(xp)*eps/(1.0-err)
                     ctx.precision=self.precision
                     ctx.emin=self.minexp
                     ctx.emax=self.maxexp
@@ -105,7 +104,7 @@ class ErrorModel:
                 xp=float(y)/(1.0-err)
                 xmax=float(y)
                 if xmin < xp < xmax:
-                    sum+=self.inputdistribution.pdf(xp)*xp*eps/(1.0-err)
+                    sum+=self.inputdistribution.pdf(xp)*abs(xp)*eps/(1.0-err)
             #print('Evaluated at '+repr(ti)+'    Result='+repr(sum))
             sums.append(sum)
         if np.isscalar(t):
