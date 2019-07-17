@@ -26,10 +26,10 @@ def test_operations():
     emax=16
     poly_prec=64
     eps=2**-prec
-    X=pacal.NormalDistr()
-    Y=pacal.NormalDistr()
-    Z=pacal.NormalDistr()
-    U=X+Y
+    X=pacal.BetaDistr(1,10)
+    Y=pacal.NormalDistr(0,0.2)
+    Z=pacal.BetaDistr(1,10)
+    U=X*Y
     Uerr=ErrorModel(U, prec, emin, emax, poly_prec)
     print('error(U) error:  '+repr(Uerr.distribution.int_error()))
     strFile='pics/test1'
