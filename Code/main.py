@@ -6,7 +6,7 @@ import pacal
 import time
 
 def test_error_model(distribution):
-    error=ErrorModel(distribution,2,-1,1)
+    error=ErrorModel(distribution,10,-5,5)
     error.compute()
 
 
@@ -24,7 +24,7 @@ def test_simple_tests():
 
 #main:
 start = time.time()
-dist = pacal.UniformDistr(-100,100)
+dist = pacal.UniformDistr(-50,50)
 test_error_model(dist)
 #test_plot_error(dist)
 end = time.time()

@@ -6,6 +6,7 @@ from pychebfun import Chebfun
 import gmpy2
 from gmpy2 import mpfr
 import random
+import os
 
 class ErrorModel:
 
@@ -19,13 +20,14 @@ class ErrorModel:
     def compute(self):
         #self.cdf=Chebfun.from_function(lambda t:self.__getcdf(t), N=42)
         self.pdf=cheb.Chebyshev.interpolate(lambda t:self.__getpdf(t),deg=42)
+        #self.pdf=Chebfun.from_function(lambda t:self.__getpdf(t), N=64  )
         x=np.linspace(-1,1,21)
-        #y=self.__getpdf(x)
         z=self.pdf(x)
         print(repr(self.pdf.integ(lbnd=-1)(1)))
         plt.plot(x, z)
-        plt.savefig('pics/TH_'+repr(self.inputdistribution.getName()).replace("'",'')+'_'+repr(self.precision))
-        #plt.savefig('pics/TH_reallyweird_'+repr(self.precision))
+        #print(repr(self.pdf.sum()))
+        strFile ='pics/TH_'+repr(self.inputdistribution.getName()).replace("'",'')+'_'+repr(self.precision)
+        plt.savefig(strFile)
         plt.clf()
 
 
