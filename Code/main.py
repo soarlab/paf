@@ -5,6 +5,26 @@ from stats import plot_error
 import pacal
 import time
 
+#main:
+start = time.time()
+test_scalar_products()
+#dist = pacal.UniformDistr(0 ,1 )
+#test_error_model(U)
+#test_plot_error(dist)
+#test_operations()
+end = time.time()
+print('Elapsed time:'+repr(end - start)+'s')
+
+
+def test_scalar_products():
+    X=[]
+    Y=[]
+    for i in range(1,3):
+        X.append(pacal.UniformDistr(-1,1))
+        Y.append(pacal.NormalDistr())
+    error_free_scalar_product(X,Y)
+
+
 def test_error_model(distribution):
     error=ErrorModel(distribution,10,-15,16,32)
     error.plot('pics/test0')
@@ -47,14 +67,9 @@ def test_operations():
 
 
 
-#main:
-start = time.time()
-#dist = pacal.UniformDistr(0 ,1 )
-#test_error_model(U)
-#test_plot_error(dist)
-test_operations()
-end = time.time()
-print('Elapsed time:'+repr(end - start)+'s')
+
+
+
 
 #test1=simple_tests.TestUniformVariable(0,2,0.75,10)
 #test1.compute()

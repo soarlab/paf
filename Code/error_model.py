@@ -59,7 +59,7 @@ class ErrorModel:
         ctx.emax=self.maxexp
         eps=2**-self.precision
         sums=[]
-        #test if  the input is scalar of an array
+        #test if  the input is scalar or an array
         if np.isscalar(t):
             tt=[]
             tt.append(t)
