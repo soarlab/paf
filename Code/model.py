@@ -12,10 +12,11 @@ def visitTree(node):
     queue=[node]
     i=0
     while i<len(queue):
-        if node.leaf == True:
+        tmpNode=queue[i]
+        if tmpNode.leaf == True:
             pass
         else:
-            queue.append(node.children)
+            queue=queue+tmpNode.children
         i = i + 1
     queue=list(reversed(queue))
     return queue
@@ -33,6 +34,7 @@ def runAnalysis(queue,prec,exp,poly_prec):
             doubleDistributions[name] = doubleDistribution
             Uerr = ErrorModel(doubleDistribution, prec, emin, emax, poly_prec)
             quantizedDistributions[name] = doubleDistribution * (1 + eps * Uerr.distribution)
+    print "done"
 
 class Node:
     def __init__(self, value, children=None):
