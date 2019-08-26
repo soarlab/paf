@@ -5,7 +5,9 @@ import matplotlib.pyplot as plt
 from error_model import ErrorModel
 from stats import plot_error
 import pacal
+from pacal import *
 import time
+from pychebfun import *
 
 
 def visitTree(node):
@@ -24,17 +26,22 @@ def visitTree(node):
 def runAnalysis(queue,prec,exp,poly_prec):
     emin=-(2**exp)+1
     emax=2**exp
-    eps=2**-prec
+    eps=2**(-prec)
     quantizedDistributions = {}
     doubleDistributions = {}
+    plt.close('all')
     for elem in queue:
         name= elem.value.name
         if not name in quantizedDistributions:
             doubleDistribution = elem.value.execute()
             doubleDistributions[name] = doubleDistribution
+            plt.figure()
+            doubleDistributions[name].plot()
+            plt.figure()
             Uerr = ErrorModel(doubleDistribution, prec, emin, emax, poly_prec)
-            quantizedDistributions[name] = doubleDistribution * (1 + eps * Uerr.distribution)
-    print "done"
+            quantizedDistributions[name] = doubleDistribution*(1 + (eps * Uerr.distribution))
+            (quantizedDistributions[name]).plot()
+    return doubleDistributions,quantizedDistributions
 
 class Node:
     def __init__(self, value, children=None):

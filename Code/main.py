@@ -17,8 +17,13 @@ f.close()
 myYacc=FPRyacc(text,True)
 
 queue=visitTree(myYacc.expression)
-runAnalysis(queue,5,4,50)
+qDs,dDs=runAnalysis(queue,5,4,100)
 
+for value in dDs:
+    dDs[value].plot()
+    qDs[value].plot()
+    raw_input()
+plt.show()
 print "\nDone\n"
 
 def test_scalar_products():

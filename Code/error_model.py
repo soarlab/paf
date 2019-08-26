@@ -1,10 +1,23 @@
-from pacal import FunDistr
+from pacal import *
 import matplotlib.pyplot as plt
 import numpy as np
 from pychebfun import Chebfun
 import gmpy2
+import numpy as np; from pychebfun import *
+
 from gmpy2 import mpfr
 import random
+
+##################################
+#### How to use FunDistr #########
+##################################
+# Those need to be defined before PaCAL creates a process pool for
+# picklability:
+#def example_f1(x):
+#    return sqrt(2)/numpy.pi / (1+x**4)
+#def example_f2(x):
+#    return 1.5*x*x
+#f = FunDistr(example_f1 , [-Inf, -1, 0, 1, Inf])
 
 
 class ErrorModel:
@@ -34,8 +47,11 @@ class ErrorModel:
             raise Exception('The range of floating points is too narrow, increase maxexp and increase minexp')
         # Builds the Chebyshev polynomial representation of the density function
         self.pdf=Chebfun.from_function(lambda t:self.__getpdf(t), N=self.poly_precision)
+        plot(self.pdf)
+        #plt.show()
+        t=self.pdf(0.5)
         # Creates a PaCal object containing the distribution
-        self.distribution=FunDistr(self.pdf, [-1,1])
+        self.distribution=FunDistr(self.pdf.p, [-1,1], interpolated=True)
 
 
         # Quick and dirty plotting function
