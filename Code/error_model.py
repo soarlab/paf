@@ -32,8 +32,8 @@ class ErrorModel:
         coverage=self.inputdistribution.get_piecewise_pdf().integrate(float(x),float(y))
         if (1.0-coverage)>0.001:
             raise Exception('The range of floating points is too narrow, increase maxexp and increase minexp')
-        # Builds the Chebyshev polynomial rerpesentation of the density function
-        self.pdf=Chebfun.from_function(lambda t:self.__getpdf(t),N=self.poly_precision)
+        # Builds the Chebyshev polynomial representation of the density function
+        self.pdf=Chebfun.from_function(lambda t:self.__getpdf(t), N=self.poly_precision)
         # Creates a PaCal object containing the distribution
         self.distribution=FunDistr(self.pdf, [-1,1])
 
