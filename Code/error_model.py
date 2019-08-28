@@ -1,9 +1,9 @@
 from pacal import *
 import matplotlib.pyplot as plt
 import numpy as np
-from pychebfun import Chebfun
 import gmpy2
-import numpy as np; from pychebfun import *
+import numpy as np;
+from pychebfun import *
 
 from gmpy2 import mpfr
 import random
@@ -18,7 +18,6 @@ import random
 #def example_f2(x):
 #    return 1.5*x*x
 #f = FunDistr(example_f1 , [-Inf, -1, 0, 1, Inf])
-
 
 class ErrorModel:
 
@@ -46,12 +45,15 @@ class ErrorModel:
         if (1.0-coverage)>0.001:
             raise Exception('The range of floating points is too narrow, increase maxexp and increase minexp')
         # Builds the Chebyshev polynomial representation of the density function
-        self.pdf=Chebfun.from_function(lambda t:self.__getpdf(t), N=self.poly_precision)
-        plot(self.pdf)
+        self.pdf=chebfun(lambda t:self.__getpdf(t), N=self.poly_precision)
+        #self.pdf2=self.pdf.p
+        #plot(self.pdf)
         #plt.show()
-        t=self.pdf(0.5)
+        #self.tempPdf=(lambda x : self.pdf(x).item(0))
+        #t = self.pdf(0.5).item(0)
+        #r = self.pdf(15.5)
         # Creates a PaCal object containing the distribution
-        self.distribution=FunDistr(self.pdf.p, [-1,1], interpolated=True)
+        self.distribution=FunDistr(self.pdf.p, [-1,1])
 
 
         # Quick and dirty plotting function

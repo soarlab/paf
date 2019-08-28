@@ -37,10 +37,13 @@ def runAnalysis(queue,prec,exp,poly_prec):
             doubleDistributions[name] = doubleDistribution
             plt.figure()
             doubleDistributions[name].plot()
+            plt.show()
             plt.figure()
             Uerr = ErrorModel(doubleDistribution, prec, emin, emax, poly_prec)
+            Uerr.distribution.plot()
             quantizedDistributions[name] = doubleDistribution*(1 + (eps * Uerr.distribution))
             (quantizedDistributions[name]).plot()
+            plt.show()
     return doubleDistributions,quantizedDistributions
 
 class Node:
