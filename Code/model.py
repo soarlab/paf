@@ -26,8 +26,7 @@ def visitTree(node):
     return queue
 
 def runAnalysis(queue,prec,exp,poly_prec):
-    emin=-(2**exp)+1
-    emax=2**exp
+
     eps=2**(-prec)
     quantizedDistributions = {}
     quantizedDistributionsNaive={}
@@ -47,7 +46,7 @@ def runAnalysis(queue,prec,exp,poly_prec):
                 QrightDistribution = quantizedDistributions[rightoperandD.name]
                 quantizedOperation = QuantizedOperation(nameD,QleftDistribution, operator, QrightDistribution)
                 quantizedDistribution = quantizedOperation.execute()
-                Uerr = ErrorModel(quantizedOperation, prec, emin, emax, poly_prec)
+                Uerr = ErrorModel(quantizedOperation, prec, exp, poly_prec)
                 Uerr.distribution.plot()
                 # plt.figure("Relative Error Naive: " + name)
                 errModelNaive = ErrorModelNaive(quantizedDistribution, prec, 100000)
@@ -63,7 +62,7 @@ def runAnalysis(queue,prec,exp,poly_prec):
                 plt.figure("DoublePrecision: "+name)
                 doubleDistributions[name].plot()
                 plt.figure("Relative Error Distribution: "+name)
-                Uerr = ErrorModel(elem.value, prec, emin, emax, poly_prec)
+                Uerr = ErrorModel(elem.value, prec, exp, poly_prec)
                 Uerr.distribution.plot()
                 #plt.figure("Relative Error Naive: " + name)
                 errModelNaive = ErrorModelNaive(doubleDistributions[name], prec, 100000)
@@ -72,7 +71,7 @@ def runAnalysis(queue,prec,exp,poly_prec):
                 plt.figure("Quantized Distribution: "+name)
                 quantizedDistributions[name] = doubleDistribution*(1 + (eps * Uerr.distribution))
                 (quantizedDistributions[name]).plot()
-                #plt.show()
+                plt.show()
 
     return doubleDistributions,quantizedDistributions
 
