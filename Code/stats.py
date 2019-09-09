@@ -7,7 +7,7 @@ import numpy as np
 def plot_error(distribution, precision, samplesize):
     x=distribution.rand(samplesize)
     errors=[]
-    bin_nb=math.ceil(math.sqrt(samplesize))
+    bin_nb=int(math.ceil(math.sqrt(samplesize)))
     print('Number of bins='+ repr(bin_nb))
     eps=2**-precision
     for r in x:
@@ -17,5 +17,5 @@ def plot_error(distribution, precision, samplesize):
     axes = plt.gca()
     axes.set_xlim([-1,1])
     #plt.savefig('pics/unifsmall_'+repr(precision))
-    plt.savefig('pics/'+repr(distribution.getName()).replace("'",'')+'_'+repr(precision))
-    plt.clf()
+    #plt.savefig('pics/'+repr(distribution.getName()).replace("'",'')+'_'+repr(precision))
+    #plt.clf()

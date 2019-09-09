@@ -2,13 +2,15 @@ from sympy import sign
 
 import simple_tests
 import matplotlib.pyplot as plt
-from error_model import ErrorModel
+from error_model import *
 from stats import plot_error
 import pacal
 from pacal import *
 import time
 from pychebfun import *
 
+import matplotlib.pyplot as plt
+import numpy as np
 
 def visitTree(node):
     queue=[node]
@@ -28,22 +30,50 @@ def runAnalysis(queue,prec,exp,poly_prec):
     emax=2**exp
     eps=2**(-prec)
     quantizedDistributions = {}
+    quantizedDistributionsNaive={}
     doubleDistributions = {}
     plt.close('all')
     for elem in queue:
         name= elem.value.name
         if not name in quantizedDistributions:
-            doubleDistribution = elem.value.execute()
-            doubleDistributions[name] = doubleDistribution
-            plt.figure()
-            doubleDistributions[name].plot()
-            plt.show()
-            plt.figure()
-            Uerr = ErrorModel(doubleDistribution, prec, emin, emax, poly_prec)
-            Uerr.distribution.plot()
-            quantizedDistributions[name] = doubleDistribution*(1 + (eps * Uerr.distribution))
-            (quantizedDistributions[name]).plot()
-            plt.show()
+            if isinstance(elem.value, Operation):
+                doubleDistribution = elem.value.execute()
+                doubleDistributions[name] = doubleDistribution
+                plt.figure("DoublePrecision: "+name)
+                doubleDistributions[name].plot()
+                plt.figure("Relative Error Distribution: " + name)
+                nameD, leftoperandD, operator, rightoperandD = elem.value.extractInfoForQuantization()
+                QleftDistribution = quantizedDistributions[leftoperandD.name]
+                QrightDistribution = quantizedDistributions[rightoperandD.name]
+                quantizedOperation = QuantizedOperation(nameD,QleftDistribution, operator, QrightDistribution)
+                quantizedDistribution = quantizedOperation.execute()
+                Uerr = ErrorModel(quantizedOperation, prec, emin, emax, poly_prec)
+                Uerr.distribution.plot()
+                # plt.figure("Relative Error Naive: " + name)
+                errModelNaive = ErrorModelNaive(quantizedDistribution, prec, 100000)
+                x_values, error_values = errModelNaive.compute_naive_error()
+                errModelNaive.plot_error(error_values, "Relative Error Distribution: " + name)
+                plt.figure("Quantized Distribution: " + name)
+                quantizedDistributions[name] = quantizedDistribution * (1 + (eps * Uerr.distribution))
+                (quantizedDistributions[name]).plot()
+                plt.show()
+            else:
+                doubleDistribution = elem.value.execute()
+                doubleDistributions[name] = doubleDistribution
+                plt.figure("DoublePrecision: "+name)
+                doubleDistributions[name].plot()
+                plt.figure("Relative Error Distribution: "+name)
+                Uerr = ErrorModel(elem.value, prec, emin, emax, poly_prec)
+                Uerr.distribution.plot()
+                #plt.figure("Relative Error Naive: " + name)
+                errModelNaive = ErrorModelNaive(doubleDistributions[name], prec, 100000)
+                x_values, error_values =errModelNaive.compute_naive_error()
+                errModelNaive.plot_error(error_values,"Relative Error Distribution: "+name)
+                plt.figure("Quantized Distribution: "+name)
+                quantizedDistributions[name] = doubleDistribution*(1 + (eps * Uerr.distribution))
+                (quantizedDistributions[name]).plot()
+                #plt.show()
+
     return doubleDistributions,quantizedDistributions
 
 class Node:
@@ -59,8 +89,10 @@ class Node:
 class N:
     def __init__(self,name,mu,sigma):
         self.name = name
-        self.mu=mu
-        self.sigma=sigma
+        self.mu = mu
+        self.sigma = sigma
+        self.a = float("-inf")
+        self.b = float("+inf")
         self.distribution = pacal.NormalDistr(float(self.mu),float(self.sigma))
 
     def execute(self):
@@ -94,21 +126,60 @@ class Number:
     def execute(self):
         pass
 
-class Operation:
-    def __init__(self, leftNode, operator, rightNode):
-        self.name = leftNode.value.name+str(operator)+rightNode.value.name
-        self.leftnode=leftNode
+class QuantizedOperation:
+    def __init__(self, name, leftDistribution, operator, rightDistribution):
+        self.name=name
+        self.leftDistribution=leftDistribution
         self.operator=operator
-        self.rightnode=rightNode
+        self.rightDistribution=rightDistribution
 
         if operator=="+":
-            self.distribution=leftNode.value.distribution+rightNode.value.distribution
+            self.distribution=self.leftDistribution+self.rightDistribution
         elif operator=="-":
-            self.distribution=leftNode.value.distribution-rightNode.value.distribution
+            self.distribution=self.leftDistribution-self.rightDistribution
         elif operator=="*":
-            self.distribution=leftNode.value.distribution*rightNode.value.distribution
+            self.distribution=self.leftDistribution*self.rightDistribution
         elif operator=="/":
-            self.distribution=leftNode.value.distribution/rightNode.value.distribution
+            self.distribution=self.leftDistribution/self.rightDistribution
+        else:
+            print ("Operation not supported!")
+            exit(-1)
+        ####################################
+        self.a = self.distribution.a
+        self.b = self.distribution.b
 
     def execute(self):
         return self.distribution
+
+class Operation:
+    def __init__(self, leftoperand, operator, rightoperand, parenthesis):
+        TMPname = leftoperand.name + str(operator) + rightoperand.name
+        if parenthesis:
+            self.name="("+TMPname+")"
+        else:
+            self.name=TMPname
+
+        self.leftoperand=leftoperand
+        self.operator=operator
+        self.rightoperand=rightoperand
+
+        if operator=="+":
+            self.distribution=self.leftoperand.distribution+self.rightoperand.distribution
+        elif operator=="-":
+            self.distribution=self.leftoperand.distribution-self.rightoperand.distribution
+        elif operator=="*":
+            self.distribution=self.leftoperand.distribution*self.rightoperand.distribution
+        elif operator=="/":
+            self.distribution=self.leftoperand.distribution/self.rightoperand.distribution
+        else:
+            print ("Operation not supported!")
+            exit(-1)
+        ####################################
+        self.a = self.distribution.a
+        self.b = self.distribution.b
+
+    def execute(self):
+        return self.distribution
+
+    def extractInfoForQuantization(self):
+        return self.name, self.leftoperand, self.operator, self.rightoperand

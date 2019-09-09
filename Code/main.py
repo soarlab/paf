@@ -1,14 +1,14 @@
 from sympy import sign
 
 import simple_tests
-import matplotlib.pyplot as plt
+import matplotlib.pyplot
 from error_model import ErrorModel
 from stats import plot_error
 import pacal
 from fpryacc import *
 import time
 
-
+matplotlib.pyplot.close("all")
 filepath="./test.txt"
 f= open(filepath,"r")
 text=f.read()
@@ -17,7 +17,7 @@ f.close()
 myYacc=FPRyacc(text,True)
 
 queue=visitTree(myYacc.expression)
-qDs,dDs=runAnalysis(queue,8,5,100)
+qDs,dDs=runAnalysis(queue,3,3,500)
 
 print "\nDone\n"
 

@@ -4,8 +4,10 @@ import numpy as np
 import gmpy2
 import numpy as np;
 from pychebfun import *
+from utils import *
 
 from gmpy2 import mpfr
+import scipy
 import random
 
 ##################################
@@ -18,10 +20,44 @@ import random
 #def example_f2(x):
 #    return 1.5*x*x
 #f = FunDistr(example_f1 , [-Inf, -1, 0, 1, Inf])
+import gmpy2
+import math
+import pacal
+import matplotlib.pyplot as plt
+import numpy as np
+
+class ErrorModelNaive:
+    def __init__(self, distribution, precision, samplesize):
+        self.inputdistribution=distribution
+        self.precision=precision
+        self.samplesize=samplesize
+        self.distribution=self.compute_naive_error()
+
+    def compute_naive_error(self):
+        x = self.inputdistribution.rand(self.samplesize)
+        errors = []
+        eps = 2 ** -self.precision
+        for r in x:
+            #In this way 'e' is always scaled between 0 and 1.
+            e = (r - float(gmpy2.round2(r, self.precision))) / (r * eps)
+            errors.append(e)
+        return x, errors
+
+    def plot_error(self,errors,figureName):
+        plt.figure(figureName)
+        bin_nb = int(math.ceil(math.sqrt(self.samplesize)))
+        n, bins, patches = plt.hist(errors, bins=bin_nb, density=True)
+        axes = plt.gca()
+        axes.set_xlim([-1, 1])
+        return
+        # plt.savefig('pics/unifsmall_'+repr(precision))
+        # plt.savefig('pics/'+repr(distribution.getName()).replace("'",'')+'_'+repr(precision))
+        # plt.clf()
+
 
 class ErrorModel:
 
-    def __init__(self, inputdistribution, precision, minexp, maxexp, poly_precision):
+    def __init__(self, wrapperInputDistribution, precision, minexp, maxexp, poly_precision):
         '''
     Constructor interpolates the density function using Chebyshev interpolation
     then uses this interpolation to build a PaCal object:
@@ -33,7 +69,8 @@ class ErrorModel:
         poly_precision: the number of exact evaluations of the density function used to
                         build the interpolating polynomial representing it
         '''
-        self.inputdistribution = inputdistribution
+        self.wrapperInputDistribution=wrapperInputDistribution
+        self.inputdistribution = self.wrapperInputDistribution.execute()
         self.precision=precision
         self.minexp=minexp
         self.maxexp=maxexp
@@ -41,11 +78,11 @@ class ErrorModel:
         # Test if the range of floating point number covers enough of the inputdistribution
         x=gmpy2.next_above(gmpy2.inf(-1))
         y=gmpy2.next_below(gmpy2.inf(1))
-        coverage=self.inputdistribution.get_piecewise_pdf().integrate(float(x),float(y))
-        if (1.0-coverage)>0.001:
-            raise Exception('The range of floating points is too narrow, increase maxexp and increase minexp')
+        coverage=self.inputdistribution.get_piecewise_pdf().integrate(float("-inf"),float("+inf"))
+        #if (1.0-coverage)>0.001:
+        #    raise Exception('The range of floating points is too narrow, increase maxexp and increase minexp')
         # Builds the Chebyshev polynomial representation of the density function
-        self.pdf=chebfun(lambda t:self.__getpdf(t), N=self.poly_precision)
+        self.pdf=chebfun(lambda t:self.__getpdf(t), domain=[-1.0,1.0], N=self.poly_precision)
         #self.pdf2=self.pdf.p
         #plot(self.pdf)
         #plt.show()
@@ -53,7 +90,8 @@ class ErrorModel:
         #t = self.pdf(0.5).item(0)
         #r = self.pdf(15.5)
         # Creates a PaCal object containing the distribution
-        self.distribution=FunDistr(self.pdf.p, [-1,1])
+        #self.distribution=FunDistr(self.pdf.p, [-1,1])
+        self.distribution = FunDistr(self.pdf.p, [-1, 1])
 
 
         # Quick and dirty plotting function
@@ -71,11 +109,22 @@ class ErrorModel:
     Constructs the EXACT probability density function at point t in [-1,1]
     Exact values are used to build the interpolating polynomial
         '''
-        ctx=gmpy2.get_context()
+
+        #with gmpy2.ieee(64) as ctx:
+        infVal = mpfr(self.wrapperInputDistribution.a)
+        supVal = mpfr(self.wrapperInputDistribution.b)
+        if not gmpy2.is_finite(infVal):
+            infVal = gmpy2.next_above(infVal)
+        if not gmpy2.is_finite(supVal):
+            supVal = gmpy2.next_above(supVal)
+
+        eps = 2 ** -self.precision
+
+        ctx = gmpy2.get_context()
         ctx.precision=self.precision
         ctx.emin=self.minexp
         ctx.emax=self.maxexp
-        eps=2**-self.precision
+
         sums=[]
         #test if  the input is scalar or an array
         if np.isscalar(t):
@@ -85,44 +134,49 @@ class ErrorModel:
             tt=t
         # main loop through all floating point numbers in reduced precision
         for ti in tt:
-            sum=0.0
-            # if ti=0 the result is 0 since it definitely covers the whole interval
-            if float(ti) < 1.0:
-                x=gmpy2.next_above(gmpy2.inf(-1))
-                y=gmpy2.next_above(x)
-                z=gmpy2.next_above(y)
-                err=float(ti)*eps
-                # Deal with the very first interval [x,(x+y)/2]
-                ctx.precision=53
-                ctx.emin=-1023
-                ctx.emax=1023
-                xmin=float(x)
-                xmax=(xmin+float(y))/2.0
-                xp=xmin/(1.0-err)
+            sum = 0.0
+            err = float(ti)*eps
+            #x=gmpy2.next_above(infVal)
+
+            x=mpfr(printMPFRExactly(infVal))
+            y=gmpy2.next_above(x)
+            z=gmpy2.next_above(y)
+
+            xmin = float(printMPFRExactly(x))
+            xmax = (xmin+float(printMPFRExactly(y)))/2.0
+            xp = xmin/(1.0-err)
+            if xmin < xp < xmax:
+                sum+=self.inputdistribution.pdf(xp)*abs(xp)*eps/(1.0-err)
+            # Deal with all standard intervals
+            while z<supVal:
+                #ctx.precision=53
+                #ctx.emin=-1023
+                #ctx.emax=1023
+                xmin = xmax
+                xmax = (float(printMPFRExactly(y))+float(printMPFRExactly(z)))/2.0
+                xp = float(printMPFRExactly(y)) / (1.0 - err)
+                #xmax=(float(y) + float(z))/2.0
+                #xp = (xmin + xmax)/2.0
+
                 if xmin < xp < xmax:
                     sum+=self.inputdistribution.pdf(xp)*abs(xp)*eps/(1.0-err)
-                # Deal with all standard intervals
-                while gmpy2.is_finite(z):
-                    ctx.precision=53
-                    ctx.emin=-1023
-                    ctx.emax=1023
-                    xmin=xmax
-                    xmax=(float(y) + float(z))/2.0
-                    xp=float(y)/(1.0-err)
-                    if xmin < float(xp) < xmax:
-                        sum+=self.inputdistribution.pdf(xp)*abs(xp)*eps/(1.0-err)
-                    ctx.precision=self.precision
-                    ctx.emin=self.minexp
-                    ctx.emax=self.maxexp
-                    x=y
-                    y=z
-                    z=gmpy2.next_above(z)
-                # Deal with the very last interval [x,(x+y)/2]
-                xmin=xmax
-                xp=float(y)/(1.0-err)
-                xmax=float(y)
-                if xmin < xp < xmax:
-                    sum+=self.inputdistribution.pdf(xp)*abs(xp)*eps/(1.0-err)
+
+                #ctx.precision=self.precision
+                #ctx.emin=self.minexp
+                #ctx.emax=self.maxexp
+
+                x=y
+                y=z
+                z=gmpy2.next_above(z)
+            # Deal with the very last interval [x,(x+y)/2]
+            xmin=xmax
+            xmax = (float(printMPFRExactly(y)) + float(printMPFRExactly(z))) / 2.0
+            xp = float(printMPFRExactly(y)) / (1.0 - err)
+
+            #xp=mpfr(str(y))/(1.0-err)
+            #xmax = mpfr(str(y))
+            if xmin <= xp <= xmax:
+                sum+=self.inputdistribution.pdf(xp)*abs(xp)*eps/(1.0-err)
             #print('Evaluated at '+repr(ti)+'    Result='+repr(sum))
             sums.append(sum)
         if np.isscalar(t):
