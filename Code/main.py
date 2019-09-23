@@ -17,8 +17,8 @@ f.close()
 myYacc=FPRyacc(text,True)
 
 queue=visitTree(myYacc.expression)
-qDs,dDs=runAnalysis(queue,3,3,200)
-
+qDs,dDs=runAnalysis(queue,3,3,1000)
+plt.show()
 print "\nDone\n"
 
 def test_scalar_products():

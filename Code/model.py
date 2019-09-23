@@ -26,7 +26,6 @@ def visitTree(node):
     return queue
 
 def runAnalysis(queue,prec,exp,poly_prec):
-
     eps=2**(-prec)
     quantizedDistributions = {}
     quantizedDistributionsNaive={}
@@ -55,22 +54,31 @@ def runAnalysis(queue,prec,exp,poly_prec):
                 plt.figure("Quantized Distribution: " + name)
                 quantizedDistributions[name] = quantizedDistribution * (1 + (eps * Uerr.distribution))
                 (quantizedDistributions[name]).plot()
-                plt.show()
+                plt.pause(0.05)
+                #plt.show()
             else:
                 doubleDistribution = elem.value.execute()
                 doubleDistributions[name] = doubleDistribution
                 plt.figure("DoublePrecision: "+name)
+                plt.title("DoublePrecision: "+name)
                 doubleDistributions[name].plot()
-                plt.figure("Relative Error Distribution: "+name)
+                plt.figure("Relative Err. Distr: "+name)
+                plt.title("Relative Err. Distr.: "+name+", Cheb_Poly_Prec: "+str(poly_prec))
                 Uerr = ErrorModel(elem.value, prec, exp, poly_prec)
                 Uerr.distribution.plot()
                 #plt.figure("Relative Error Naive: " + name)
                 errModelNaive = ErrorModelNaive(doubleDistributions[name], prec, 100000)
                 x_values, error_values =errModelNaive.compute_naive_error()
-                errModelNaive.plot_error(error_values,"Relative Error Distribution: "+name)
+                errModelNaive.plot_error(error_values,"Relative Err. Distr: "+name)
                 plt.figure("Quantized Distribution: "+name)
                 quantizedDistributions[name] = doubleDistribution*(1 + (eps * Uerr.distribution))
                 (quantizedDistributions[name]).plot()
+                plt.scatter(x=[float(quantizedDistributions[name].a), float(quantizedDistributions[name].b)], y=[0, 0], c='r', marker="|", s=1000)
+                plt.annotate(str(float(quantizedDistributions[name].a)),(float(quantizedDistributions[name].a)-0.05,0.05))
+                plt.annotate(str(float(quantizedDistributions[name].b)),(float(quantizedDistributions[name].b),0.05))
+                plt.title("Quantized Distribution: "+name+"; Mantissa: "+str(prec)+"bit, Exp: "+str(exp)+"bit, Segments: "+str(len(quantizedDistributions[name].get_piecewise_pdf().segments)))
+                #plt.xticks(list(plt.xticks()[0]) + [float(quantizedDistributions[name].a), float(quantizedDistributions[name].b)])
+                plt.pause(0.05)
                 plt.show()
 
     return doubleDistributions,quantizedDistributions
