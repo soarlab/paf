@@ -1,5 +1,5 @@
 import sys
-from __builtin__ import str
+#from __builtin__ import str
 
 import ply.yacc as yacc
 from fprlex import *
@@ -23,7 +23,7 @@ class FPRyacc:
 
 	def addVariable(self,name,distribution):
 		if name in self.variables:
-			print "Variable: " + name + " declared twice!"
+			print("Variable: " + name + " declared twice!")
 			exit(-1)
 		else:
 			self.variables[name]=distribution
@@ -31,7 +31,7 @@ class FPRyacc:
 	def myPrint(self,s,p):
 		res=""
 		if self.debug:
-			print str(s)+": "+str(p[0])
+			print(str(s)+": "+str(p[0]))
 		return
 	
 	def p_FileInput(self, p):
@@ -133,7 +133,7 @@ class FPRyacc:
 	def p_Variable(self, p):
 		'''UnaryExpr : WORD '''
 		if not str(p[1]) in self.variables:
-			print "Variable: " + str(p[1]) + "not declared!"
+			print("Variable: " + str(p[1]) + "not declared!")
 			exit(-1)
 		else:
 			p[0]=Node(self.variables[str(p[1])])

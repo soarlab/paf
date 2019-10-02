@@ -7,7 +7,9 @@ from stats import plot_error
 import pacal
 from fpryacc import *
 import time
+from regularizer import testRegularizer
 
+testRegularizer()
 matplotlib.pyplot.close("all")
 filepath="./test.txt"
 f= open(filepath,"r")
@@ -19,7 +21,7 @@ myYacc=FPRyacc(text,True)
 queue=visitTree(myYacc.expression)
 qDs,dDs=runAnalysis(queue,3,3,1000)
 plt.show()
-print "\nDone\n"
+print("\nDone\n")
 
 def test_scalar_products():
     X=[]

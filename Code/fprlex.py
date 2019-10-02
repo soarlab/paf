@@ -63,7 +63,7 @@ class FPRlex(object):
 
 	# Error handling rule
 	def t_error(self,t):
-		print "Found Illegal character "+t.value[0]
+		print("Found Illegal character "+t.value[0])
 		exit(0)
 		 
 	# A string containing ignored characters (spaces and tabs)

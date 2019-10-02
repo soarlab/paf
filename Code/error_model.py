@@ -125,7 +125,7 @@ class ErrorModel:
     #infVal is finite value
     def getInitialMinValue(self,infVal):
         if not gmpy2.is_finite(infVal):
-            print "Error cannot compute intervals with infinity"
+            print("Error cannot compute intervals with infinity")
             exit(-1)
         bkpCtx = gmpy2.get_context().copy()
 
@@ -139,7 +139,7 @@ class ErrorModel:
     # infVal is finite value
     def getFinalMaxValue(self, supVal):
         if not gmpy2.is_finite(supVal):
-            print "Error cannot compute intervals with infinity"
+            print("Error cannot compute intervals with infinity")
             exit(-1)
         bkpCtx = gmpy2.get_context().copy()
 
