@@ -19,7 +19,7 @@ f.close()
 myYacc=FPRyacc(text,True)
 
 queue=visitTree(myYacc.expression)
-qDs,dDs=runAnalysis(queue,3,3,1000)
+qDs,dDs=runAnalysis(queue,3,3,100)
 plt.show()
 print("\nDone\n")
 

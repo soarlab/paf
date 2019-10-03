@@ -39,7 +39,7 @@ class ErrorModelNaive:
         self.inputdistribution=distribution
         self.precision=precision
         self.samplesize=samplesize
-        self.distribution=self.compute_naive_error()
+        #self.distribution=self.compute_naive_error()
 
     def compute_naive_error(self):
         x = self.inputdistribution.rand(self.samplesize)
@@ -91,7 +91,7 @@ class ErrorModel:
         x=gmpy2.next_above(gmpy2.inf(-1))
         y=gmpy2.next_below(gmpy2.inf(1))
         coverage=self.inputdistribution.get_piecewise_pdf().integrate(float("-inf"),float("+inf"))
-        if (1.0-coverage)>0.001:
+        if coverage<0.99:
             raise Exception('The range of floating points is too narrow, increase maxexp and increase minexp')
         # Builds the Chebyshev polynomial representation of the density function
         self.pdf=chebfun(lambda t:self.__getpdf(t), domain=[-1.0,1.0], N=self.poly_precision)
@@ -104,6 +104,8 @@ class ErrorModel:
         # Creates a PaCal object containing the distribution
         #self.distribution=FunDistr(self.pdf.p, [-1,1])
         self.distribution = FunDistr(self.pdf.p, [-1, 1])
+        self.distribution.init_piecewise_pdf()
+        print ("ok")
 
     def setCurrentContextPrecision(self, mantissa, exponent):
         ctx = gmpy2.get_context()

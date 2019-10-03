@@ -5,7 +5,7 @@ import scipy.integrate as integrate
 import matplotlib.pyplot as plt
 
 
-def regularizeDistribution(D: pacal.distr) -> pacal.distr:
+def regularizeDistribution(D):
     approxLimit = 1000 * np.finfo(np.float32).eps
     f = D.get_piecewise_pdf()
     newSegments = [f.segments[0]]
@@ -21,7 +21,6 @@ def regularizeDistribution(D: pacal.distr) -> pacal.distr:
         if i < j:
             if computeDistance(merged, f, f.segments[i].a, f.segments[j].b) < approxLimit:
                 newSegments.append(merged)
-            #               z = cheb.compare(merged, f)
             # Quality control has failed, keep all segments
             else:
                 for k in range(i, j):
@@ -31,10 +30,11 @@ def regularizeDistribution(D: pacal.distr) -> pacal.distr:
         i = j + 1
     newSegments.append(f.segments[i])
     breakPoints = generateBreakPoints(newSegments)
-    newD = pacal.FunDistr(lambda t: wrapSegments(newSegments,t),breakPoints)
-    plt.close("all")
-    plt.figure("test")
-    newD.plot()
+    newD = pacal.FunDistr(lambda ti: wrapSegments(newSegments,ti),breakPoints)
+    newD.init_piecewise_pdf()
+    #plt.close("all")
+    #plt.figure("test")
+    #newD.plot()
     return newD
 
 
@@ -65,7 +65,9 @@ def mergeSegments(f, i, j):
         # Range of the new segment
         a = f.segments[i].a
         b = f.segments[j].b
-        return cheb.chebfun(f, domain=[a, b], N=42)
+        interp=cheb.chebfun(f, domain=[a, b], N=100)
+        tmp=pacal.segments.InterpolatedSegment(a,b,interp)
+        return tmp
 
 
 def restrictRange(f, t, a, b):
@@ -78,7 +80,7 @@ def restrictRange(f, t, a, b):
 
 
 def computeDistance(segment, f, a, b, p=1):
-    result = integrate.quad(lambda x: norm(segment(x) - f(x), p), a, b)
+    result = integrate.quad(lambda x: norm(segment.f(x) - f(x), p), a, b)
     return result[0]
 
 
@@ -90,20 +92,22 @@ def norm(x, p=1):
     else:
         raise ValueError("Invalid norm parameter")
 
-
 def wrapSegments(segments, t):
-    ans=[]
-    for ti in t:
-        if ti < segments[0].a or ti > segments[len(segments)-1].b:
-            raise ValueError("t is out of bounds")
+    #if ti < segments[0].a or ti > segments[len(segments)-1].b:
+    #    raise ValueError("t is out of bounds")
+    if isinstance(t,float) or isinstance(t,int) or len(t)==1:
         for s in segments:
-            if type(s).__name__ is "Chebfun":
-                if ti < s._domain.max():
-                    ans.append(s(ti).min())
-            else:
+            if t <= s.b:
+                return s.f(t)
+    else:
+        res=np.zeros(len(t))
+        tis=t
+        for index,ti in enumerate(tis):
+            for s in segments:
                 if ti <= s.b:
-                    ans.append(s.f(ti))
-    return ans
+                    res[index]=s.f(ti).item(0)
+                    break
+        return res
 
 def generateBreakPoints(segments):
     bp=[]
@@ -120,12 +124,13 @@ def generateBreakPoints(segments):
 
 def testRegularizer():
     plt.close("all")
-    X = pacal.NormalDistr(6, 12)
+    X = pacal.NormalDistr(6, 0.1)
     Y = pacal.BetaDistr(5, 7)
-    Z = pacal.NormalDistr(-5, 7)
-    T = (X * Y) / Z
+    Z = pacal.NormalDistr(-5, 0.1)
+    T = (X + Y) + Z
     plt.figure("Original Distribution")
     T.plot()
     rT = regularizeDistribution(T)
     plt.figure("New Distribution")
     rT.plot()
+    print ("Done")

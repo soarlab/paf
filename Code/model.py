@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from error_model import *
 from stats import plot_error
 import pacal
+params.general.parallel=True
+
 from pacal import *
 import time
 from pychebfun import *
@@ -54,32 +56,33 @@ def runAnalysis(queue,prec,exp,poly_prec):
                 plt.figure("Quantized Distribution: " + name)
                 quantizedDistributions[name] = quantizedDistribution * (1 + (eps * Uerr.distribution))
                 (quantizedDistributions[name]).plot()
-                plt.pause(0.05)
-                #plt.show()
+                #plt.pause(0.05)
+                plt.show()
             else:
                 doubleDistribution = elem.value.execute()
                 doubleDistributions[name] = doubleDistribution
-                plt.figure("DoublePrecision: "+name)
-                plt.title("DoublePrecision: "+name)
-                doubleDistributions[name].plot()
-                plt.figure("Relative Err. Distr: "+name)
-                plt.title("Relative Err. Distr.: "+name+", Cheb_Poly_Prec: "+str(poly_prec))
+                #plt.figure("DoublePrecision: "+name)
+                #plt.title("DoublePrecision: "+name)
+                #doubleDistributions[name].plot()
+                #plt.figure("Relative Err. Distr: "+name)
+                #plt.title("Relative Err. Distr.: "+name+", Cheb_Poly_Prec: "+str(poly_prec))
                 Uerr = ErrorModel(elem.value, prec, exp, poly_prec)
-                Uerr.distribution.plot()
+                #Uerr.distribution.plot()
                 #plt.figure("Relative Error Naive: " + name)
                 errModelNaive = ErrorModelNaive(doubleDistributions[name], prec, 100000)
                 x_values, error_values =errModelNaive.compute_naive_error()
-                errModelNaive.plot_error(error_values,"Relative Err. Distr: "+name)
-                plt.figure("Quantized Distribution: "+name)
+                #errModelNaive.plot_error(error_values,"Relative Err. Distr: "+name)
+                #plt.figure("Quantized Distribution: "+name)
                 quantizedDistributions[name] = doubleDistribution*(1 + (eps * Uerr.distribution))
-                (quantizedDistributions[name]).plot()
-                plt.scatter(x=[float(quantizedDistributions[name].a), float(quantizedDistributions[name].b)], y=[0, 0], c='r', marker="|", s=1000)
-                plt.annotate(str(float(quantizedDistributions[name].a)),(float(quantizedDistributions[name].a)-0.05,0.05))
-                plt.annotate(str(float(quantizedDistributions[name].b)),(float(quantizedDistributions[name].b),0.05))
-                plt.title("Quantized Distribution: "+name+"; Mantissa: "+str(prec)+"bit, Exp: "+str(exp)+"bit, Segments: "+str(len(quantizedDistributions[name].get_piecewise_pdf().segments)))
+                quantizedDistributions[name].init_piecewise_pdf()
+                #(quantizedDistributions[name]).plot()
+                #plt.scatter(x=[float(quantizedDistributions[name].a), float(quantizedDistributions[name].b)], y=[0, 0], c='r', marker="|", s=1000)
+                #plt.annotate(str(float(quantizedDistributions[name].a)),(float(quantizedDistributions[name].a)-0.05,0.05))
+                #plt.annotate(str(float(quantizedDistributions[name].b)),(float(quantizedDistributions[name].b),0.05))
+                #plt.title("Quantized Distribution: "+name+"; Mantissa: "+str(prec)+"bit, Exp: "+str(exp)+"bit, Segments: "+str(len(quantizedDistributions[name].get_piecewise_pdf().segments)))
                 #plt.xticks(list(plt.xticks()[0]) + [float(quantizedDistributions[name].a), float(quantizedDistributions[name].b)])
-                plt.pause(0.05)
-                plt.show()
+                #plt.pause(0.05)
+                #plt.show()
 
     return doubleDistributions,quantizedDistributions
 
