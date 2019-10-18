@@ -8,8 +8,8 @@ import pacal
 from fpryacc import *
 import time
 from regularizer import testRegularizer
+from tree_model import TreeModel
 
-testRegularizer()
 matplotlib.pyplot.close("all")
 filepath="./test.txt"
 f= open(filepath,"r")
@@ -17,6 +17,7 @@ text=f.read()
 text=text[:-1]
 f.close()
 myYacc=FPRyacc(text,True)
+#T=TreeModel(myYacc,3,3,100)
 
 queue=visitTree(myYacc.expression)
 qDs,dDs=runAnalysis(queue,3,3,100)
