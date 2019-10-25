@@ -1,5 +1,4 @@
 from sympy import sign
-
 import simple_tests
 import matplotlib.pyplot
 from error_model import ErrorModel
@@ -20,7 +19,7 @@ myYacc=FPRyacc(text,True)
 #T=TreeModel(myYacc,3,3,100)
 
 queue=visitTree(myYacc.expression)
-qDs,dDs=runAnalysis(queue,3,3,100)
+qDs,dDs=runAnalysis(queue,5,5,100)
 plt.show()
 print("\nDone\n")
 
@@ -30,7 +29,7 @@ def test_scalar_products():
     for i in range(1,3):
         X.append(pacal.UniformDistr(-1,1))
         Y.append(pacal.NormalDistr())
-    error_free_scalar_product(X,Y)
+    #error_free_scalar_product(X,Y)
 
 
 def test_error_model(distribution):

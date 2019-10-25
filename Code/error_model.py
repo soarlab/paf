@@ -26,14 +26,6 @@ import pacal
 import matplotlib.pyplot as plt
 import numpy as np
 
-
-def computeLargestPositiveNumber(mantissa, exponent):
-    with gmpy2.local_context(gmpy2.context(), precision=max(5 * mantissa, 100)) as ctx:
-        biggestPositiveNumber = gmpy2.mul(gmpy2.sub(2, gmpy2.exp2(-mantissa)),
-                                          gmpy2.exp2(gmpy2.exp2(exponent - 1) - 1))
-        # for negative it is just a matter of signs
-        return biggestPositiveNumber
-
 class ErrorModelNaive:
     def __init__(self, distribution, precision, samplesize):
         self.inputdistribution=distribution
@@ -90,20 +82,17 @@ class ErrorModel:
         # Test if the range of floating point number covers enough of the inputdistribution
         x=gmpy2.next_above(gmpy2.inf(-1))
         y=gmpy2.next_below(gmpy2.inf(1))
-        coverage=self.inputdistribution.get_piecewise_pdf().integrate(float("-inf"),float("+inf"))
-        if coverage<0.99:
-            raise Exception('The range of floating points is too narrow, increase maxexp and increase minexp')
+        #check exponenent out of range (overflow)
+        #instead in case of accuracy problem
+        #(normalize: divide by the current coverage ex. 0.995/0.995)
+
+        #coverage=self.inputdistribution.get_piecewise_pdf().integrate(float("-inf"),float("+inf"))
+        #if coverage<0.99:
+        #    raise Exception('The range of floating points is too narrow, increase maxexp and increase minexp')
         # Builds the Chebyshev polynomial representation of the density function
         self.pdf=chebfun(lambda t:self.__getpdf(t), domain=[-1.0,1.0], N=self.poly_precision)
-        #self.pdf2=self.pdf.p
-        #plot(self.pdf)
-        #plt.show()
-        #self.tempPdf=(lambda x : self.pdf(x).item(0))
-        #t = self.pdf(0.5).item(0)
-        #r = self.pdf(15.5)
-        # Creates a PaCal object containing the distribution
-        #self.distribution=FunDistr(self.pdf.p, [-1,1])
-        self.distribution = FunDistr(self.pdf.p, [-1, 1])
+        self.distribution = FunDistr(self.pdf.p, [-1.0, 0.0,  1.0], interpolated=True)
+        #self.distribution = FunDistr(self.pdf.p, [-1.0, 1.0])
         self.distribution.init_piecewise_pdf()
         print ("ok")
 

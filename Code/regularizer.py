@@ -4,16 +4,16 @@ import numpy as np
 import scipy.integrate as integrate
 import matplotlib.pyplot as plt
 
-
-def regularizeDistribution(D):
-    approxLimit = 1000 * np.finfo(np.float32).eps
+newSegments=[]
+def regularizeDistribution(D,approxLimit,jumpLimit,deltavLimit):
+    newSegments.clear()
     f = D.get_piecewise_pdf()
-    newSegments = [f.segments[0]]
+    newSegments.append(f.segments[0])
     i = 1
     while i < len(f.segments) - 1:
         j = i
         # Identify a sequence of standard InterpolatedSegments without large discontinuities or gradient changes
-        while smoothnessCriterion(f.segments[j], f.segments[j + 1]):
+        while (j<len(f.segments) - 2) and smoothnessCriterion(f.segments[j], f.segments[j + 1], jumpLimit, deltavLimit):
             j += 1
         # Segments i to j can be merged
         merged = mergeSegments(f, i, j)
@@ -30,20 +30,17 @@ def regularizeDistribution(D):
         i = j + 1
     newSegments.append(f.segments[i])
     breakPoints = generateBreakPoints(newSegments)
-    newD = pacal.FunDistr(lambda ti: wrapSegments(newSegments,ti),breakPoints)
+    newD = pacal.FunDistr(lambdaWrapper,breakPoints,interpolated=True)
     newD.init_piecewise_pdf()
-    #plt.close("all")
-    #plt.figure("test")
-    #newD.plot()
     return newD
 
+def lambdaWrapper(ti):
+    return wrapSegments(ti)
 
 # Tests if two CONSECUTIVE segments s,t can be merged into one.
 # Returns a boolean
-def smoothnessCriterion(s, t):
+def smoothnessCriterion(s, t, jumpLimit, deltavLimit):
     # Constants used to test for smoothness
-    jumpLimit = np.finfo(np.float32).eps
-    deltavLimit = 10 * np.finfo(np.float32).eps
     # Test for non-standard types of segments
     if type(s.f).__name__ is "ChebyshevInterpolator" and type(t.f).__name__ is "ChebyshevInterpolator":
         # Test for discontinuities between segments
@@ -92,20 +89,20 @@ def norm(x, p=1):
     else:
         raise ValueError("Invalid norm parameter")
 
-def wrapSegments(segments, t):
+def wrapSegments(t):
     #if ti < segments[0].a or ti > segments[len(segments)-1].b:
     #    raise ValueError("t is out of bounds")
     if isinstance(t,float) or isinstance(t,int) or len(t)==1:
-        for s in segments:
+        for s in newSegments:
             if t <= s.b:
                 return s.f(t)
     else:
         res=np.zeros(len(t))
         tis=t
         for index,ti in enumerate(tis):
-            for s in segments:
+            for s in newSegments:
                 if ti <= s.b:
-                    res[index]=s.f(ti).item(0)
+                    res[index]=s.f(ti)#.item(0)
                     break
         return res
 
@@ -133,4 +130,21 @@ def testRegularizer():
     rT = regularizeDistribution(T)
     plt.figure("New Distribution")
     rT.plot()
+    G = pacal.NormalDistr(6, 0.1)
+    plt.figure()
+    res=G*Z
+    res.plot()
     print ("Done")
+
+def chebfunInterpDistr(distr, limitSegments):
+    try:
+        segs=distr.get_piecewise_pdf().segments
+    except:
+        return distr
+    if len(segs)>limitSegments:
+        approxLimit= 1000 * np.finfo(np.float32).eps
+        jumpLimit = np.finfo(np.float32).eps
+        deltavLimit = 10 * np.finfo(np.float32).eps
+        return regularizeDistribution(distr,approxLimit,jumpLimit,deltavLimit)
+    return distr
+
