@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from error_model import *
 from stats import plot_error
 import pacal
-params.general.parallel=True
+#params.general.parallel=True
 import regularizer
 from regularizer import *
 import matplotlib.pyplot as plt

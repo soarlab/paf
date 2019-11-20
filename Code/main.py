@@ -3,7 +3,7 @@ import simple_tests
 import matplotlib.pyplot
 from error_model import ErrorModel
 from stats import plot_error
-import pacal
+from pacal import *
 from fpryacc import *
 import time
 from regularizer import testRegularizer
