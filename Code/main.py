@@ -8,6 +8,7 @@ from fpryacc import *
 import time
 from regularizer import testRegularizer
 from tree_model import TreeModel
+from conditional import ConditionalError
 
 matplotlib.pyplot.close("all")
 filepath="./test.txt"
@@ -16,7 +17,10 @@ text=f.read()
 text=text[:-1]
 f.close()
 myYacc=FPRyacc(text,True)
-#T=TreeModel(myYacc,3,3,100)
+T = TreeModel(myYacc,3,3,60)
+E = ConditionalError(T, 30, 60, 3)
+E.get_monte_carlo_error()
+
 
 queue=visitTree(myYacc.expression)
 qDs,dDs=runAnalysis(queue,3,3,100)
