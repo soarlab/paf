@@ -15,10 +15,12 @@ class FPRyacc:
 
 	def __init__(self,program,debug):
 		self.lexer = uniqueLexer
+		self.manager = NodeManager()
 		self.parser = yacc.yacc(module=self)
 		self.debug = debug
 		self.program = program
 		self.variables = {}
+		self.leafes=[]
 		self.expression=self.parser.parse(self.program)
 
 	def addVariable(self,name,distribution):
@@ -51,31 +53,32 @@ class FPRyacc:
 		self.myPrint("VarDeclaration",p)
 		
 	def p_Uniform(self, p):
-		''' Distribution : WORD COLON U LPAREN NUMBER COMMA NUMBER RPAREN
+		''' Distribution : WORD COLON U LPAREN POSNUMBER COMMA POSNUMBER RPAREN
+						 | WORD COLON U LPAREN NEGNUMBER COMMA POSNUMBER RPAREN
+						 | WORD COLON U LPAREN NEGNUMBER COMMA NEGNUMBER RPAREN
 		'''
 
 		distr=U(str(p[1]),str(p[5]),str(p[7]))
 		self.addVariable(str(p[1]),distr)
-		#p[0] = distr
 		self.myPrint("Uniform",p)
 
 	def p_Normal(self, p):
-		''' Distribution : WORD COLON N LPAREN NUMBER COMMA NUMBER RPAREN
+		''' Distribution : WORD COLON N LPAREN POSNUMBER COMMA POSNUMBER RPAREN
+						 | WORD COLON N LPAREN NEGNUMBER COMMA POSNUMBER RPAREN
+						 | WORD COLON N LPAREN NEGNUMBER COMMA NEGNUMBER RPAREN
 		'''
 
-		#p[0] = str(p[1]) + str(p[2]) + str(p[3]) + str(p[4]) + str(p[5]) + str(p[6]) + str(p[7]) + str(p[8])
 		distr = N(str(p[1]), str(p[5]), str(p[7]))
 		self.addVariable(str(p[1]),distr)
-		#p[0] = distr
 		self.myPrint("Normal", p)
 
 	def p_Beta(self, p):
-		''' Distribution : WORD COLON B LPAREN NUMBER COMMA NUMBER RPAREN
+		''' Distribution : WORD COLON B LPAREN POSNUMBER COMMA POSNUMBER RPAREN
+						 | WORD COLON B LPAREN NEGNUMBER COMMA POSNUMBER RPAREN
+						 | WORD COLON B LPAREN NEGNUMBER COMMA NEGNUMBER RPAREN
 		'''
-		#p[0] = str(p[1]) + str(p[2]) + str(p[3]) + str(p[4]) + str(p[5]) + str(p[6]) + str(p[7]) + str(p[8])
 		distr = B(str(p[1]), str(p[5]), str(p[7]))
 		self.addVariable(str(p[1]),distr)
-		#p[0] = distr
 		self.myPrint("Beta", p)
 
 	def p_Expression(self, p):
@@ -93,10 +96,13 @@ class FPRyacc:
 						   | MINUS AnnidateArithExpr
 		'''
 		if len(p)>3:
-			p[0]=Node(Operation(p[1].value,str(p[2]),p[3].value,False),[p[1],p[3]])
+			oper=Operation(p[1].value,str(p[2]),p[3].value,False)
+			node=self.manager.createNode(oper,[p[1], p[3]])
+			p[0]=node
 		else:
-			tmp=Node(Number("0"))
-			p[0]=Node(Operation(tmp.value,str(p[1]),p[2].value,False),[tmp,p[2]])
+			tmpNode=self.manager.createNode(Number("0"),[])
+			oper=Operation(tmpNode.value, str(p[1]), p[2].value, False)
+			p[0]=self.manager.createNode(oper, [tmpNode, p[2]])
 		self.myPrint("BinaryArithExpr",p)
 		
 	def p_AnnidateArithExpr(self, p):
@@ -108,10 +114,13 @@ class FPRyacc:
 		'''
 
 		if len(p)>5:
-			p[0]=Node(Operation(p[2].value,str(p[3]),p[4].value,True),[p[2],p[4]])
+			oper = Operation(p[2].value, str(p[3]), p[4].value, True)
+			node = self.manager.createNode(oper, [p[2], p[4]])
+			p[0] = node
 		else:
-			tmp=Node(Number("0"))
-			p[0]=Node(Operation(tmp.value,str(p[3]),p[4].value,True),[tmp,p[3]])
+			tmpNode=self.manager.createNode(Number("0.0"),[])
+			oper=Operation(tmpNode.value, str(p[2]), p[3].value, True)
+			p[0]=self.manager.createNode(oper, [tmpNode,p[3]])
 		self.myPrint("AnnidateArithExpr",p)
 	
 	def p_UnaryExpr(self, p):
@@ -126,8 +135,8 @@ class FPRyacc:
 		self.myPrint("UnaryArithExpr",p)
 	
 	def p_Number(self, p):
-		'''UnaryExpr : NUMBER'''
-		p[0]=Node(Number(str(p[1])))
+		'''UnaryExpr : POSNUMBER'''
+		p[0]=self.manager.createNode(Number(str(p[1])),[])
 		self.myPrint("Number",p)
 	
 	def p_Variable(self, p):
@@ -136,7 +145,7 @@ class FPRyacc:
 			print("Variable: " + str(p[1]) + "not declared!")
 			exit(-1)
 		else:
-			p[0]=Node(self.variables[str(p[1])])
+			p[0]=self.manager.createNode(self.variables[str(p[1])],[])
 		self.myPrint("Variable",p)
 
 	def p_error(self, p):

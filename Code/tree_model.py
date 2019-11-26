@@ -1,5 +1,5 @@
-from error_model import ErrorModel
-
+from model import *
+from error_model import *
 
 def copy_tree(my_tree):
     if my_tree.leaf:
@@ -10,15 +10,27 @@ def copy_tree(my_tree):
 
 
 class BinaryTree(object):
+
     def __init__(self, name, value, left=None, right=None):
         self.root_name = name
         self.root_value = value
         self.left = left
         self.right = right
 
+class Triple:
+    def __init__(self, distribution, errorTerm, eps):
+        self.distribution=distribution
+        self.errorTerm=errorTerm
+        self.eps=eps
+        self.quantizationTerm=(1.0+(eps*errorTerm))
+        self.quantizationTerm.init_piecewise_pdf()
+
+    def compute(self, singleValue):
+        tmp=singleValue*self.quantizationTerm
 
 class TreeModel:
-    def __init__(self, my_yacc, precision, exp, poly_precision, initialize=False):
+
+    def __init__(self, my_yacc, precision, exp, poly_precision, initialize=True):
         self.initialize = initialize
         self.precision = precision
         self.exp = exp
@@ -27,6 +39,8 @@ class TreeModel:
         self.tree = copy_tree(my_yacc.expression)
         ''' Evaluate tree '''
         self.evaluate(self.tree)
+        self.eps = 2 ** (-self.precision)
+        #self.tree = self.evaluate(my_yacc.expression)
 
     # Recursively populate the Tree with the triples (distribution, error distribution, quantized distribution)
     def evaluate(self, tree):
@@ -39,7 +53,11 @@ class TreeModel:
             if self.initialize:
                 # Compute error model
                 error = ErrorModel(dist, self.precision, self.exp, self.poly_precision)
-                quantized_distribution = dist*(1+error)
+                errorNaive = ErrorModelNaive(dist,self.precision,self.exp, 100000)
+                quantized_distribution = dist.distribution*(1+(self.eps*error.distribution))
+                quantized_distribution.plot()
+                naive_quantized_distribution = NaiveQuantizedOperation(dist.name, dist, error, self.precision, self.exp).execute()
+                print("ok")
             # Else we leave the leaf distribution unchanged
             else:
                 error = 0
@@ -61,7 +79,6 @@ class TreeModel:
         triple.append(error)
         triple.append(quantized_distribution)
         tree.root_value = triple
-
 
 class BinOpDist:
     def __init__(self, leftoperand, operator, rightoperand):
