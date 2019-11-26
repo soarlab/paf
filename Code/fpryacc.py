@@ -96,12 +96,12 @@ class FPRyacc:
 						   | MINUS AnnidateArithExpr
 		'''
 		if len(p)>3:
-			oper=Operation(p[1].value,str(p[2]),p[3].value,False)
+			oper=Operation(p[1].value,str(p[2]),p[3].value)
 			node=self.manager.createNode(oper,[p[1], p[3]])
 			p[0]=node
 		else:
 			tmpNode=self.manager.createNode(Number("0"),[])
-			oper=Operation(tmpNode.value, str(p[1]), p[2].value, False)
+			oper=Operation(tmpNode.value, str(p[1]), p[2].value)
 			p[0]=self.manager.createNode(oper, [tmpNode, p[2]])
 		self.myPrint("BinaryArithExpr",p)
 		
@@ -114,12 +114,12 @@ class FPRyacc:
 		'''
 
 		if len(p)>5:
-			oper = Operation(p[2].value, str(p[3]), p[4].value, True)
+			oper = Operation(p[2].value, str(p[3]), p[4].value)
 			node = self.manager.createNode(oper, [p[2], p[4]])
 			p[0] = node
 		else:
 			tmpNode=self.manager.createNode(Number("0.0"),[])
-			oper=Operation(tmpNode.value, str(p[2]), p[3].value, True)
+			oper=Operation(tmpNode.value, str(p[2]), p[3].value)
 			p[0]=self.manager.createNode(oper, [tmpNode,p[3]])
 		self.myPrint("AnnidateArithExpr",p)
 	

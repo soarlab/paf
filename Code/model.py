@@ -123,36 +123,31 @@ class NaiveQuantizedOperation:
         return self.distribution
 
     def dependentQuantizationExecute(self):
-        pass
-
-    ''' RISKY CODE
     
-        distS = self.dist.getSampleSet(100000)
-        errorS = self.error.getSampleSet(100000)
-        resDistS = []
-        resErrS = []
-        setCurrentContextPrecision(self.precision, self.exp)
+        X = pacal.UniformDistr(1, 2)
+        Y = pacal.UniformDistr(1, 2)
+        Z = pacal.UniformDistr(1, 2)
 
-        for index, r in enumerate(distS):
-            e = (r - float(gmpy2.round2(r))) / r #exact error of quantization
-            # if the exact error and "sample error" have different sign discard
-            if e*errorS[index]>0:
-                eAbs=abs(e)
-                currentError=abs(errorS[index])
-                if currentError<=eAbs: # if the "sample error" is greater in magnitude than exact error discard
-                    resErrS.append(errorS[index])
-                    resDistS.append(r)
+        valX = X.rand(100000)
+        valY = Y.rand(100000)
+        valZ = Z.rand(100000)
+
+        setCurrentContextPrecision(self.precision, self.exp)
+        errors=[]
+        for index, val in enumerate(valX):
+            x = mpfr(str(val))
+            y = mpfr(str(valY[index]))
+            z = mpfr(str(valZ[index]))
+            resq = gmpy2.mul(gmpy2.add(x,y),z)
+            res = (x+y)*z
+            e = (res - float(printMPFRExactly(resq))) / res #exact error of quantization
+            errors.append(e)
 
         resetContextDefault()
-        resDistS = distS
-        resErrS = errorS
-        resErrS=(np.array(resErrS)*self.eps)+1
-        res=np.array(resDistS)*np.array(resErrS)
 
         bin_nb = int(math.ceil(math.sqrt(len(res))))
         n, bins, patches = plt.hist(res, bins=bin_nb, density=1)
         plt.show()
-    '''
 
 class Operation:
     def __init__(self, leftoperand, operator, rightoperand):

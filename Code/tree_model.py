@@ -5,7 +5,8 @@ def copy_tree(my_tree):
     if my_tree.leaf:
         copied_tree = BinaryTree(my_tree.value.name, my_tree.value)
     else:
-        copied_tree = BinaryTree(my_tree.value.operator, None, copy_tree(my_tree.children[0]), copy_tree(my_tree.children[1]))
+        copied_tree = BinaryTree(my_tree.value.operator, None, copy_tree(my_tree.children[0]),
+                                 copy_tree(my_tree.children[1]))
     return copied_tree
 
 
@@ -35,29 +36,30 @@ class TreeModel:
         self.precision = precision
         self.exp = exp
         self.poly_precision = poly_precision
-        ''' Copy structure of the tree from my_yacc'''
+        # Copy structure of the tree from my_yacc
         self.tree = copy_tree(my_yacc.expression)
-        ''' Evaluate tree '''
-        self.evaluate(self.tree)
+        # Evaluate tree
         self.eps = 2 ** (-self.precision)
-        #self.tree = self.evaluate(my_yacc.expression)
+        self.evaluate(self.tree)
 
-    # Recursively populate the Tree with the triples (distribution, error distribution, quantized distribution)
     def evaluate(self, tree):
+        """ Recursively populate the Tree with the triples
+        (distribution, error distribution, quantized distribution) """
         triple = []
         # Test if we're at a leaf
         if tree.root_value is not None:
             # Non-quantized distribution
-            dist = tree.root_value.distribution
+            dist = UnOpDist(tree.root_value.distribution)
             # initialize=True means we quantize the inputs
             if self.initialize:
                 # Compute error model
                 error = ErrorModel(dist, self.precision, self.exp, self.poly_precision)
-                errorNaive = ErrorModelNaive(dist,self.precision,self.exp, 100000)
-                quantized_distribution = dist.distribution*(1+(self.eps*error.distribution))
-                quantized_distribution.plot()
-                naive_quantized_distribution = NaiveQuantizedOperation(dist.name, dist, error, self.precision, self.exp).execute()
-                print("ok")
+                quantized_distribution = BinOpDist(dist.execute(), "*+", self.eps*error.distribution)
+                #errorNaive = ErrorModelNaive(dist,self.precision,self.exp, 100000)
+                #quantized_distribution = dist.distribution*(1+(self.eps*error.distribution))
+                #quantized_distribution.plot()
+                #naive_quantized_distribution = NaiveQuantizedOperation(dist.name, dist, error, self.precision, self.exp).execute()
+                #print("ok")
             # Else we leave the leaf distribution unchanged
             else:
                 error = 0
@@ -70,36 +72,62 @@ class TreeModel:
         else:
             self.evaluate(tree.left)
             self.evaluate(tree.right)
-            dist = BinOpDist(tree.left.root_value[0], tree.root_name, tree.right.root_value[0])
-            qdist = BinOpDist(tree.left.root_value[2], tree.root_name, tree.right.root_value[2])
+            dist = BinOpDist(tree.left.root_value[0].execute(), tree.root_name, tree.right.root_value[0].execute())
+            qdist = BinOpDist(tree.left.root_value[2].execute(), tree.root_name, tree.right.root_value[2].execute())
             error = ErrorModel(qdist, self.precision, self.exp, self.poly_precision)
-            quantized_distribution = BinOpDist(qdist.execute(), "*", (1 + error.distribution))
-        # We now populate the triple with distribution, error model, quantized distribution
+            quantized_distribution = BinOpDist(qdist.execute(), "*+", error.distribution)
+        # We now populate the triple with distribution, error model, quantized distribution '''
         triple.append(dist)
         triple.append(error)
         triple.append(quantized_distribution)
         tree.root_value = triple
 
 class BinOpDist:
+    """
+    Wrapper class for the result of an arithmetic operation on PaCal distributions
+    Warning! leftoperand and rightoperant MUST be PaCal distributions
+    """
+
     def __init__(self, leftoperand, operator, rightoperand):
         self.leftoperand = leftoperand
         self.operator = operator
         self.rightoperand = rightoperand
 
-        if operator=="+":
+        if operator == "+":
             self.distribution = self.leftoperand + self.rightoperand
-        elif operator=="-":
+        elif operator == "-":
             self.distribution = self.leftoperand - self.rightoperand
-        elif operator=="*":
+        elif operator == "*":
             self.distribution = self.leftoperand * self.rightoperand
-        elif operator=="/":
+        elif operator == "/":
             self.distribution = self.leftoperand / self.rightoperand
+        # operator to multiply by a relative error
+        elif operator == "*+":
+            self.distribution = self.leftoperand * (1 + self.rightoperand)
         else:
-            print ("Operation not supported!")
+            print("Operation not supported!")
             exit(-1)
-        ####################################
+
         self.a = self.distribution.a
         self.b = self.distribution.b
+
+    def execute(self):
+        return self.distribution
+
+
+class UnOpDist:
+    """
+    Wrapper class for the result of unary operation on a PaCal distribution
+    """
+
+    def __init__(self, operand, operation=None):
+        if operation is None:
+            self.distribution = operand
+            self.a = self.distribution.range_()[0]
+            self.b = self.distribution.range_()[-1]
+        else:
+            print("Unary operation not yet supported")
+            exit(-1)
 
     def execute(self):
         return self.distribution
