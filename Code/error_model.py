@@ -75,6 +75,20 @@ class ErrorModelNaive:
         # plt.savefig('pics/'+repr(distribution.getName()).replace("'",'')+'_'+repr(precision))
         # plt.clf()
 
+class ErrorModelPointMass:
+    def __init__(self, wrapperInputDistribution, precision, exp):
+        self.wrapperInputDistribution=wrapperInputDistribution
+        self.inputdistribution = self.wrapperInputDistribution.execute()
+        self.precision=precision
+        self.exp=exp
+        self.eps = 2 ** -self.precision
+        setCurrentContextPrecision(self.precision, self.exp)
+        qValue=printMPFRExactly(mpfr(str(self.inputdistribution)))
+        resetContextDefault()
+        error=float(str(self.inputdistribution))-float(qValue)
+        self.distribution=ConstDistr(float(error))
+        self.distribution.init_piecewise_pdf()
+
 
 
 class ErrorModel:

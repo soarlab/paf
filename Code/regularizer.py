@@ -105,6 +105,7 @@ def wrapSegments(t):
                     res[index]=s.f(ti)#.item(0)
                     break
         return res
+    return 0
 
 def generateBreakPoints(segments):
     bp=[]
@@ -141,7 +142,7 @@ def chebfunInterpDistr(distr, limitSegments):
         segs=distr.get_piecewise_pdf().segments
     except:
         return distr
-    if len(segs)>limitSegments:
+    if len(segs)>=limitSegments:
         approxLimit= 1000 * np.finfo(np.float32).eps
         jumpLimit = np.finfo(np.float32).eps
         deltavLimit = 10 * np.finfo(np.float32).eps

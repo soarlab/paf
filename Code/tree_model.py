@@ -29,6 +29,12 @@ class Triple:
     def compute(self, singleValue):
         tmp=singleValue*self.quantizationTerm
 
+
+def idPointMassDistr(dist):
+    if dist.distribution.range_()[0] == dist.distribution.range_()[-1]:
+        return True
+    return False
+
 class TreeModel:
 
     def __init__(self, my_yacc, precision, exp, poly_precision, initialize=True):
@@ -53,13 +59,13 @@ class TreeModel:
             # initialize=True means we quantize the inputs
             if self.initialize:
                 # Compute error model
-                error = ErrorModel(dist, self.precision, self.exp, self.poly_precision)
-                quantized_distribution = BinOpDist(dist.execute(), "*+", self.eps*error.distribution)
-                #errorNaive = ErrorModelNaive(dist,self.precision,self.exp, 100000)
-                #quantized_distribution = dist.distribution*(1+(self.eps*error.distribution))
-                #quantized_distribution.plot()
-                #naive_quantized_distribution = NaiveQuantizedOperation(dist.name, dist, error, self.precision, self.exp).execute()
-                #print("ok")
+                if idPointMassDistr(dist):
+                    error = ErrorModelPointMass(dist, self.precision, self.exp)
+                    quantized_distribution = quantizedPointMass(dist,self.precision, self.exp)
+                else:
+                    error = ErrorModel(dist, self.precision, self.exp, self.poly_precision)
+                    quantized_distribution = BinOpDist(dist.execute(), "*+", self.eps*error.distribution)
+
             # Else we leave the leaf distribution unchanged
             else:
                 error = 0
@@ -77,10 +83,28 @@ class TreeModel:
             error = ErrorModel(qdist, self.precision, self.exp, self.poly_precision)
             quantized_distribution = BinOpDist(qdist.execute(), "*+", error.distribution)
         # We now populate the triple with distribution, error model, quantized distribution '''
+
         triple.append(dist)
         triple.append(error)
         triple.append(quantized_distribution)
+
         tree.root_value = triple
+
+class quantizedPointMass:
+
+    def __init__(self, wrapperInputDistribution, precision, exp):
+        self.wrapperInputDistribution = wrapperInputDistribution
+        self.inputdistribution = self.wrapperInputDistribution.execute()
+        self.precision = precision
+        self.exp = exp
+        setCurrentContextPrecision(self.precision, self.exp)
+        qValue = printMPFRExactly(mpfr(str(self.inputdistribution)))
+        resetContextDefault()
+        self.distribution = ConstDistr(float(qValue))
+        self.distribution.init_piecewise_pdf()
+
+    def execute(self):
+        return self.distribution
 
 class BinOpDist:
     """
@@ -108,8 +132,12 @@ class BinOpDist:
             print("Operation not supported!")
             exit(-1)
 
-        self.a = self.distribution.a
-        self.b = self.distribution.b
+        self.distribution.init_piecewise_pdf()
+
+        #self.distribution=chebfunInterpDistr(self.distribution,5)
+
+        self.a = self.distribution.range_()[0]
+        self.b = self.distribution.range_()[-1]
 
     def execute(self):
         return self.distribution
