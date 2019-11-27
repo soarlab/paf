@@ -54,8 +54,8 @@ class ConditionalError:
     def get_error_at_sample(self, tree):
         """
         Given a TreeModel tree this method does the following:
-        1) it goes to the leaves of the tree and sample each distribution there
-        2) it then recursively navigates up to tree to compute:
+        1) it goes to the leaves of the tree and samples each distribution there
+        2) it then recursively navigates up the tree to compute:
             a) the exact value of the expression where each variable is instantiated to its sampled value
             b) the output distribution where each variable is instantiated to its sampled value
             and each error distribution is taken from the TreeModel

@@ -5,7 +5,7 @@ import scipy.integrate as integrate
 import matplotlib.pyplot as plt
 
 newSegments=[]
-def regularizeDistribution(D,approxLimit,jumpLimit,deltavLimit):
+def regularizeDistribution(D, approxLimit, jumpLimit, deltavLimit):
     newSegments.clear()
     f = D.get_piecewise_pdf()
     newSegments.append(f.segments[0])
@@ -19,7 +19,13 @@ def regularizeDistribution(D,approxLimit,jumpLimit,deltavLimit):
         merged = mergeSegments(f, i, j)
         # Quality control: is the new segment a good approximation of segments i to j
         if i < j:
-            if computeDistance(merged, f, f.segments[i].a, f.segments[j].b) < approxLimit:
+            try:
+                dist = computeDistance(merged, f, f.segments[i].a, f.segments[j].b)
+            except:
+                # Quality control is undetermined, keep all segments
+                for k in range(i, j):
+                    newSegments.append(f.segments[k])
+            if dist < approxLimit:
                 newSegments.append(merged)
             # Quality control has failed, keep all segments
             else:

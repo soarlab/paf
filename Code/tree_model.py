@@ -1,5 +1,9 @@
 from model import *
+import math
 from error_model import *
+import numpy as np
+import matplotlib.pyplot as plt
+from regularizer import *
 
 def copy_tree(my_tree):
     if my_tree.leaf:
@@ -83,36 +87,128 @@ class TreeModel:
             error = ErrorModel(qdist, self.precision, self.exp, self.poly_precision)
             quantized_distribution = BinOpDist(qdist.execute(), "*+", error.distribution)
         # We now populate the triple with distribution, error model, quantized distribution '''
-
         triple.append(dist)
         triple.append(error)
         triple.append(quantized_distribution)
-
         tree.root_value = triple
+
+    def generate_output_samples(self, sample_nb):
+        """ Generate sample_nb samples of tree evaluation in the tree's working precision
+            :return an array of samples """
+        d = np.zeros(sample_nb)
+        setCurrentContextPrecision(self.precision, self.exp)
+        for i in range(0, sample_nb):
+            d[i] = self.evaluate_at_sample(self.tree)
+        resetContextDefault()
+        return d
+
+    def evaluate_at_sample(self, tree):
+        """ Sample from the leaf then evaluate tree in the tree's working precision"""
+        if tree.left is not None or tree.right is not None:
+           if tree.left is not None:
+               sample_l = self.evaluate_at_sample(tree.left)
+           if tree.right is not None:
+               sample_r = self.evaluate_at_sample(tree.right)
+           if tree.root_name == "+":
+               return gmpy2.add(mpfr(str(sample_l)), mpfr(str(sample_r)))
+           elif tree.root_name == "-":
+               return gmpy2.sub(mpfr(str(sample_l)), mpfr(str(sample_r)))
+           elif tree.root_name == "*":
+               return gmpy2.mul(mpfr(str(sample_l)), mpfr(str(sample_r)))
+           elif tree.root_name == "/":
+               return gmpy2.div(mpfr(str(sample_l)), mpfr(str(sample_r)))
+           else:
+               print("Operation not supported!")
+               exit(-1)
+        else:
+           sample = tree.root_value[0].execute().rand()
+           return sample
+
+    def generate_error_samples(self, sample_nb):
+        """ Generate sample_nb samples of tree evaluation in the tree's working precision
+                    :return an array of samples """
+        e = np.zeros(sample_nb)
+        setCurrentContextPrecision(self.precision, self.exp)
+        for i in range(0, sample_nb):
+            sample, lp_sample = self.evaluate_error_at_sample(self.tree)
+            e[i] = (sample - lp_sample) / (self.eps * sample)
+        resetContextDefault()
+        return e
+
+    def evaluate_error_at_sample(self, tree):
+        """ Sample from the leaf then evaluate tree in the tree's working precision"""
+        if tree.left is not None or tree.right is not None:
+            if tree.left is not None:
+                sample_l, lp_sample_l = self.evaluate_error_at_sample(tree.left)
+            if tree.right is not None:
+                sample_r, lp_sample_r = self.evaluate_error_at_sample(tree.right)
+            if tree.root_name == "+":
+                return (sample_l + sample_r), gmpy2.add(mpfr(str(lp_sample_l)), mpfr(str(lp_sample_r)))
+            elif tree.root_name == "-":
+                return (sample_l - sample_r), gmpy2.sub(mpfr(str(lp_sample_l)), mpfr(str(lp_sample_r)))
+            elif tree.root_name == "*":
+                return (sample_l * sample_r), gmpy2.mul(mpfr(str(lp_sample_l)), mpfr(str(lp_sample_r)))
+            elif tree.root_name == "/":
+                return (sample_l / sample_r), gmpy2.div(mpfr(str(lp_sample_l)), mpfr(str(lp_sample_r)))
+            else:
+                print("Operation not supported!")
+                exit(-1)
+        else:
+            sample = tree.root_value[0].execute().rand()
+            return sample, mpfr(str(sample))
+
+    def plot_range_analysis(self, sample_nb, file_name):
+        r = self.generate_output_samples(sample_nb)
+        a = self.tree.root_value[2].a
+        b = self.tree.root_value[2].b
+        # as bins, choose at the intervals between successive pairs of representable numbers between a and b
+        bins = []
+        setCurrentContextPrecision(self.precision, self.exp)
+        f = mpfr(str(a))
+        if a < f:
+            f = mpfr.next_below(f)
+        while f < b:
+            bins.append(float(f))
+            f = gmpy2.next_above(f)
+        resetContextDefault()
+        plt.hist(r, bins, density=True)
+        x = np.linspace(a, b, 1000)
+        plt.plot(x, self.tree.root_value[2].distribution.get_piecewise_pdf()(x))
+        plt.savefig("pics/"+file_name)
+        plt.close("all")
+
+    def plot_empirical_error_distribution(self, sample_nb, file_name):
+        e = self.generate_error_samples(sample_nb)
+        a = math.floor(e.min())
+        b = math.ceil(e.max())
+        # as bins, choose multiples of 2*eps between a and b
+        bins = np.linspace(a, b, (b-a) * 2**(self.precision-1))
+        plt.hist(e, bins, density=True)
+        plt.savefig("pics/" + file_name)
+        plt.close("all")
 
 class quantizedPointMass:
 
-    def __init__(self, wrapperInputDistribution, precision, exp):
-        self.wrapperInputDistribution = wrapperInputDistribution
-        self.inputdistribution = self.wrapperInputDistribution.execute()
-        self.precision = precision
-        self.exp = exp
-        setCurrentContextPrecision(self.precision, self.exp)
-        qValue = printMPFRExactly(mpfr(str(self.inputdistribution)))
-        resetContextDefault()
-        self.distribution = ConstDistr(float(qValue))
-        self.distribution.init_piecewise_pdf()
+   def __init__(self, wrapperInputDistribution, precision, exp):
+       self.wrapperInputDistribution = wrapperInputDistribution
+       self.inputdistribution = self.wrapperInputDistribution.execute()
+       self.precision = precision
+       self.exp = exp
+       setCurrentContextPrecision(self.precision, self.exp)
+       qValue = printMPFRExactly(mpfr(str(self.inputdistribution)))
+       resetContextDefault()
+       self.distribution = ConstDistr(float(qValue))
+       self.distribution.init_piecewise_pdf()
 
-    def execute(self):
-        return self.distribution
+   def execute(self):
+       return self.distribution
 
 class BinOpDist:
     """
     Wrapper class for the result of an arithmetic operation on PaCal distributions
     Warning! leftoperand and rightoperant MUST be PaCal distributions
     """
-
-    def __init__(self, leftoperand, operator, rightoperand):
+    def __init__(self, leftoperand, operator, rightoperand, regularize=True):
         self.leftoperand = leftoperand
         self.operator = operator
         self.rightoperand = rightoperand
@@ -134,6 +230,8 @@ class BinOpDist:
 
         self.distribution.init_piecewise_pdf()
 
+        if regularize:
+            self.distribution = regularizeDistribution(self.distribution, 0.1, 0.001, 0.001)
         #self.distribution=chebfunInterpDistr(self.distribution,5)
 
         self.a = self.distribution.range_()[0]
