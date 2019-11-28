@@ -169,7 +169,7 @@ class TreeModel:
         r = self.generate_output_samples(sample_nb)
         a = self.tree.root_value[2].a
         b = self.tree.root_value[2].b
-        # as bins, choose at the intervals between successive pairs of representable numbers between a and b
+        # as bins, choose all the intervals between successive pairs of representable numbers between a and b
         bins = []
         setCurrentContextPrecision(self.precision, self.exp)
         f = mpfr(str(a))
