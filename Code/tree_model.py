@@ -5,6 +5,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from regularizer import *
 
+plt.rcParams.update({'font.size': 30})
+plt.rcParams.update({'figure.autolayout': True})
+plt.rcParams.update({'legend.frameon': False})
+plt.rcParams.update({'legend.handletextpad': 0.1})
+plt.rcParams.update({'legend.labelspacing': 0.5})
+plt.rcParams.update({'axes.labelpad': 20})
+plt.rcParams.update({'legend.loc':'upper right'})
+
 def copy_tree(my_tree):
     if my_tree.leaf:
         copied_tree = BinaryTree(my_tree.value.name, my_tree.value)
@@ -34,7 +42,7 @@ class Triple:
         tmp=singleValue*self.quantizationTerm
 
 
-def idPointMassDistr(dist):
+def isPointMassDistr(dist):
     if dist.distribution.range_()[0] == dist.distribution.range_()[-1]:
         return True
     return False
@@ -63,12 +71,12 @@ class TreeModel:
             # initialize=True means we quantize the inputs
             if self.initialize:
                 # Compute error model
-                if idPointMassDistr(dist):
+                if isPointMassDistr(dist):
                     error = ErrorModelPointMass(dist, self.precision, self.exp)
                     quantized_distribution = quantizedPointMass(dist,self.precision, self.exp)
                 else:
                     error = ErrorModel(dist, self.precision, self.exp, self.poly_precision)
-                    quantized_distribution = BinOpDist(dist.execute(), "*+", self.eps*error.distribution)
+                    quantized_distribution = BinOpDist(dist.execute(), "*+", (self.eps*error.distribution))
 
             # Else we leave the leaf distribution unchanged
             else:
@@ -85,7 +93,7 @@ class TreeModel:
             dist = BinOpDist(tree.left.root_value[0].execute(), tree.root_name, tree.right.root_value[0].execute())
             qdist = BinOpDist(tree.left.root_value[2].execute(), tree.root_name, tree.right.root_value[2].execute())
             error = ErrorModel(qdist, self.precision, self.exp, self.poly_precision)
-            quantized_distribution = BinOpDist(qdist.execute(), "*+", error.distribution)
+            quantized_distribution = BinOpDist(qdist.execute(), "*+", (self.eps*error.distribution))
         # We now populate the triple with distribution, error model, quantized distribution '''
         triple.append(dist)
         triple.append(error)
@@ -98,7 +106,7 @@ class TreeModel:
         d = np.zeros(sample_nb)
         setCurrentContextPrecision(self.precision, self.exp)
         for i in range(0, sample_nb):
-            d[i] = self.evaluate_at_sample(self.tree)
+            d[i] = float(printMPFRExactly(self.evaluate_at_sample(self.tree)))
         resetContextDefault()
         return d
 
@@ -166,15 +174,21 @@ class TreeModel:
         setCurrentContextPrecision(self.precision, self.exp)
         f = mpfr(str(a))
         if a < f:
-            f = mpfr.next_below(f)
+            f = gmpy2.next_below(f)
         while f < b:
-            bins.append(float(f))
+            bins.append(float(printMPFRExactly(f)))
             f = gmpy2.next_above(f)
         resetContextDefault()
-        plt.hist(r, bins, density=True)
+        plt.figure(file_name, figsize=(15,10))
+        plt.hist(r, bins, density=True, color="b")
         x = np.linspace(a, b, 1000)
-        plt.plot(x, self.tree.root_value[2].distribution.get_piecewise_pdf()(x))
-        plt.savefig("pics/"+file_name)
+        plt.plot(x, self.tree.root_value[2].distribution.get_piecewise_pdf()(x), linewidth=7, color="red")
+        plotTicks(file_name, ticks=[7.979, 16.031], label="FPT: [7.979, 16.031]")
+        plotBoundsDistr(file_name, self.tree.root_value[2].distribution)
+        plt.xlabel('Distribution Range')
+        plt.ylabel('PDF')
+        plt.legend()
+        plt.savefig("./pics/"+file_name, dpi = 100)
         plt.close("all")
 
     def plot_empirical_error_distribution(self, sample_nb, file_name):
@@ -231,7 +245,7 @@ class BinOpDist:
         self.distribution.init_piecewise_pdf()
 
         if regularize:
-            self.distribution = regularizeDistribution(self.distribution, 0.1, 0.001, 0.001)
+            self.distribution = chebfunInterpDistr(self.distribution, 10)
         #self.distribution=chebfunInterpDistr(self.distribution,5)
 
         self.a = self.distribution.range_()[0]

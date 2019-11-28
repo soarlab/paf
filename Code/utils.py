@@ -4,12 +4,30 @@ import matplotlib.pyplot as plt
 from pacal import *
 from gmpy2 import *
 
+
+def plotTicks(figureName, ticks, label=""):
+    minVal = ticks[0]
+    maxVal = ticks[1]
+    plt.figure(figureName)
+    plt.scatter(x=[minVal, maxVal], y=[0, 0], c='g', marker="X", label=label, linewidth=2, s=500)
+
+
+def plotBoundsDistr(figureName, distribution):
+    minVal = distribution.range_()[0]
+    maxVal = distribution.range_()[1]
+    labelMinVal = str("%.2f" % distribution.range_()[0])
+    labelMaxVal = str("%.2f" % distribution.range_()[1])
+    plt.figure(figureName)
+    plt.scatter(x=[minVal, maxVal], y=[0, 0], c='r', marker="|",
+                label="PM: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=6, s=600)
+
 def printMPFRExactly(a):
     return "{0:.50f}".format(a)
 
 def computeLargestPositiveNumber(mantissa, exponent):
-    with gmpy2.local_context(gmpy2.context(), precision=max(5 * mantissa, 100)) as ctx:
-        biggestPositiveNumber = gmpy2.mul(gmpy2.sub(2, gmpy2.exp2(-mantissa)),
+    assert "mantissa includes sign bit!"
+    with gmpy2.local_context(gmpy2.context(), precision=100) as ctx:
+        biggestPositiveNumber = gmpy2.mul(gmpy2.sub(2, gmpy2.exp2(-(mantissa-1))),
                                           gmpy2.exp2(gmpy2.exp2(exponent - 1) - 1))
         # for negative it is just a matter of signs
         return biggestPositiveNumber
@@ -35,6 +53,7 @@ def normalizeDistribution(distr):
         new_coverage = distr.get_piecewise_pdf().integrate(float("-inf"), float("+inf"))
         print(new_coverage)
     return distr
+
 def getBoundsWhenOutOfRange(distribution, mantissa, exponent):
     minVal = min(distribution.get_piecewise_pdf().breaks)
     maxVal = max(distribution.get_piecewise_pdf().breaks)

@@ -19,6 +19,12 @@ def regularizeDistribution(D, approxLimit, jumpLimit, deltavLimit):
         merged = mergeSegments(f, i, j)
         # Quality control: is the new segment a good approximation of segments i to j
         if i < j:
+            if computeDistance(merged, f, f.segments[i].a, f.segments[j].b) < approxLimit:
+                newSegments.append(merged)
+            else:
+                for k in range(i, j+1):
+                    newSegments.append(f.segments[k])
+            '''
             try:
                 dist = computeDistance(merged, f, f.segments[i].a, f.segments[j].b)
             except:
@@ -26,11 +32,9 @@ def regularizeDistribution(D, approxLimit, jumpLimit, deltavLimit):
                 for k in range(i, j):
                     newSegments.append(f.segments[k])
             if dist < approxLimit:
-                newSegments.append(merged)
+            
             # Quality control has failed, keep all segments
-            else:
-                for k in range(i, j):
-                    newSegments.append(f.segments[k])
+            '''
         else:
             newSegments.append(merged)
         i = j + 1
@@ -152,6 +156,6 @@ def chebfunInterpDistr(distr, limitSegments):
         approxLimit= 1000 * np.finfo(np.float32).eps
         jumpLimit = np.finfo(np.float32).eps
         deltavLimit = 10 * np.finfo(np.float32).eps
-        return regularizeDistribution(distr,approxLimit,jumpLimit,deltavLimit)
+        return regularizeDistribution(distr, approxLimit, jumpLimit, deltavLimit)
     return distr
 

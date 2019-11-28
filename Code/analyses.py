@@ -38,26 +38,6 @@ def plotDistribution(name,distribution,title,label=None):
     #plt.legend(bbox_to_anchor=(2, 2))#, 0.5, 0.5))#frameon=False, handletextpad=0.1, labelspacing=1.0)
     distribution.plot(linewidth=1, label=label)
 
-def plotTicks(figureName,distribution,ticks=None,label=""):
-    if not ticks==None:
-        minVal = ticks[0]
-        maxVal = ticks[1]
-        plt.figure(figureName)
-        plt.scatter(x=[minVal, maxVal], y=[0, 0], c='b', marker="|", label=label, linewidth=8, s=1000)
-        plt.legend()#frameon=False, handletextpad=0.1, labelspacing=1.0)#, loc='upper right')
-        plt.xlabel('Distribution Range')
-        plt.ylabel('PDF')
-    else:
-        minVal = distribution.range_()[0]
-        maxVal = distribution.range_()[1]
-        labelMinVal = str("%.2f" % distribution.range_()[0])
-        labelMaxVal = str("%.2f" % distribution.range_()[1])
-        plt.figure(figureName)
-        plt.scatter(x=[minVal, maxVal], y=[0, 0], c='r', marker="|", label="PM: ["+labelMinVal+","+labelMaxVal+"]", linewidth=8, s=1000)
-        plt.legend()#frameon=False, handletextpad=0.1, labelspacing=1.0)#, loc='upper right')
-        plt.xlabel('Distribution Range')
-        plt.ylabel('PDF')
-
 def plotBoundsWhenOutOfRange(figureName,distribution, res):
     if (res[0]!=0):
         label=str("%.5f" % distribution.get_piecewise_pdf().integrate(float("-inf"), res[0]))
