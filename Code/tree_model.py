@@ -183,7 +183,7 @@ class TreeModel:
         plt.hist(r, bins, density=True, color="b")
         x = np.linspace(a, b, 1000)
         plt.plot(x, self.tree.root_value[2].distribution.get_piecewise_pdf()(x), linewidth=7, color="red")
-        plotTicks(file_name, ticks=[7.979, 16.031], label="FPT: [7.979, 16.031]")
+        #plotTicks(file_name, ticks=[7.979, 16.031], label="FPT: [7.979, 16.031]")
         plotBoundsDistr(file_name, self.tree.root_value[2].distribution)
         plt.xlabel('Distribution Range')
         plt.ylabel('PDF')
@@ -197,7 +197,14 @@ class TreeModel:
         b = math.ceil(e.max())
         # as bins, choose multiples of 2*eps between a and b
         bins = np.linspace(a, b, (b-a) * 2**(self.precision-1))
-        plt.hist(e, bins, density=True)
+        plt.figure(file_name, figsize=(15, 10))
+        plt.hist(e, bins, density=True, color="b")
+        # Stuff for the asilomar paper
+        # x = np.linspace(-1, 1, 1000)
+        # plt.plot(x, self.tree.root_value[1].distribution.get_piecewise_pdf()(x), linewidth=7, color="red")
+        plt.xlabel('Relative Error (in unit roundoffs)')
+        #plt.ylabel('PDF')
+        plt.legend()
         plt.savefig("pics/" + file_name)
         plt.close("all")
 
