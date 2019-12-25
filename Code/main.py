@@ -15,8 +15,8 @@ text=text[:-1]
 f.close()
 myYacc=FPRyacc(text, True)
 T = TreeModel(myYacc, mantissa, exp, 100)
-T.plot_range_analysis(1000000,"range_dist")
-T.plot_empirical_error_distribution(100000,"error_dist")
+T.plot_range_analysis(100000,T.tree.root_value[0].name)
+#T.plot_empirical_error_distribution(100000,"error_dist")
 # E = ConditionalError(T, 60, 100, (2 ** -mantissa))
 # plt.figure()
 # plt.plot(E.interpolation_points, E.get_monte_carlo_error(), linewidth=5)
@@ -28,4 +28,3 @@ T.plot_empirical_error_distribution(100000,"error_dist")
 #T=TreeModel(myYacc,mantissa,exponent,100)
 
 print("\nDone\n")
-

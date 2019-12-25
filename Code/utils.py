@@ -1,22 +1,33 @@
 import gmpy2
 import warnings
 import matplotlib.pyplot as plt
+import pacal
 from pacal import *
+import numpy
 from gmpy2 import *
 
+class MyFunDistr(pacal.FunDistr):
+    """General distribution defined as function with
+    singularities at given breakPoints."""
+    def rand_raw(self, n = 1):
+        y = numpy.random.uniform(0, 1, n)
+        tmp=self.get_piecewise_invcdf(use_interpolated=True)(y)
+        if numpy.isnan(tmp).any():
+            tmp=self.get_piecewise_cdf_interp().invfun(use_interpolated=False)(y)
+        return tmp
 
-def plotTicks(figureName, ticks, label=""):
+def plotTicks(figureName, mark, col, lw, s, ticks, label=""):
     minVal = ticks[0]
     maxVal = ticks[1]
     plt.figure(figureName)
-    plt.scatter(x=[minVal, maxVal], y=[0, 0], c='g', marker="X", label=label, linewidth=2, s=500)
+    plt.scatter(x=[minVal, maxVal], y=[0, 0], c=col, marker=mark, label=label, linewidth=lw, s=s)
 
 
 def plotBoundsDistr(figureName, distribution):
     minVal = distribution.range_()[0]
     maxVal = distribution.range_()[1]
-    labelMinVal = str("%.2f" % distribution.range_()[0])
-    labelMaxVal = str("%.2f" % distribution.range_()[1])
+    labelMinVal = str("%.3f" % distribution.range_()[0])
+    labelMaxVal = str("%.3f" % distribution.range_()[1])
     plt.figure(figureName)
     plt.scatter(x=[minVal, maxVal], y=[0, 0], c='r', marker="|",
                 label="PM: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=6, s=600)
@@ -46,7 +57,7 @@ def checkBoundsOutOfRange(a, b, mantissa, exponent):
 
 def normalizeDistribution(distr):
     coverage = distr.get_piecewise_pdf().integrate(float("-inf"), float("+inf"))
-    if (coverage < 0.999) or (coverage > 1.001):
+    if (coverage < 0.99999) or (coverage > 1.00001):
         warnings.warn("PDF doesnt integrate to 1. Normalized to integrate to 1.", FutureWarning, stacklevel=2)
         distr_pdf=distr.get_piecewise_pdf()
         distr.piecewise_pdf=(distr_pdf*(1/coverage))

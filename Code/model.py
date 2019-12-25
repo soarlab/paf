@@ -18,6 +18,7 @@ class NodeManager:
         newNode=Node(idtmp, value, children)
         if len(newNode.id) != len(set(newNode.id)):
             newNode.value.indipendent = False
+            newNode.id=list(set(newNode.id))
         return newNode
 
 class Node:
@@ -42,6 +43,9 @@ class N:
         self.sigma = sigma
         self.a = float("-inf")
         self.b = float("+inf")
+        self.sampleInit = True
+        self.sampleSet=[]
+        self.indipendent=True
         self.distribution = pacal.NormalDistr(float(self.mu),float(self.sigma))
 
     def execute(self):
@@ -52,8 +56,10 @@ class N:
 
     def getSampleSet(self,n=100000):
         #it remembers values for future operations
-        return self.distribution.rand(n)
-
+        if self.sampleInit:
+            self.sampleSet=self.distribution.rand(n)
+            self.sampleInit=False
+        return self.sampleSet
 
 class B:
     def __init__(self,name,a,b):
@@ -61,6 +67,9 @@ class B:
         self.distribution = pacal.BetaDistr(float(a),float(b))
         self.a=self.distribution.range_()[0]
         self.b=self.distribution.range_()[-1]
+        self.indipendent=True
+        self.sampleInit = True
+        self.sampleSet=[]
 
     def execute(self):
         return self.distribution
@@ -70,7 +79,11 @@ class B:
 
     def getSampleSet(self,n=100000):
         #it remembers values for future operations
-        return self.distribution.rand(n)
+        if self.sampleInit:
+            self.sampleSet = self.distribution.rand(n-2)
+            self.sampleSet = self.sampleSet + [self.a,self.b]
+            self.sampleInit= False
+        return self.sampleSet
 
 class U:
     def __init__(self,name,a,b):
@@ -78,6 +91,9 @@ class U:
         self.distribution = pacal.UniformDistr(float(a),float(b))
         self.a=self.distribution.range_()[0]
         self.b=self.distribution.range_()[-1]
+        self.indipendent=True
+        self.sampleInit = True
+        self.sampleSet=[]
 
     def execute(self):
         return self.distribution
@@ -87,7 +103,11 @@ class U:
 
     def getSampleSet(self,n=100000):
         #it remembers values for future operations
-        return self.distribution.rand(n)
+        if self.sampleInit:
+            self.sampleSet  = self.distribution.rand(n-2)
+            self.sampleSet  = np.append(self.sampleSet, [self.a, self.b])
+            self.sampleInit = False
+        return self.sampleSet
 
 class Number:
     def __init__(self, label):
