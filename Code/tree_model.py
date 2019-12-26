@@ -47,13 +47,21 @@ class DistributionsManager:
         self.errordictionary = {}
         self.distrdictionary = {}
 
-    def createErrorModel(self, wrapDist, precision, exp, pol_prec):
-        if wrapDist.name in self.errordictionary:
-            return self.errordictionary[wrapDist.name]
+    def createErrorModel(self, wrapDist, precision, exp, pol_prec, typical=True):
+        if typical:
+            if wrapDist.name in self.errordictionary:
+                return self.errordictionary[wrapDist.name]
+            else:
+                tmp=TypicalErrorModel(precision, exp, pol_prec)
+                self.errordictionary[wrapDist.name] = tmp
+                return tmp
         else:
-            tmp=ErrorModel(wrapDist, precision, exp, pol_prec)
-            self.errordictionary[wrapDist.name]=tmp
-            return tmp
+            if wrapDist.name in self.errordictionary:
+                return self.errordictionary[wrapDist.name]
+            else:
+                tmp=ErrorModel(wrapDist, precision, exp, pol_prec)
+                self.errordictionary[wrapDist.name]=tmp
+                return tmp
 
     def createBinOperation(self, leftoperand, operator, rightoperand, regularize=True, convolution=True):
         name="("+leftoperand.name+str(operator)+rightoperand.name+")"
@@ -211,7 +219,10 @@ class TreeModel:
         b = self.tree.root_value[2].b
         # as bins, choose at the intervals between successive pairs of representable numbers between a and b
         bins = []
-        setCurrentContextPrecision(self.precision, self.exp)
+        if self.precision<11:
+            setCurrentContextPrecision(self.precision, self.exp)
+        else:
+            setCurrentContextPrecision(11, 5)
         f = mpfr(str(a))
         if a < float(printMPFRExactly(f)):
             f = gmpy2.next_below(f)
@@ -230,7 +241,7 @@ class TreeModel:
         plt.ylabel('PDF')
         plt.title(file_name+"\nmantissa="+str(self.precision)+", exp="+str(self.exp)+"\n")
         plt.legend(fontsize=25)
-        plt.savefig("./pics/"+file_name, dpi = 100)
+        plt.savefig("./pics/"+file_name.replace('.', ''), dpi = 100)
         plt.close("all")
 
     def plot_empirical_error_distribution(self, sample_nb, file_name):
@@ -253,11 +264,27 @@ class quantizedPointMass:
        setCurrentContextPrecision(self.precision, self.exp)
        qValue = printMPFRExactly(mpfr(str(self.inputdistribution)))
        resetContextDefault()
+       self.name = qValue
+       self.sampleInit=True
        self.distribution = ConstDistr(float(qValue))
-       self.distribution.init_piecewise_pdf()
+       self.distribution.get_piecewise_pdf()
+       self.a = self.distribution.range_()[0]
+       self.b = self.distribution.range_()[-1]
 
    def execute(self):
        return self.distribution
+
+   def getSampleSet(self, n=100000):
+       # it remembers values for future operations
+       if self.sampleInit:
+           # self.sampleSet = self.distribution.rand(n)
+           if n <= 2:
+               self.sampleSet = self.distribution.rand(n)
+           else:
+               self.sampleSet = self.distribution.rand(n - 2)
+               self.sampleSet = np.append(self.sampleSet, [self.a, self.b])
+           self.sampleInit = False
+       return self.sampleSet
 
 tmp_pdf=None
 def my_tmp_pdf(t):
@@ -322,7 +349,7 @@ class BinOpDist:
             print("Operation not supported!")
             exit(-1)
 
-        self.distributionConv.init_piecewise_pdf()
+        self.distributionConv.get_piecewise_pdf()
 
         if self.regularize:
             self.distributionConv = chebfunInterpDistr(self.distributionConv, 10)

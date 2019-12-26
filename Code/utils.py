@@ -26,8 +26,8 @@ def plotTicks(figureName, mark, col, lw, s, ticks, label=""):
 def plotBoundsDistr(figureName, distribution):
     minVal = distribution.range_()[0]
     maxVal = distribution.range_()[1]
-    labelMinVal = str("%.3f" % distribution.range_()[0])
-    labelMaxVal = str("%.3f" % distribution.range_()[1])
+    labelMinVal = str("%.15f" % distribution.range_()[0])
+    labelMaxVal = str("%.15f" % distribution.range_()[1])
     plt.figure(figureName)
     plt.scatter(x=[minVal, maxVal], y=[0, 0], c='r', marker="|",
                 label="PM: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=6, s=600)

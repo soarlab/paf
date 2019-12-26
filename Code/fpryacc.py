@@ -54,8 +54,8 @@ class FPRyacc:
 		
 	def p_Uniform(self, p):
 		''' Distribution : WORD COLON U LPAREN POSNUMBER COMMA POSNUMBER RPAREN
-						 | WORD COLON U LPAREN NEGNUMBER COMMA POSNUMBER RPAREN
-						 | WORD COLON U LPAREN NEGNUMBER COMMA NEGNUMBER RPAREN
+						 | WORD COLON U LPAREN MINUS POSNUMBER COMMA POSNUMBER RPAREN
+						 | WORD COLON U LPAREN MINUS POSNUMBER COMMA MINUS POSNUMBER RPAREN
 		'''
 
 		distr=U(str(p[1]),str(p[5]),str(p[7]))
@@ -64,8 +64,8 @@ class FPRyacc:
 
 	def p_Normal(self, p):
 		''' Distribution : WORD COLON N LPAREN POSNUMBER COMMA POSNUMBER RPAREN
-						 | WORD COLON N LPAREN NEGNUMBER COMMA POSNUMBER RPAREN
-						 | WORD COLON N LPAREN NEGNUMBER COMMA NEGNUMBER RPAREN
+						 | WORD COLON N LPAREN MINUS POSNUMBER COMMA POSNUMBER RPAREN
+						 | WORD COLON N LPAREN MINUS POSNUMBER COMMA MINUS POSNUMBER RPAREN
 		'''
 
 		distr = N(str(p[1]), str(p[5]), str(p[7]))
@@ -74,8 +74,8 @@ class FPRyacc:
 
 	def p_Beta(self, p):
 		''' Distribution : WORD COLON B LPAREN POSNUMBER COMMA POSNUMBER RPAREN
-						 | WORD COLON B LPAREN NEGNUMBER COMMA POSNUMBER RPAREN
-						 | WORD COLON B LPAREN NEGNUMBER COMMA NEGNUMBER RPAREN
+						 | WORD COLON B LPAREN MINUS POSNUMBER COMMA POSNUMBER RPAREN
+						 | WORD COLON B LPAREN MINUS POSNUMBER COMMA MINUS POSNUMBER RPAREN
 		'''
 		distr = B(str(p[1]), str(p[5]), str(p[7]))
 		self.addVariable(str(p[1]),distr)
@@ -155,21 +155,3 @@ class FPRyacc:
 		else:
 			raise Exception("Syntax error at EOF, program '%s'", self.program)
 			exit(-1)
-
-	# def p_MinAnnidateArithExpr(self, p):
-	# 	'''AnnidateArithExpr : MIN LPAREN AnnidateArithExpr COMMA AnnidateArithExpr RPAREN
-	# 	'''
-	#
-	# 	if not self.buildModelForVarsOnlyForBNB:
-	# 		varname=self.solver.encodeMinProblem(str(p[3]),str(p[5]))
-	# 		p[0]=varname
-	# 	self.myPrint("MinAnnidateArithExpr",p)
-	#
-	# def p_MaxAnnidateArithExpr(self, p):
-	# 	'''AnnidateArithExpr : MAX LPAREN AnnidateArithExpr COMMA AnnidateArithExpr RPAREN
-	# 	'''
-	#
-	# 	if not self.buildModelForVarsOnlyForBNB:
-	# 		varname=self.solver.encodeMaxProblem(str(p[3]),str(p[5]))
-	# 		p[0]=varname
-	# 	self.myPrint("MaxAnnidateArithExpr",p)

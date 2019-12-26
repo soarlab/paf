@@ -89,7 +89,7 @@ class ErrorModelPointMass:
         resetContextDefault()
         error=float(str(self.inputdistribution))-float(qValue)
         self.distribution=ConstDistr(float(error))
-        self.distribution.init_piecewise_pdf()
+        self.distribution.get_piecewise_pdf()
 
     def execute(self):
         self.distribution.init_piecewise_pdf()
@@ -282,3 +282,52 @@ class ErrorModel:
             return sum
         else:
             return sums
+
+
+def getTypical(x):
+    if isinstance(x,float) or isinstance(x,int) or len(x)==1:
+        if abs(x) <= 0.5:
+            return 0.75
+        else:
+            return 0.5*((1.0/x)-1.0)+0.25*(((1.0/x)-1.0)**2)
+    else:
+        res=np.zeros(len(x))
+        for index,ti in enumerate(x):
+            if abs(ti) <= 0.5:
+                res[index]=0.75
+            else:
+                res[index]= 0.5 * ((1.0 / ti) - 1.0) + 0.25 * (((1.0 / ti) - 1.0) ** 2)
+        return res
+    exit(-1)
+
+typVariable=None
+def createTypical(x):
+    return typVariable(x)
+
+class TypicalErrorModel:
+    def __init__(self, precision, exp, poly_precision):
+        self.poly_precision=poly_precision
+        self.name="E"
+        self.precision=precision
+        self.exp=exp
+        self.sampleInit = True
+        self.eps = 2 ** (-self.precision)
+        self.distribution=self.createTypicalErrorDistr()
+
+    def createTypicalErrorDistr(self):
+        global typVariable
+        typVariable = chebfun(getTypical, domain=[-1.0, 1.0], N=self.poly_precision)
+        self.distribution = FunDistr(createTypical, breakPoints=[-1.0, 1.0], interpolated=True)
+        self.distribution.get_piecewise_pdf()
+        return self.distribution
+
+    def execute(self):
+        return self.distribution
+
+    def getSampleSet(self,n=100000):
+        #it remembers values for future operations
+        if self.sampleInit:
+            self.sampleSet  = self.distribution.rand(n-2)
+            self.sampleSet  = np.append(self.sampleSet, [-1.0, 1.0])
+            self.sampleInit = False
+        return self.sampleSet

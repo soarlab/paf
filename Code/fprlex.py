@@ -18,7 +18,6 @@ class FPRlex(object):
 	
 	tokens = list(dict.fromkeys([
 		'POSNUMBER',
-		'NEGNUMBER',
 		'WORD',
 		'PLUS',
 		'MINUS',
@@ -42,14 +41,16 @@ class FPRlex(object):
 
 
 	def t_POSNUMBER(self,t):
-		r'([+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)'
+		r'([0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)'
 		t.value=str(t.value)
 		return t
 
+	'''
 	def t_NEGNUMBER(self,t):
 		r'(-[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)'
 		t.value=str(t.value)
 		return t
+	'''
 
 	def t_WORD(self,t):
 		r'[a-zA-Z$_][a-zA-Z0-9$_]*'

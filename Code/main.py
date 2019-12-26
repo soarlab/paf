@@ -9,7 +9,7 @@ text=f.read()
 #mantissa with implicit bit of sign
 #gmpy2 set precision=p includes also sign bit.
 mantissa=11
-exp=5
+exp=8
 print(computeLargestPositiveNumber(mantissa, exp))
 text=text[:-1]
 f.close()
