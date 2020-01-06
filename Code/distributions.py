@@ -100,3 +100,6 @@ def testSin():
     sinX = sin(X)
     sinX.plot()
     print(sinX.summary())
+    Y = UniformDistr(0, 20)
+    sinY = sin(Y)
+    print(sinY.summary())
