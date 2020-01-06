@@ -1,8 +1,8 @@
 from pacal.distr import *
 from pacal.standard_distr import  *
-from numpy import floor, ceil
+from numpy import ceil
 
-# Classes with amend / customize PaCal classes
+# Classes which amend / customize PaCal classes
 
 
 def _shifted_arccos(x, shift):
@@ -29,7 +29,7 @@ class SineDistr(FuncNoninjectiveDistr):
         :param d: MUST be a PaCal distribution
         """
         self.base_distribution = d
-        self. _get_intervals()
+        self._get_intervals()
         self.pole_at_zero = False
         super(SineDistr, self).__init__(d, fname="sin")
 
