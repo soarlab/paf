@@ -6,7 +6,6 @@ import os
 import shutil
 from distributions import *
 
-testSin()
 matplotlib.pyplot.close("all")
 mantissa=24
 exp=8
