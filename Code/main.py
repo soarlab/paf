@@ -4,6 +4,7 @@ from tree_model import TreeModel
 import time
 import os
 import shutil
+from distributions import *
 
 matplotlib.pyplot.close("all")
 mantissa=24
