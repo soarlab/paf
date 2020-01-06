@@ -13,7 +13,10 @@ class MyFunDistr(pacal.FunDistr):
         y = numpy.random.uniform(0, 1, n)
         tmp=self.get_piecewise_invcdf(use_interpolated=True)(y)
         if numpy.isnan(tmp).any():
-            tmp=self.get_piecewise_cdf_interp().invfun(use_interpolated=False)(y)
+            invFun=self.get_piecewise_cdf_interp().invfun(use_interpolated=False)
+            tmp=numpy.zeros(len(y))
+            for index, val in enumerate(y):
+                tmp[index]=invFun(val)
         return tmp
 
 def plotTicks(figureName, mark, col, lw, s, ticks, label=""):

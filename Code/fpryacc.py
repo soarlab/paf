@@ -54,21 +54,49 @@ class FPRyacc:
 		
 	def p_Uniform(self, p):
 		''' Distribution : WORD COLON U LPAREN POSNUMBER COMMA POSNUMBER RPAREN
-						 | WORD COLON U LPAREN MINUS POSNUMBER COMMA POSNUMBER RPAREN
-						 | WORD COLON U LPAREN MINUS POSNUMBER COMMA MINUS POSNUMBER RPAREN
 		'''
 
 		distr=U(str(p[1]),str(p[5]),str(p[7]))
 		self.addVariable(str(p[1]),distr)
 		self.myPrint("Uniform",p)
 
+	def p_Uniform1(self, p):
+		''' Distribution : WORD COLON U LPAREN MINUS POSNUMBER COMMA POSNUMBER RPAREN
+		'''
+
+		distr = U(str(p[1]), "-" + str(p[6]), str(p[8]))
+		self.addVariable(str(p[1]), distr)
+		self.myPrint("Normal", p)
+
+	def p_Uniform2(self, p):
+		''' Distribution : WORD COLON U LPAREN MINUS POSNUMBER COMMA MINUS POSNUMBER RPAREN
+		'''
+
+		distr = U(str(p[1]), "-" + str(p[6]), "-" + str(p[9]))
+		self.addVariable(str(p[1]), distr)
+		self.myPrint("Normal", p)
+
 	def p_Normal(self, p):
 		''' Distribution : WORD COLON N LPAREN POSNUMBER COMMA POSNUMBER RPAREN
-						 | WORD COLON N LPAREN MINUS POSNUMBER COMMA POSNUMBER RPAREN
-						 | WORD COLON N LPAREN MINUS POSNUMBER COMMA MINUS POSNUMBER RPAREN
 		'''
 
 		distr = N(str(p[1]), str(p[5]), str(p[7]))
+		self.addVariable(str(p[1]),distr)
+		self.myPrint("Normal", p)
+
+	def p_Normal1(self, p):
+		''' Distribution : WORD COLON N LPAREN MINUS POSNUMBER COMMA POSNUMBER RPAREN
+		'''
+
+		distr = N(str(p[1]), "-"+str(p[6]), str(p[8]))
+		self.addVariable(str(p[1]),distr)
+		self.myPrint("Normal", p)
+
+	def p_Normal2(self, p):
+		''' Distribution : WORD COLON N LPAREN MINUS POSNUMBER COMMA MINUS POSNUMBER RPAREN
+		'''
+
+		distr = N(str(p[1]), "-"+str(p[6]), "-"+str(p[9]))
 		self.addVariable(str(p[1]),distr)
 		self.myPrint("Normal", p)
 
@@ -104,7 +132,35 @@ class FPRyacc:
 			oper=Operation(tmpNode.value, str(p[1]), p[2].value)
 			p[0]=self.manager.createNode(oper, [tmpNode, p[2]])
 		self.myPrint("BinaryArithExpr",p)
-		
+
+	def p_UnaryArithExp(self, p):
+		'''AnnidateArithExpr : EXP LPAREN AnnidateArithExpr RPAREN
+							 | EXP LPAREN BinaryArithExpr RPAREN
+		'''
+
+		oper = UnaryOperation(p[3].value, "exp")
+		node = self.manager.createNode(oper, [p[3]])
+		p[0] = node
+		self.myPrint("UnaryArithOp-Exp", p)
+
+	def p_UnaryArithCos(self, p):
+		'''AnnidateArithExpr : COS LPAREN AnnidateArithExpr RPAREN
+							 | COS LPAREN BinaryArithExpr RPAREN
+		'''
+		oper = UnaryOperation(p[3].value, "cos")
+		node = self.manager.createNode(oper, [p[3]])
+		p[0] = node
+		self.myPrint("UnaryArithOp-Cos", p)
+
+	def p_UnaryArithSin(self, p):
+		'''AnnidateArithExpr : SIN LPAREN AnnidateArithExpr RPAREN
+							 | SIN LPAREN BinaryArithExpr RPAREN
+		'''
+		oper = UnaryOperation(p[3].value, "sin")
+		node = self.manager.createNode(oper, [p[3]])
+		p[0] = node
+		self.myPrint("UnaryArithOp-Sin", p)
+
 	def p_AnnidateArithExpr(self, p):
 		'''AnnidateArithExpr : LPAREN AnnidateArithExpr PLUS  AnnidateArithExpr RPAREN
 							 | LPAREN AnnidateArithExpr MINUS AnnidateArithExpr RPAREN

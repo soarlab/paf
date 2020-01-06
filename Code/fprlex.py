@@ -13,7 +13,10 @@ class FPRlex(object):
 		'N' : 'N',
 		'B' : 'B',
 		'U' : 'U',
-		'if': 'if'
+		'if': 'if',
+		'exp' : 'EXP',
+		'cos': 'COS',
+		'sin': 'SIN'
 	}
 	
 	tokens = list(dict.fromkeys([
@@ -24,6 +27,9 @@ class FPRlex(object):
 		'MUL',
 		'DIVIDE',
 		'COMMA',
+		'EXP',
+		'SIN',
+		'COS',
 		'LPAREN',
 		'RPAREN',
 		'NEWLINE',
@@ -77,4 +83,3 @@ class FPRlex(object):
 		 
 	# A string containing ignored characters (spaces and tabs)
 	t_ignore  = ' \t\r'
-	

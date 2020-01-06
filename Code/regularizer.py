@@ -55,7 +55,7 @@ def smoothnessCriterion(s, t, jumpLimit, deltavLimit):
     if type(s.f).__name__ is "ChebyshevInterpolator" and type(t.f).__name__ is "ChebyshevInterpolator":
         # Test for discontinuities between segments
         if abs(s.f(s.b) - t.f(t.a)) < jumpLimit:
-            if abs(s.f.diff()(s.b) - t.f.diff()(t.a)) < deltavLimit:
+            if (abs(s.f.diff()(s.b) - t.f.diff()(t.a)) < deltavLimit) or (abs(s.a-t.b)<=0.0001):
                 return True
             else:
                 return False
@@ -153,9 +153,9 @@ def chebfunInterpDistr(distr, limitSegments):
     except:
         return distr
     if len(segs)>=limitSegments:
-        approxLimit= 1000 * np.finfo(np.float32).eps
-        jumpLimit = np.finfo(np.float32).eps
-        deltavLimit = 10 * np.finfo(np.float32).eps
+        approxLimit= 10000 * np.finfo(np.float32).eps
+        jumpLimit = np.finfo(np.float32).eps * 1000.0
+        deltavLimit =  np.finfo(np.float32).eps * 10000.0#
         return regularizeDistribution(distr, approxLimit, jumpLimit, deltavLimit)
     return distr
 
