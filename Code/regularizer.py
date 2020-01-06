@@ -19,6 +19,12 @@ def regularizeDistribution(D, approxLimit, jumpLimit, deltavLimit):
         merged = mergeSegments(f, i, j)
         # Quality control: is the new segment a good approximation of segments i to j
         if i < j:
+            if computeDistance(merged, f, f.segments[i].a, f.segments[j].b) < approxLimit:
+                newSegments.append(merged)
+            else:
+                for k in range(i, j+1):
+                    newSegments.append(f.segments[k])
+            '''
             try:
                 dist = computeDistance(merged, f, f.segments[i].a, f.segments[j].b)
             except:
@@ -26,11 +32,9 @@ def regularizeDistribution(D, approxLimit, jumpLimit, deltavLimit):
                 for k in range(i, j):
                     newSegments.append(f.segments[k])
             if dist < approxLimit:
-                newSegments.append(merged)
+            
             # Quality control has failed, keep all segments
-            else:
-                for k in range(i, j):
-                    newSegments.append(f.segments[k])
+            '''
         else:
             newSegments.append(merged)
         i = j + 1
@@ -51,7 +55,7 @@ def smoothnessCriterion(s, t, jumpLimit, deltavLimit):
     if type(s.f).__name__ is "ChebyshevInterpolator" and type(t.f).__name__ is "ChebyshevInterpolator":
         # Test for discontinuities between segments
         if abs(s.f(s.b) - t.f(t.a)) < jumpLimit:
-            if abs(s.f.diff()(s.b) - t.f.diff()(t.a)) < deltavLimit:
+            if (abs(s.f.diff()(s.b) - t.f.diff()(t.a)) < deltavLimit) or (abs(s.a-t.b)<=0.0001):
                 return True
             else:
                 return False
@@ -149,9 +153,9 @@ def chebfunInterpDistr(distr, limitSegments):
     except:
         return distr
     if len(segs)>=limitSegments:
-        approxLimit= 1000 * np.finfo(np.float32).eps
-        jumpLimit = np.finfo(np.float32).eps
-        deltavLimit = 10 * np.finfo(np.float32).eps
-        return regularizeDistribution(distr,approxLimit,jumpLimit,deltavLimit)
+        approxLimit= 10000 * np.finfo(np.float32).eps
+        jumpLimit = np.finfo(np.float32).eps * 1000.0
+        deltavLimit =  np.finfo(np.float32).eps * 10000.0#
+        return regularizeDistribution(distr, approxLimit, jumpLimit, deltavLimit)
     return distr
 

@@ -1,57 +1,40 @@
 import matplotlib.pyplot
 from fpryacc import *
 from tree_model import TreeModel
-from conditional import ConditionalError
-
-def dependentQuantizationExecute(mantissa,exp):
-    X = pacal.UniformDistr(1, 2)
-    Y = pacal.UniformDistr(0, 1)
-    Z = pacal.UniformDistr(1, 2)
-
-    valX = X.rand(100000)
-    valY = Y.rand(100000)
-    valZ = Z.rand(100000)
-
-    setCurrentContextPrecision(mantissa,exp)
-    errors = []
-    for index, val in enumerate(valX):
-        x = mpfr(str(val))
-        y = mpfr(str(valY[index]))
-        z = mpfr(str(valZ[index]))
-        resq = gmpy2.mul(gmpy2.add(x, y),z)
-        res = (val + valY[index])*valZ[index]
-        e = (res - float(printMPFRExactly(resq))) / res  # exact error of quantization
-        errors.append(e)
-
-    resetContextDefault()
-
-    bin_nb = int(math.ceil(math.sqrt(len(errors))))
-    n, bins, patches = plt.hist(errors, bins=bin_nb, density=1)
-    plt.show()
+import time
+import os
+import shutil
 
 matplotlib.pyplot.close("all")
-filepath="./test.txt"
-f= open(filepath,"r")
-text=f.read()
-mantissa=5
-exp=3
-text=text[:-1]
-f.close()
-myYacc=FPRyacc(text, True)
-T = TreeModel(myYacc, mantissa, exp, 50)
-T.plot_range_analysis(100000,"range_dist")
-T.plot_empirical_error_distribution(100000,"error_dist")
-# E = ConditionalError(T, 60, 100, (2 ** -mantissa))
-# plt.figure()
-# plt.plot(E.interpolation_points, E.get_monte_carlo_error(), linewidth=5)
-# dependentQuantizationExecute(mantissa,exp)
-# plt.show()
+mantissa=24
+exp=8
+#mantissa with implicit bit of sign
+#gmpy2 set precision=p includes also sign bit.
+print(computeLargestPositiveNumber(mantissa, exp))
+benchmarks_path="./benchmarks/"
 
-
-#>>>>>>> cb2064245eac5f5abe71f73a6679fb4e94cd80bc
-#mantissa=7 #sign bit excluded
-#exponent=7
-#T=TreeModel(myYacc,mantissa,exponent,100)
+for file in os.listdir(benchmarks_path):
+    if file.endswith(".txt"):
+        print(file)
+        f = open(benchmarks_path+file,"r")
+        file_name = file.split(".")[0]
+        text = f.read()
+        text = text[:-1]
+        f.close()
+        myYacc=FPRyacc(text, False)
+        start_time = time.time()
+        T = TreeModel(myYacc, mantissa, exp, 50)
+        end_time = time.time()
+        print("Exe time --- %s seconds ---" % (end_time - start_time))
+        finalTime=end_time-start_time
+        if os.path.exists(benchmarks_path+file_name):
+            shutil.rmtree(benchmarks_path+file_name)
+        os.makedirs(benchmarks_path+file_name)
+        f = open(benchmarks_path + file_name + "/" + file_name + "_summary.out", "w+")
+        f.write("Execution Time:"+str(finalTime)+"s \n\n")
+        T.collectInfoAboutDistribution(f)
+        T.plot_range_analysis(f, finalTime,benchmarks_path,file_name)
+        #T.plot_empirical_error_distribution(100000,"error_dist")
+        f.close()
 
 print("\nDone\n")
-

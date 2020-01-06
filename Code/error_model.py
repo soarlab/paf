@@ -6,6 +6,9 @@ import numpy as np;
 from pychebfun import *
 from utils import *
 from gmpy2 import mpfr
+import dill
+import pickle
+
 import scipy
 import random
 
@@ -30,9 +33,8 @@ import numpy as np
 def setCurrentContextPrecision(mantissa, exponent):
     ctx = gmpy2.get_context()
     ctx.precision = mantissa
-    ctx.emin = -(2 ** exponent) + 1
-    ctx.emax = 2 ** exponent
-
+    ctx.emax = 2 ** (exponent-1)
+    ctx.emin = 1 - ctx.emax
 
 def resetContextDefault():
     gmpy2.set_context(gmpy2.context())
@@ -79,17 +81,37 @@ class ErrorModelPointMass:
     def __init__(self, wrapperInputDistribution, precision, exp):
         self.wrapperInputDistribution=wrapperInputDistribution
         self.inputdistribution = self.wrapperInputDistribution.execute()
+        self.inputdistribution.get_piecewise_pdf()
         self.precision=precision
         self.exp=exp
         self.eps = 2 ** -self.precision
         setCurrentContextPrecision(self.precision, self.exp)
-        qValue=printMPFRExactly(mpfr(str(self.inputdistribution)))
+        qValue=printMPFRExactly(mpfr(str(self.inputdistribution.rand(1)[0])))
         resetContextDefault()
-        error=float(str(self.inputdistribution))-float(qValue)
+        error=float(str(self.inputdistribution.rand(1)[0]))-float(qValue)
         self.distribution=ConstDistr(float(error))
+        self.distribution.get_piecewise_pdf()
+
+    def execute(self):
         self.distribution.init_piecewise_pdf()
+        return self.distribution
 
-
+my_pdf=None
+def genericPdf(x):
+    if isinstance(x,float) or isinstance(x,int) or len(x)==1:
+        if x < -1 or x > 1:
+            return 0
+        else:
+            return my_pdf(x)
+    else:
+        res=np.zeros(len(x))
+        for index,ti in enumerate(x):
+            if ti < -1 or ti > 1:
+                res[index]=0
+            else:
+                res[index] = my_pdf(ti)
+        return res
+    exit(-1)
 
 class ErrorModel:
 
@@ -107,11 +129,12 @@ class ErrorModel:
         '''
         self.wrapperInputDistribution=wrapperInputDistribution
         self.inputdistribution = self.wrapperInputDistribution.execute()
-
+        self.inputdistribution.get_piecewise_pdf()
+        self.name="E"
         self.precision=precision
         self.exp=exp
-        self.minexp=-(2 ** exp) + 1
-        self.maxexp= 2 ** exp
+        self.sampleInit = True
+        self.eps = 2 ** (-self.precision)
 
         self.poly_precision=poly_precision
         # Test if the range of floating point number covers enough of the inputdistribution
@@ -125,10 +148,16 @@ class ErrorModel:
         #if coverage<0.99:
         #    raise Exception('The range of floating points is too narrow, increase maxexp and increase minexp')
         # Builds the Chebyshev polynomial representation of the density function
-        self.pdf=chebfun(lambda t:self.__getpdf(t), domain=[-1.0, 1.0], N=self.poly_precision)
-        self.distribution = FunDistr(self.pdf.p, [-1.0, 1.0])
+
+        global my_pdf
+        my_pdf=chebfun(self.getpdf, domain=[-1.0, 1.0], N=self.poly_precision)
+        self.distribution = FunDistr(genericPdf, breakPoints =[-1.0, 1.0], interpolated=True)
         #self.distribution = FunDistr(self.pdf.p, [-1.0, 1.0])
         self.distribution.init_piecewise_pdf()
+        self.distribution.get_piecewise_pdf()
+
+    def __call__(self, t):
+        return ErrorModel.getpdf(self, t)
 
     # Quick and dirty plotting function
     def plot(self,strFile):
@@ -138,11 +167,19 @@ class ErrorModel:
         plt.savefig(strFile)
         plt.clf()
 
+    def execute(self):
+        return self.distribution
+
     def getSampleSet(self,n=100000):
-        return self.distribution.rand(n)
+        #it remembers values for future operations
+        if self.sampleInit:
+            self.sampleSet  = self.distribution.rand(n-2)
+            self.sampleSet  = np.append(self.sampleSet, [-1.0, 1.0])
+            self.sampleInit = False
+        return self.sampleSet
 
     #infVal is finite value
-    def getInitialMinValue(self,infVal):
+    def getInitialMinValue(self, infVal):
         if not gmpy2.is_finite(infVal):
             print("Error cannot compute intervals with infinity")
             exit(-1)
@@ -174,7 +211,7 @@ class ErrorModel:
         return prec
 
     # Compute the exact density
-    def __getpdf(self, t):
+    def getpdf(self, t):
         '''
     Constructs the EXACT probability density function at point t in [-1,1]
     Exact values are used to build the interpolating polynomial
@@ -183,8 +220,8 @@ class ErrorModel:
         setCurrentContextPrecision(self.precision, self.exp)
         eps = 2 ** -self.precision
 
-        infVal = mpfr(self.wrapperInputDistribution.a)
-        supVal = mpfr(self.wrapperInputDistribution.b)
+        infVal = mpfr(str(self.wrapperInputDistribution.a))
+        supVal = mpfr(str(self.wrapperInputDistribution.b))
 
         if not gmpy2.is_finite(infVal):
             infVal = gmpy2.next_above(infVal)
@@ -214,7 +251,7 @@ class ErrorModel:
             xmax = (float(printMPFRExactly(x))+float(printMPFRExactly(y)))/2.0
             xp = float(printMPFRExactly(x)) /(1.0-err)
             if xmin < xp < xmax:
-                sum+=self.inputdistribution.pdf(xp)*abs(xp)*eps/(1.0-err)
+                sum+=self.inputdistribution.get_piecewise_pdf()(xp)*abs(xp)*eps/(1.0-err)
             # Deal with all standard intervals
             if y<supVal:
                 while y<supVal:
@@ -223,7 +260,7 @@ class ErrorModel:
                     xp = float(printMPFRExactly(y)) / (1.0 - err)
 
                     if xmin < xp < xmax:
-                        sum+=self.inputdistribution.pdf(xp)*abs(xp)*eps/(1.0-err)
+                        sum+=self.inputdistribution.get_piecewise_pdf()(xp)*abs(xp)*eps/(1.0-err)
 
                     y=z
                     z=gmpy2.next_above(z)
@@ -236,7 +273,7 @@ class ErrorModel:
                 #xp=mpfr(str(y))/(1.0-err)
                 #xmax = mpfr(str(y))
                 if xmin < xp < xmax:
-                    sum+=self.inputdistribution.pdf(xp)*abs(xp)*eps/(1.0-err)
+                    sum+=self.inputdistribution.get_piecewise_pdf()(xp)*abs(xp)*eps/(1.0-err)
 
             sums.append(sum)
 
@@ -246,3 +283,52 @@ class ErrorModel:
             return sum
         else:
             return sums
+
+
+def getTypical(x):
+    if isinstance(x,float) or isinstance(x,int) or len(x)==1:
+        if abs(x) <= 0.5:
+            return 0.75
+        else:
+            return 0.5*((1.0/x)-1.0)+0.25*(((1.0/x)-1.0)**2)
+    else:
+        res=np.zeros(len(x))
+        for index,ti in enumerate(x):
+            if abs(ti) <= 0.5:
+                res[index]=0.75
+            else:
+                res[index]= 0.5 * ((1.0 / ti) - 1.0) + 0.25 * (((1.0 / ti) - 1.0) ** 2)
+        return res
+    exit(-1)
+
+typVariable=None
+def createTypical(x):
+    return typVariable(x)
+
+class TypicalErrorModel:
+    def __init__(self, precision, exp, poly_precision):
+        self.poly_precision=poly_precision
+        self.name="E"
+        self.precision=precision
+        self.exp=exp
+        self.sampleInit = True
+        self.eps = 2 ** (-self.precision)
+        self.distribution=self.createTypicalErrorDistr()
+
+    def createTypicalErrorDistr(self):
+        global typVariable
+        typVariable = chebfun(getTypical, domain=[-1.0, 1.0], N=self.poly_precision)
+        self.distribution = FunDistr(createTypical, breakPoints=[-1.0, 1.0], interpolated=True)
+        self.distribution.get_piecewise_pdf()
+        return self.distribution
+
+    def execute(self):
+        return self.distribution
+
+    def getSampleSet(self,n=100000):
+        #it remembers values for future operations
+        if self.sampleInit:
+            self.sampleSet  = self.distribution.rand(n-2)
+            self.sampleSet  = np.append(self.sampleSet, [-1.0, 1.0])
+            self.sampleInit = False
+        return self.sampleSet

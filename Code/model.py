@@ -1,6 +1,7 @@
 from error_model import *
 from regularizer import *
 import matplotlib.pyplot as plt
+from scipy.stats import truncnorm
 
 class NodeManager:
     def __init__(self):
@@ -18,6 +19,7 @@ class NodeManager:
         newNode=Node(idtmp, value, children)
         if len(newNode.id) != len(set(newNode.id)):
             newNode.value.indipendent = False
+            newNode.id=list(set(newNode.id))
         return newNode
 
 class Node:
@@ -35,25 +37,66 @@ class Node:
             self.leaf = True
             self.children = []
             self.id = [id]
+
+lower=None
+upper=None
+def truncatedNormal(x):
+    tmp = pacal.NormalDistr(0, 1)
+    if isinstance(x, float) or isinstance(x, int) or len(x) == 1:
+        if x < lower or x > upper:
+            return 0
+        else:
+            return tmp.get_piecewise_pdf()(x)
+    else:
+        res = np.zeros(len(x))
+        for index, ti in enumerate(x):
+            if ti < lower or ti > upper:
+                res[index] = 0
+            else:
+                res[index] = tmp.get_piecewise_pdf()(ti)
+        return res
+    exit(-1)
+
+my_trunc_norm=None
+def build_trunc_norm(t):
+    return my_trunc_norm(t)
+
 class N:
-    def __init__(self,name,mu,sigma):
+    def __init__(self,name,a,b):
         self.name = name
-        self.mu = mu
-        self.sigma = sigma
-        self.a = float("-inf")
-        self.b = float("+inf")
-        self.distribution = pacal.NormalDistr(float(self.mu),float(self.sigma))
+        self.sampleInit = True
+        self.sampleSet=[]
+        self.indipendent=True
+        self.a = float(a)
+        self.b = float(b)
+        global lower
+        lower=float(a)
+        global upper
+        upper=float(b)
+        global my_trunc_norm
+        my_trunc_norm=chebfun(truncatedNormal, domain=[lower, upper], N=50)
+        self.distribution = MyFunDistr(build_trunc_norm, breakPoints =[lower, upper], interpolated=True)
+        self.distribution.get_piecewise_pdf()
+        self.distribution=normalizeDistribution(self.distribution)
+
 
     def execute(self):
         return self.distribution
 
     def getRepresentation(self):
-        return "Normal ["+str(self.mu)+","+str(self.sigma)+"]"
+        return "Standard Gaussian in range ["+str(self.a)+","+str(self.b)+"]"
 
     def getSampleSet(self,n=100000):
         #it remembers values for future operations
-        return self.distribution.rand(n)
-
+        if self.sampleInit:
+            tmp_dist = truncnorm(self.a, self.b)
+            if n<=2:
+                self.sampleSet = tmp_dist.rvs(size=n)
+            else:
+                self.sampleSet  = tmp_dist.rvs(size=n-2)
+                self.sampleSet  = np.append(self.sampleSet, [self.a, self.b])
+            self.sampleInit = False
+        return self.sampleSet
 
 class B:
     def __init__(self,name,a,b):
@@ -61,6 +104,9 @@ class B:
         self.distribution = pacal.BetaDistr(float(a),float(b))
         self.a=self.distribution.range_()[0]
         self.b=self.distribution.range_()[-1]
+        self.indipendent=True
+        self.sampleInit = True
+        self.sampleSet=[]
 
     def execute(self):
         return self.distribution
@@ -70,7 +116,14 @@ class B:
 
     def getSampleSet(self,n=100000):
         #it remembers values for future operations
-        return self.distribution.rand(n)
+        if self.sampleInit:
+            if n<=2:
+                self.sampleSet = self.distribution.rand(n)
+            else:
+                self.sampleSet  = self.distribution.rand(n-2)
+                self.sampleSet  = np.append(self.sampleSet, [self.a, self.b])
+            self.sampleInit = False
+        return self.sampleSet
 
 class U:
     def __init__(self,name,a,b):
@@ -78,6 +131,9 @@ class U:
         self.distribution = pacal.UniformDistr(float(a),float(b))
         self.a=self.distribution.range_()[0]
         self.b=self.distribution.range_()[-1]
+        self.indipendent=True
+        self.sampleInit = True
+        self.sampleSet=[]
 
     def execute(self):
         return self.distribution
@@ -87,7 +143,14 @@ class U:
 
     def getSampleSet(self,n=100000):
         #it remembers values for future operations
-        return self.distribution.rand(n)
+        if self.sampleInit:
+            if n<=2:
+                self.sampleSet = self.distribution.rand(n)
+            else:
+                self.sampleSet = self.distribution.rand(n-2)
+                self.sampleSet = np.append(self.sampleSet, [self.a, self.b])
+            self.sampleInit = False
+        return self.sampleSet
 
 class Number:
     def __init__(self, label):
@@ -148,6 +211,13 @@ class NaiveQuantizedOperation:
         bin_nb = int(math.ceil(math.sqrt(len(res))))
         n, bins, patches = plt.hist(res, bins=bin_nb, density=1)
         plt.show()
+
+class UnaryOperation:
+    def __init__(self, operand, operator):
+        self.name = operator+"(" + operand.name + ")"
+        self.operand=operand
+        self.operator=operator
+        self.indipendent=True
 
 class Operation:
     def __init__(self, leftoperand, operator, rightoperand):
