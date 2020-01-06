@@ -445,16 +445,16 @@ class BinOpDist:
         self.poly_precision=poly_precision
 
         self.regularize = regularize
-        self.convolution = convolution
+        self.convolution=convolution
 
-        self.distribution = None
+        self.distribution=None
         self.distributionConv = None
         self.distributionSamp = None
 
         self.sampleInit=True
         self.execute()
 
-    def executeIndependent(self):
+    def executeIndipendent(self):
         if self.operator == "+":
             self.distributionConv = self.leftoperand.execute() + self.rightoperand.execute()
         elif self.operator == "-":
@@ -520,7 +520,7 @@ class BinOpDist:
     def execute(self):
         if self.distribution==None:
             if self.convolution:
-                self.executeIndependent()
+                self.executeIndipendent()
                 self.distributionValues = self.operationDependent()
                 self.distribution=self.distributionConv
                 self.a = self.aConv
