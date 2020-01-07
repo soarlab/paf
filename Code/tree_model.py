@@ -291,57 +291,65 @@ class TreeModel:
         tmp_precision = 2
         tmp_exp = self.exp
 
-        for binLen in [1000, 5000, 10000]:
-            bins = []
+        #[50, 100, 250, 500, 1000, 2500, 5000, 10000]
 
-            #if self.precision>11:
-            #    tmp_precision=11
-            #    tmp_exp = self.exp
-            #else:
-            #    tmp_precision=self.precision
-            #    tmp_exp=self.exp
+        #fp means True, real means False
+        for fp_or_real in [True, False]:
+            #[50, 100, 500, 1000, 5000, 10000]
+            for binLen in [50, 100, 500, 1000, 5000, 10000]:
+                bins = []
 
-            while True:
-                setCurrentContextPrecision(tmp_precision, tmp_exp)
-                f = mpfr(str(a))
-                if a < float(printMPFRExactly(f)):
-                    f = gmpy2.next_below(f)
-                while f < b:
-                    bins.append(float(printMPFRExactly(f)))
-                    f = gmpy2.next_above(f)
-                resetContextDefault()
-                if len(bins)>=binLen:
-                    break
+                if fp_or_real:
+                    while True:
+                        setCurrentContextPrecision(tmp_precision, tmp_exp)
+                        f = mpfr(str(a))
+                        if a < float(printMPFRExactly(f)):
+                            f = gmpy2.next_below(f)
+                        while f < b:
+                            bins.append(float(printMPFRExactly(f)))
+                            f = gmpy2.next_above(f)
+                        resetContextDefault()
+                        if len(bins)>=binLen:
+                            break
+                        else:
+                            bins=[]
+                            tmp_precision = tmp_precision+1
+
+                    if len(bins)==0:
+                        bins=1
+
+                    fileHook.write("Picked Precision for histogram. mantissa:"+str(tmp_precision)+", exp:"+str(tmp_exp)+"\n\n")
+                    fileHook.flush()
+
                 else:
-                    bins=[]
-                    tmp_precision = tmp_precision+1
+                    bins=binLen
 
-            if len(bins)==0:
-                bins=1
+                print("Generating Graphs\n")
 
-            print("Generating Graphs\n")
+                #var_range=[0, 2, 4, 6, 8, 10, 20, 30, 50, 75, 100]
 
-            fileHook.write("Picked Precision for histogram. mantissa:"+str(tmp_precision)+", exp:"+str(tmp_exp)+"\n\n")
-            fileHook.flush()
+                var_range = [1, 2, 3.0/4.0]
 
-            for i in range(0,10,2):
-                tmp_filename=file_name+"_Out_"+str(i)+"_Bins_"+str(binLen)
-                plt.figure(tmp_filename, figsize=(15,10))
-                vals, edges, patches =plt.hist(r, bins, density=True, color="b")
-                self.elaborateBinsAndEdges(fileHook, a, b, edges, vals)
-                x = np.linspace(a, b, 1000)
-                plt.ylim(0, sorted(vals, reverse=True)[i])
-                plt.plot(x, abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(x)), linewidth=7, color="red")
-                #plotTicks(file_name,"X","g", 2, 500, ticks=[7.979, 16.031], label="FPT: [7.979, 16.031]")
-                plotBoundsDistr(tmp_filename, self.tree.root_value[2].distribution)
-                #plotTicks(file_name, "|", "g", 6, 600, ticks=[9.0, 15.0], label="99.99% prob. dist.\nin [9.0, 15.0]")
-                plt.xlabel('Distribution Range')
-                plt.ylabel('PDF')
-                plt.title(file_name+"\nmantissa="+str(self.precision)+", exp="+str(self.exp)+"\n")
-                plt.legend(fontsize=25)
-                #+file_name.replace('./', '')
-                plt.savefig(path+file_name+"/"+tmp_filename, dpi = 100)
-                plt.close("all")
+                for index, i in enumerate(var_range):
+                    tmp_filename=file_name+"FP_"+str(fp_or_real)+"_Fig_"+str(index)+"_Bins_"+str(binLen)
+                    plt.figure(tmp_filename, figsize=(15,10))
+                    vals, edges, patches =plt.hist(r, bins, density=True, color="b")
+                    self.elaborateBinsAndEdges(fileHook, a, b, edges, vals)
+                    x = np.linspace(a, b, 1000)
+                    val_max = self.tree.root_value[2].distribution.mode()
+                    max = abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(val_max))
+                    plt.ylim(0, i*max)
+                    plt.plot(x, abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(x)), linewidth=7, color="red")
+                    #plotTicks(file_name,"X","g", 2, 500, ticks=[7.979, 16.031], label="FPT: [7.979, 16.031]")
+                    plotBoundsDistr(tmp_filename, self.tree.root_value[2].distribution)
+                    #plotTicks(file_name, "|", "g", 6, 600, ticks=[9.0, 15.0], label="99.99% prob. dist.\nin [9.0, 15.0]")
+                    plt.xlabel('Distribution Range')
+                    plt.ylabel('PDF')
+                    plt.title(file_name+"\nmantissa="+str(self.precision)+", exp="+str(self.exp)+"\n")
+                    plt.legend(fontsize=25)
+                    #+file_name.replace('./', '')
+                    plt.savefig(path+file_name+"/"+tmp_filename, dpi = 100)
+                    plt.close("all")
 
     def elaborateBinsAndEdges(self, fileHook, a, b, edges, vals):
         #counter=np.count_nonzero(vals==0.0)
