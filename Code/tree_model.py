@@ -454,7 +454,7 @@ class BinOpDist:
         self.sampleInit=True
         self.execute()
 
-    def executeIndipendent(self):
+    def executeIndependent(self):
         if self.operator == "+":
             self.distributionConv = self.leftoperand.execute() + self.rightoperand.execute()
         elif self.operator == "-":
@@ -520,7 +520,7 @@ class BinOpDist:
     def execute(self):
         if self.distribution==None:
             if self.convolution:
-                self.executeIndipendent()
+                self.executeIndependent()
                 self.distributionValues = self.operationDependent()
                 self.distribution=self.distributionConv
                 self.a = self.aConv

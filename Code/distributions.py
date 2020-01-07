@@ -2,7 +2,7 @@ from pacal.distr import *
 from pacal.standard_distr import  *
 from numpy import ceil
 
-# Classes which amend / customize PaCal classes
+# Classes which re-implement or customize PaCal classes
 
 
 def _shifted_arccos(x, shift):
