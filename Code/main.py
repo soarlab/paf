@@ -11,11 +11,7 @@ mantissa=24
 exp=8
 #mantissa with implicit bit of sign
 #gmpy2 set precision=p includes also sign bit.
-<<<<<<< HEAD
-print(computeLargestPositiveNumber(mantissa, exp))
-=======
 #print(computeLargestPositiveNumber(mantissa, exp))
->>>>>>> d894adb494dbead6fc96eb2b3b0af17fe005d458
 benchmarks_path="./benchmarks/"
 
 for file in os.listdir(benchmarks_path):
