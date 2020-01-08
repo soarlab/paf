@@ -60,6 +60,12 @@ def checkBoundsOutOfRange(a, b, mantissa, exponent):
 
 def normalizeDistribution(distr):
     coverage = distr.get_piecewise_pdf().integrate(float("-inf"), float("+inf"))
+<<<<<<< HEAD
+=======
+    if abs(coverage)<0.1 or abs(coverage)>2.0:
+        print("Coverage warning: accuracy problem with Pacal. Normalization not done.")
+        return distr
+>>>>>>> d894adb494dbead6fc96eb2b3b0af17fe005d458
     if (coverage < 0.99999) or (coverage > 1.00001):
         warnings.warn("PDF doesnt integrate to 1. Normalized to integrate to 1.", FutureWarning, stacklevel=2)
         distr_pdf=distr.get_piecewise_pdf()
