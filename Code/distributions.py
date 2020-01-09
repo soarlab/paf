@@ -1,9 +1,15 @@
-from pacal.distr import *
-from pacal.standard_distr import *
-from numpy import ceil, isinf, log, inf
-import scipy.integrate as integrate
-
 # Classes which re-implement or customize PaCal classes
+
+import warnings
+import numpy
+
+from pacal.distr import FuncNoninjectiveDistr
+from pacal.standard_distr import *
+from pacal.vartransforms import VarTransform
+from pacal.integration import _integrate_with_vartransform, integrate_fejer2
+from numpy import ceil, log, arccos, arcsin, float_power
+from numpy import isinf, isposinf, isfinite
+from numpy import finfo, float32
 
 
 def _shifted_arccos(x, shift):
@@ -29,8 +35,63 @@ def _strict_ceil(x):
         return ceil(x)
 
 
+def integrate_fejer2_pinf_exp(f, log_a, log_b=None, *args, **kwargs):
+    """Fejer2 integration from a to +oo."""
+    if isposinf(log_a):
+        return 0, 0
+    vt = VarTransformExp_PInf(log_a, log_U=log_b)
+    return _integrate_with_vartransform(f, vt, integrate_fejer2, *args, **kwargs)
+
+
+class VarTransformExp_PInf(VarTransform):
+    """Exponential variable transform.
+    """
+
+    def __init__(self, log_L=0, log_U=None):
+        """
+        :param L: MUST be the LOG of the lower bound of the integral to avoid instabilities
+        :param U: MUST be the LOG of the lower bound of the integral to avoid instabilities
+        """
+        self.var_min = log_L
+        if log_U is None:
+            # We replace infinity by the log of the largest possible representable number
+            self.var_max = log(finfo(float).max)
+        else:
+            self.var_max = log_U
+        self.var_inf = [0]  # parameter values corresponding to infinity.  Do
+        # not distinguish +oo and -oo
+
+    def var_change(self, x):
+        return log(x)
+
+    def inv_var_change(self, y):
+        return exp(y)
+
+    def inv_var_change_deriv(self, y):
+        return exp(y)
+
+
+class PInfExpSegment(PInfSegment):
+    """Segment = (a, inf]. Only the integrate method is overridden from PInfSegment
+    """
+
+    def __init__(self, a, f):
+        super(PInfExpSegment, self).__init__(a, f)
+
+    def integrate(self, log_a=None, log_b=None):
+        if log_a is None or exp(log_a) < self.a:
+            log_a = log(self.a)
+        if log_b is None or isposinf(log_b):
+            i, e = integrate_fejer2_pinf_exp(self.f, log_a)
+        elif log_b > log_a:
+            i, e = integrate_fejer2_pinf_exp(self.f, log_a, log_b)
+        else:
+            i, e = 0, 0
+        return i
+
+
 class ExpDistr(Distr):
-    """Exponential of a distribution"""
+    """Exponent of a random variable"""
 
     def __init__(self, d):
         """
@@ -49,92 +110,56 @@ class ExpDistr(Distr):
             return True
         return False
 
-    def _interpolate(self, a, b):
-        """ Segment gets extremely large extremely fast because of the presence of the exp function,
-        and the accuracy of interpolations suffers accordingly. This method tries to solve this problem
-        by recursively partitioning segments into smaller segments logarithmically
-         :param a,b: MUST be in log form
-         """
-        error = 1
-        N = 1
-        p_func = PiecewiseFunction([])
-        while error > 0.01:
-            # Generate logarithmically spaced breakpoints
-            breakpoints = []
-            for i in range(0, N+1):
-                breakpoints.append(a + i*(b-a)/N)
-            for i in range(0, N):
-                if i == N-1:
-                    p_func.addSegment(PInfSegment(exp(breakpoints[i]), self._exp_pdf))
-                else:
-                    p_func.addSegment(Segment(exp(breakpoints[i]), exp(breakpoints[i+1]), self._exp_pdf))
-            i_func = p_func.toInterpolated()
-            N += 1
-        return p_func
-
-    def _interpolate_to_infinity(self, a):
-        """ Same as above but to infinity"""
-        error = 1
-        N = 1
-        p_func = PiecewiseFunction([])
-        while error < 0.01:
-            # Generate logarithmically spaced breakpoints
-            breakpoints = []
-            for i in range(0, N):
-                breakpoints[i] = (10**i)*a
-            for i in range(0, N - 1):
-                if i == N - 1:
-                    p_func.addSegment(PInfSegment(breakpoints[i], self._exp_pdf))
-                else:
-                    p_func.addSegment(Segment(breakpoints[i], breakpoints[i + 1], self._exp_pdf))
-            error = integrate.quad(lambda x: abs(p_func(x) - self._exp_pdf(x)), a, inf)
-            N += 1
-        return p_func
-
     def init_piecewise_pdf(self):
-        if self._exp_out_of_range(self.base_distribution.range_()[0]):
-            raise ValueError('The smallest value in the support of the input distribution is too large. Exp not '
-                             'supported')
-        if isinf(self.base_distribution.range_()[0]):
-            self.a = 0
-        else:
-            self.a = exp(self.base_distribution.range_()[0])
         self.piecewise_pdf = PiecewiseDistribution([])
         # Get the segments of base_distribution
         segs = self.base_distribution.get_piecewise_pdf().getSegments()
+        if self._exp_out_of_range(segs[0].safe_a):
+            raise ValueError('The smallest value in the support of the input distribution is too large. Exp not '
+                             'supported')
         # Start with the possible problem at 0. The first segment will go from 0 to the min of
-        # 0.5 and segs[0].b
-        if log(0.5) < segs[0].safe_b:
-            b = 0.5
+        # C and exp(segs[0].b)
+        C = 0.1
+        if log(C) < segs[0].safe_b:
+            b = C
         else:
             b = exp(segs[0].safe_b)
         if self.singularity_at_zero:
             # test if the first segment of base_distribution has a right_pole
-            if isinstance(segs[0].SegmentWithPole) and b < 0.5:
+            if isinstance(segs[0], SegmentWithPole) and b < C:
                 if ~segs[0].left_pole:
-                    self.piecewise_pdf.addSegment(SegmentWithPole(0, b/2, self._exp_pdf, left_pole=True))
-                    self.piecewise_pdf.addSegment(SegmentWithPole(b/2, b, self._exp_pdf, left_pole=False))
+                    self.piecewise_pdf.addSegment(SegmentWithPole(1, exp(b / 2), self._exp_pdf, left_pole=True))
+                    self.piecewise_pdf.addSegment(SegmentWithPole(exp(b / 2), exp(segs[0].safe_b), self._exp_pdf, left_pole=False))
             else:
-                self.piecewise_pdf.addSegment(SegmentWithPole(0, b, self._exp_pdf, left_pole=True))
+                self.piecewise_pdf.addSegment(SegmentWithPole(1, exp(b), self._exp_pdf, left_pole=True))
+                if b < segs[0].safe_b:
+                    if self._exp_out_of_range(segs[0].safe_b):
+                        warnings.warn(
+                            "The support of exp(" + self.base_distribution.getName() + ") exceeds the range of "
+                                                                                       "representable numbers. A "
+                                                                                       "sub-distribution will be "
+                                                                                       "constructed")
+                        self.piecewise_pdf.addSegment(PInfExpSegment(exp(b), self._exp_pdf))
+                        return
+                    else:
+                        self.piecewise_pdf.addSegment(Segment(exp(b), exp(segs[0].safe_b), self._exp_pdf))
         else:
             if self._exp_out_of_range(segs[0].safe_b):
-                if isinf(segs[0].safe_b):
-                    self._interpolate_to_infinity(segs[0].safe_a)
-                else:
-                    self._interpolate(segs[0].safe_a, segs[0].safe_b)
+                warnings.warn("The support of exp(" + self.base_distribution.getName() + ") exceeds the range of "
+                                                                                         "representable numbers. A "
+                                                                                         "sub-distribution will be "
+                                                                                         "constructed")
+                self.piecewise_pdf.addSegment(PInfExpSegment(exp(segs[0].safe_a), self._exp_pdf))
                 return
             else:
-                self.piecewise_pdf.addSegment(Segment(self.a, exp(segs[0].safe_b), self._exp_pdf))
+                self.piecewise_pdf.addSegment(Segment(exp(segs[0].safe_a), exp(segs[0].safe_b), self._exp_pdf))
         if len(segs) > 1:
             for i in range(1, len(segs)):
                 if self._exp_out_of_range(segs[i].safe_b):
-                    self._fill_to_infty(self, i)
+                    self.piecewise_pdf.addSegment(PInfExpSegment(exp(segs[i].safe_a), self._exp_pdf))
+                    return
                 else:
                     self.piecewise_pdf.addSegment(Segment(exp(segs[i].safe_a), exp(segs[i].safe_b), self._exp_pdf))
-
-
-
-
 
     def _detect_singularity(self):
         """
@@ -147,15 +172,17 @@ class ExpDistr(Distr):
         if isinf(self.base_distribution.range_()[0]):
             # Now test for divergence.
             for i in range(50):
-                if self.base_distribution.get_piecewise_pdf()(log(2 ** (-126 + i))) > 2 ** (-126 + i) ** (
-                        1 + params.pole_detection.max_pole_exponent):
+                u = self.base_distribution.get_piecewise_pdf()(log(2 ** (-126 + i)))
+                v = float_power(float_power(2, -126 + i), 1 + params.pole_detection.max_pole_exponent)
+                if u > v:
                     return True
         elif self.base_distribution.range_()[0] < -40:
             # Now test for divergence. Here we start at min(2**-126, exp(self.base_distribution.range(0)))
             s = max(-126, self.base_distribution.range_()[0])
             for i in range(50):
-                if self.base_distribution.get_piecewise_pdf()(log(2 ** (-s + i))) > 2 ** (-s + i) ** (
-                        1 + params.pole_detection.max_pole_exponent):
+                u = self.base_distribution.get_piecewise_pdf()(log(float(2 ** (s + i))))
+                v = float_power(float_power(2, float(s + i)), 1 + params.pole_detection.max_pole_exponent)
+                if u > v:
                     return True
         return False
 
@@ -182,11 +209,11 @@ class CosineDistr(FuncNoninjectiveDistr):
             a = self.base_distribution.range_()[0]
         # else we truncate the range of distribution so as to remove just a small amount of mass
         else:
-            a = self.base_distribution.quantile(numpy.finfo(numpy.float32).eps)
+            a = self.base_distribution.quantile(finfo(float32).eps)
         if isfinite(self.base_distribution.range_()[-1]):
             b = self.base_distribution.range_()[-1]
         else:
-            b = self.base_distribution.quantile(1 - numpy.finfo(numpy.float32).eps)
+            b = self.base_distribution.quantile(1 - finfo(float32).eps)
         # Generate the intervals [k*pi, (k+1)*pi[ on which the cosine function is monotone
         self.intervals = []
         self.fs = []
@@ -201,7 +228,7 @@ class CosineDistr(FuncNoninjectiveDistr):
             else:
                 up = (k + 1) * pi
             self.intervals.append([down, up])
-            self.fs.append(numpy.cos)
+            self.fs.append(cos)
             if k % 2 == 0:
                 self.f_invs.append(partial(_shifted_arccos, shift=k * pi))
                 self.f_inv_derivs.append(_arccos_der)
@@ -234,11 +261,11 @@ class SineDistr(FuncNoninjectiveDistr):
             a = self.base_distribution.range_()[0]
         # else we truncate the range of distribution so as to remove just a small amount of mass
         else:
-            a = self.base_distribution.quantile(numpy.finfo(numpy.float32).eps)
+            a = self.base_distribution.quantile(finfo(float32).eps)
         if isfinite(self.base_distribution.range_()[-1]):
             b = self.base_distribution.range_()[-1]
         else:
-            b = self.base_distribution.quantile(1 - numpy.finfo(numpy.float32).eps)
+            b = self.base_distribution.quantile(1 - finfo(float32).eps)
         # Generate the intervals [(2k-1)*pi/2, (2k+1)*pi/2[ on which the sine function is monotone
         self.intervals = []
         self.fs = []
@@ -253,7 +280,7 @@ class SineDistr(FuncNoninjectiveDistr):
             else:
                 up = (2 * k + 1) * pi / 2
             self.intervals.append([down, up])
-            self.fs.append(numpy.sin)
+            self.fs.append(sin)
             if k % 2 == 1:
                 self.f_invs.append(partial(_shifted_arccos, shift=(2 * k - 1) * pi / 2))
                 self.f_inv_derivs.append(_arccos_der)
@@ -286,9 +313,18 @@ def exp(d):
 
 
 def testExp():
-    X = UniformDistr(0, 1000)
+    X = UniformDistr(0, 700)
     expX = exp(X)
     print(expX.summary())
+    Y = UniformDistr(0, 1000)
+    expY = exp(Y)
+    print(expY.summary())
+    Z = NormalDistr()
+    expZ = exp(Z)
+    print(expZ.summary())
+    W = BetaDistr(0.5,0.5)
+    expW = exp(W)
+    print(expW.summary())
 
 
 def testCos():
