@@ -524,6 +524,7 @@ class BinOpDist:
         self.sampleInit=True
         self.execute()
 
+
     def executeIndependent(self):
         if self.operator == "+":
             self.distributionConv = self.leftoperand.execute() + self.rightoperand.execute()
