@@ -22,9 +22,10 @@ class MyFunDistr(pacal.FunDistr):
 def plotTicks(figureName, mark, col, lw, s, ticks, label=""):
     minVal = ticks[0]
     maxVal = ticks[1]
+    labelMinVal = str("%.15f" % float(minVal))
+    labelMaxVal = str("%.15f" % float(maxVal))
     plt.figure(figureName)
-    plt.scatter(x=[minVal, maxVal], y=[0, 0], c=col, marker=mark, label=label, linewidth=lw, s=s)
-
+    plt.scatter(x=[minVal, maxVal], y=[0, 0], c=col, marker=mark, label="FPT: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=lw, s=s)
 
 def plotBoundsDistr(figureName, distribution):
     minVal = distribution.range_()[0]

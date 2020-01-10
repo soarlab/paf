@@ -209,16 +209,25 @@ class TreeModel:
            sample = tree.root_value[0].getSampleSet(n=1)[0]
            return mpfr(str(sample))
 
-    def generate_error_samples(self, sample_nb):
+    def generate_error_samples(self, sample_time):
         """ Generate sample_nb samples of tree evaluation in the tree's working precision
                     :return an array of samples """
-        e = np.zeros(sample_nb)
+        print("Generating Error...")
+        rel_err = np.zeros(1)
+        abs_err = np.zeros(1)
+
         setCurrentContextPrecision(self.precision, self.exp)
-        for i in range(0, sample_nb):
+
+        start_time = time.time()
+        end_time=0
+        while end_time<=sample_time:
             sample, lp_sample = self.evaluate_error_at_sample(self.tree)
-            e[i] = (sample - lp_sample) / (self.eps * sample)
+            tmp_abs = abs(float(printMPFRExactly(lp_sample)) - sample)
+            rel_err = numpy.append(rel_err, abs((float(printMPFRExactly(lp_sample)) - sample)/sample)) # self.eps *
+            abs_err = numpy.append(abs_err, tmp_abs) # self.eps *
+            end_time=time.time()-start_time
         resetContextDefault()
-        return e
+        return rel_err, abs_err
 
     def evaluate_error_at_sample(self, tree):
         """ Sample from the leaf then evaluate tree in the tree's working precision"""
@@ -252,12 +261,11 @@ class TreeModel:
         else:
            tree.root_value[0].resetSampleInit()
 
-    def collectInfoAboutDistribution(self, f):
-        res="Info:\n\n"
-        finalDistr=self.tree.root_value[2].execute()
-        mode=finalDistr.mode()
+    def collectInfoAboutDistribution(self, f, finalDistr_wrapper, name):
+        res="###### Info about "+name+"#######:\n\n"
+        mode=finalDistr_wrapper.execute().mode()
         res=res+"Mode of the distribution: " + str(mode) + "\n\n\n"
-        gap=abs(self.tree.root_value[2].a-self.tree.root_value[2].b)
+        gap=abs(finalDistr_wrapper.a-finalDistr_wrapper.b)
         gap=gap/1000.0
         for i in [0.25, 0.5, 0.75, 0.85, 0.95, 0.99, 0.9999]:
             val = 0
@@ -265,22 +273,23 @@ class TreeModel:
             upper = mode
             while val<i:
                 lower=lower-gap
-                if lower<self.tree.root_value[2].a:
-                    lower=self.tree.root_value[2].a
+                if lower<finalDistr_wrapper.a:
+                    lower=finalDistr_wrapper.a
                 upper = upper + gap
-                if upper>self.tree.root_value[2].b:
-                    upper=self.tree.root_value[2].b
-                val=finalDistr.get_piecewise_pdf().integrate(lower,upper)
+                if upper>finalDistr_wrapper.b:
+                    upper=finalDistr_wrapper.b
+                val=finalDistr_wrapper.execute().get_piecewise_pdf().integrate(lower,upper)
                 if val>=i:
                     res=res+"Range: ["+str(lower)+","+str(upper)+"] contains "+str(i*100)+"% of the distribution.\n\n"
                     break
-        res = res + "Range: [" + str(self.tree.root_value[2].a) + "," + str(self.tree.root_value[2].b) + "] contains 100% of the distribution.\n\n"
+        res = res + "Range: [" + str(finalDistr_wrapper.a) + "," + str(finalDistr_wrapper.b) + "] contains 100% of the distribution.\n\n"
+        res = res+"###########################################\n\n"
         print(res)
         f.write(res)
         return
 
 
-    def plot_range_analysis(self, fileHook, final_time, path, file_name):
+    def plot_range_analysis(self, fileHook, final_time, path, file_name, range_fpt):
         self.resetInit(self.tree)
         r = self.generate_output_samples(final_time)
         self.tree.root_value[2].execute()
@@ -296,7 +305,7 @@ class TreeModel:
         #fp means True, real means False
         for fp_or_real in [True, False]:
             #[50, 100, 500, 1000, 5000, 10000]
-            for binLen in [50, 100, 500, 1000, 5000, 10000]:
+            for binLen in [50, 100, 500, 1000, 5000, 10000, 30000]:
                 bins = []
 
                 if fp_or_real:
@@ -326,36 +335,35 @@ class TreeModel:
 
                 print("Generating Graphs\n")
 
-                #var_range=[0, 2, 4, 6, 8, 10, 20, 30, 50, 75, 100]
 
-                var_range = [1, 2, 3.0/4.0]
+                tmp_filename=file_name+"FP_"+str(fp_or_real)+"_Bins_"+str(binLen)
+                plt.figure(tmp_filename, figsize=(15,10))
 
-                for index, i in enumerate(var_range):
-                    tmp_filename=file_name+"FP_"+str(fp_or_real)+"_Fig_"+str(index)+"_Bins_"+str(binLen)
-                    plt.figure(tmp_filename, figsize=(15,10))
-                    vals, edges, patches =plt.hist(r, bins, density=True, color="b")
-                    self.elaborateBinsAndEdges(fileHook, a, b, edges, vals)
-                    x = np.linspace(a, b, 1000)
-                    val_max = self.tree.root_value[2].distribution.mode()
-                    max = abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(val_max))
-                    plt.ylim(0, i*max)
-                    plt.plot(x, abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(x)), linewidth=7, color="red")
-                    #plotTicks(file_name,"X","g", 2, 500, ticks=[7.979, 16.031], label="FPT: [7.979, 16.031]")
-                    plotBoundsDistr(tmp_filename, self.tree.root_value[2].distribution)
-                    #plotTicks(file_name, "|", "g", 6, 600, ticks=[9.0, 15.0], label="99.99% prob. dist.\nin [9.0, 15.0]")
-                    plt.xlabel('Distribution Range')
-                    plt.ylabel('PDF')
-                    plt.title(file_name+"\nmantissa="+str(self.precision)+", exp="+str(self.exp)+"\n")
-                    plt.legend(fontsize=25)
-                    #+file_name.replace('./', '')
-                    plt.savefig(path+file_name+"/"+tmp_filename, dpi = 100)
-                    plt.close("all")
+                vals, edges, patches =plt.hist(r, bins, density=True, color="b")
+                self.elaborateBinsAndEdges(fileHook, edges, vals, "Range Analysis")
+                x = np.linspace(a, b, 1000)
 
-    def elaborateBinsAndEdges(self, fileHook, a, b, edges, vals):
+                val_max = self.tree.root_value[2].distribution.mode()
+                max = abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(val_max))
+                plt.ylim(0, 2.0*max)
+                plt.plot(x, abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(x)), linewidth=7, color="red")
+                plotTicks(tmp_filename,"X","green", 2, 500, ticks=eval(range_fpt), label="FPT: "+str(range_fpt))
+                plotBoundsDistr(tmp_filename, self.tree.root_value[2].distribution)
+                #plotTicks(file_name, "|", "g", 6, 600, ticks=[9.0, 15.0], label="99.99% prob. dist.\nin [9.0, 15.0]")
+                plt.xlabel('Distribution Range')
+                plt.ylabel('PDF')
+                plt.title(file_name+" - Range Analysis"+"\nprec="+str(self.precision)+", exp="+str(self.exp)+"\n")
+                plt.legend(fontsize=25)
+                #+file_name.replace('./', '')
+                plt.savefig(path+file_name+"/"+tmp_filename, dpi = 100)
+                plt.close("all")
+
+    def elaborateBinsAndEdges(self, fileHook, edges, vals, name):
         #counter=np.count_nonzero(vals==0.0)
         counter=0.0
         tot=0.0
         abs_counter=0
+        fileHook.write("##### Info about: "+str(name)+"#######\n\n\n")
         for ind, val in enumerate(vals):
             gap = abs(edges[ind + 1] - edges[ind])
             if val==0:
@@ -363,20 +371,74 @@ class TreeModel:
                 abs_counter=abs_counter+1
             tot=tot+gap
 
+        for ind, val in enumerate(vals):
+            if not val==0:
+                fileHook.write("Leftmost bin not empty: " + str(edges[ind])+"\n")
+                break
+
+        for ind, val in reversed(list(enumerate(vals))):
+            if not val==0:
+                fileHook.write("Rightmost bin not empty: " + str(edges[ind+1])+"\n")
+                break
         fileHook.write("Abs - Empty Bins: "+str(abs_counter)+", out of "+str(len(vals))+ " total bins.\n")
         fileHook.write("Abs - Ratio: " + str(float(abs_counter)/float(len(vals)))+"\n\n")
         fileHook.write("Weighted - Empty Bins: " + str(counter) + ", out of " + str(tot) + " total bins.\n")
         fileHook.write("Weighted - Ratio: " + str(float(counter) / float(tot)) + "\n\n")
+        fileHook.write("########################\n\n")
 
-    def plot_empirical_error_distribution(self, sample_nb, file_name):
-        e = self.generate_error_samples(sample_nb)
-        a = math.floor(e.min())
-        b = math.ceil(e.max())
+    def plot_empirical_error_distribution(self, summary_file, finalTime, benchmarks_path, file_name, abs_fpt, rel_fpt):
+        rel_err_samples, abs_err_samples = self.generate_error_samples(finalTime)
+
+        abs_err = UnOpDist(BinOpDist(self.tree.root_value[2],"-", self.tree.root_value[0], 100, regularize=True, convolution=False), "abs_err", "abs")
+        rel_err = UnOpDist(BinOpDist(BinOpDist(self.tree.root_value[2],"-", self.tree.root_value[0], 100, regularize=True, convolution=False), "/", self.tree.root_value[0], 100, regularize=True, convolution=False), "rel_err", "abs")
+
+        abs_err.execute().get_piecewise_pdf()
+        rel_err.execute().get_piecewise_pdf()
+
+        rel_a = rel_err_samples.min()
+        rel_b = rel_err_samples.max()
+
+        abs_a = abs_err_samples.min()
+        abs_b = abs_err_samples.max()
+
+        self.collectInfoAboutDistribution(summary_file, rel_err, "Relative Error Distribution")
+        self.collectInfoAboutDistribution(summary_file, abs_err, "Abs Error Distribution")
+
         # as bins, choose multiples of 2*eps between a and b
-        bins = np.linspace(a, b, (b-a) * 2**(self.precision-1))
-        plt.hist(e, bins, density=True)
-        plt.savefig("pics/" + file_name)
-        plt.close("all")
+        for n_bin in [10, 50, 100, 500, 1000]:
+            tmp_name="Rel_Error_Bins_"+str(n_bin)
+            plt.figure(tmp_name, figsize=(15, 10))
+            bins = np.linspace(rel_a, rel_b, n_bin)
+            vals, edges, patches = plt.hist(rel_err_samples, bins, density=True)
+            rel_err.distribution.plot(linewidth=4, color="red")
+            if not rel_fpt is None:
+                plotTicks(tmp_name,"X","green", 2, 500, ticks=[0, rel_fpt], label="FPT: "+str(rel_fpt))
+                plt.xlim(0, max(float(rel_fpt), rel_err.b))
+            else:
+                plt.xlim(0, float(rel_err.b))
+            plotBoundsDistr(tmp_name, rel_err.distribution)
+            plt.title(tmp_name)
+            plt.legend(fontsize=25)
+            plt.savefig(benchmarks_path+file_name+"/"+tmp_name)
+            self.elaborateBinsAndEdges(summary_file, edges, vals, "Relative Error Distribution (samples)")
+
+            tmp_name="Abs_Error_Bins_"+str(n_bin)
+            plt.figure(tmp_name, figsize=(15, 10))
+            bins = np.linspace(abs_a, abs_b, n_bin)
+            vals, edges, patches = plt.hist(abs_err_samples, bins, density=True)
+            abs_err.distribution.plot(linewidth=4, color="red")
+            if not abs_fpt is None:
+                plotTicks(tmp_name, "X", "green", 2, 500, ticks=[0, abs_fpt], label="FPT:" + str(abs_fpt))
+                plt.xlim(0, max(float(abs_fpt), abs_err.b))
+            else:
+                plt.xlim(0, float(abs_err.b))
+            plotBoundsDistr(tmp_name, abs_err.distribution)
+            plt.title(tmp_name)
+            plt.legend(fontsize=25)
+            plt.savefig(benchmarks_path+file_name+"/"+tmp_name)
+            self.elaborateBinsAndEdges(summary_file, edges, vals, "Abs Error Distribution (samples)")
+
+            plt.close("all")
 
 class quantizedPointMass:
 
@@ -569,6 +631,9 @@ class UnOpDist:
             self.distribution.get_piecewise_pdf()
         elif operation is "sin":
             self.distribution = pacal.sin(operand.execute())
+            self.distribution.get_piecewise_pdf()
+        elif operation is "abs":
+            self.distribution = abs(operand.execute())
             self.distribution.get_piecewise_pdf()
         else:
             print("Unary operation not yet supported")
