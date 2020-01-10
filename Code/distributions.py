@@ -8,7 +8,7 @@ from pacal.standard_distr import *
 from pacal.vartransforms import VarTransform
 from pacal.integration import _integrate_with_vartransform, integrate_fejer2
 from numpy import ceil, log, arccos, arcsin, float_power
-from numpy import isinf, isposinf, isfinite
+from numpy import isinf, isposinf, isneginf, isfinite
 from numpy import finfo, float32
 
 
@@ -35,25 +35,34 @@ def _strict_ceil(x):
         return ceil(x)
 
 
-def integrate_fejer2_pinf_exp(f, log_a, log_b=None, *args, **kwargs):
-    """Fejer2 integration from a to +oo."""
+def integrate_fejer2_exp(f, log_a, log_b=None, *args, **kwargs):
+    """
+    Fejer2 integration from a to +oo.
+    :param f: function to integrate
+    :param log_a: MUST be the LOG of the lower bound of the integral to avoid instabilities
+    :param log_b: MUST be the LOG of the upper bound of the integral to avoid instabilities
+    """
     if isposinf(log_a):
         return 0, 0
-    vt = VarTransformExp_PInf(log_a, log_U=log_b)
+    vt = VarTransformExp(log_a, log_U=log_b)
     return _integrate_with_vartransform(f, vt, integrate_fejer2, *args, **kwargs)
 
 
-class VarTransformExp_PInf(VarTransform):
+class VarTransformExp(VarTransform):
     """Exponential variable transform.
     """
 
     def __init__(self, log_L=0, log_U=None):
         """
-        :param L: MUST be the LOG of the lower bound of the integral to avoid instabilities
-        :param U: MUST be the LOG of the lower bound of the integral to avoid instabilities
+        :param log_L: MUST be the LOG of the lower bound of the integral to avoid instabilities
+        :param log_U: MUST be the LOG of the upper bound of the integral to avoid instabilities
         """
-        self.var_min = log_L
-        if log_U is None:
+        if isneginf(log_L):
+            # We replace 0 by the log of the smallest possible positive representable number
+            self.var_min = log(finfo(float).tiny)
+        else:
+            self.var_min = log_L
+        if log_U is None or isposinf(log_U):
             # We replace infinity by the log of the largest possible representable number
             self.var_max = log(finfo(float).max)
         else:
@@ -71,8 +80,27 @@ class VarTransformExp_PInf(VarTransform):
         return exp(y)
 
 
+class ExpSegment(Segment):
+    """
+    Segment [a,b]. Only the integrate method is overridden from Segment
+    """
+
+    def __init__(self, a, b, f):
+        super(ExpSegment, self).__init__(a, b, f)
+
+    def integrate(self, log_a=None, log_b=None):
+        """definite integral over interval (c, d) \cub (a, b) """
+        if log_a is None or isneginf(log_a) or exp(log_a) < self.a:
+            log_a = log(self.a)
+        if log_b is None or log_b > log(self.b):
+            log_b = log(self.b)
+        i, e = integrate_fejer2_exp(self, log_a, log_b, debug_plot=False)
+        return i
+
+
 class PInfExpSegment(PInfSegment):
-    """Segment = (a, inf]. Only the integrate method is overridden from PInfSegment
+    """
+    Segment = (a, inf]. Only the integrate method is overridden from PInfSegment
     """
 
     def __init__(self, a, f):
@@ -82,9 +110,9 @@ class PInfExpSegment(PInfSegment):
         if log_a is None or exp(log_a) < self.a:
             log_a = log(self.a)
         if log_b is None or isposinf(log_b):
-            i, e = integrate_fejer2_pinf_exp(self.f, log_a)
+            i, e = integrate_fejer2_exp(self.f, log_a)
         elif log_b > log_a:
-            i, e = integrate_fejer2_pinf_exp(self.f, log_a, log_b)
+            i, e = integrate_fejer2_exp(self.f, log_a, log_b)
         else:
             i, e = 0, 0
         return i
@@ -102,62 +130,69 @@ class ExpDistr(Distr):
         self.singularity_at_zero = self._detect_singularity()
         super(ExpDistr, self).__init__()
 
+    def getName(self):
+        return 'exp(' + self.base_distribution.getName() + ')'
+
     def _exp_pdf(self, x):
         return self.base_distribution.get_piecewise_pdf()(log(x)) / x
 
     def _exp_out_of_range(self, x):
         if log(finfo(float).max) < x:
+            warnings.warn("The support of exp(" + self.getName() + ") includes numbers too large to be represented. A "
+                                                                   "sub-distribution will be constructed. Check "
+                                                                   "int_err() to see how bad it is.")
+            return True
+        if x < log(finfo(float).tiny):
+            warnings.warn("The support of " + self.getName() + "includes numbers too small to be represented. A "
+                                                               "sub-distribution will be constructed. Check "
+                                                               "int_err() to see how bad it is.")
             return True
         return False
 
     def init_piecewise_pdf(self):
+        # Initialize constants
+
+        C = 0.1
+        SEGMAX = 5
         self.piecewise_pdf = PiecewiseDistribution([])
         # Get the segments of base_distribution
         segs = self.base_distribution.get_piecewise_pdf().getSegments()
-        if self._exp_out_of_range(segs[0].safe_a):
+        if segs[0].safe_a > log(finfo(float).max):
             raise ValueError('The smallest value in the support of the input distribution is too large. Exp not '
                              'supported')
-        # Start with the possible problem at 0. The first segment will go from 0 to the min of
-        # C and exp(segs[0].b)
-        C = 0.1
-        if log(C) < segs[0].safe_b:
-            b = C
-        else:
-            b = exp(segs[0].safe_b)
-        if self.singularity_at_zero:
-            # test if the first segment of base_distribution has a right_pole
-            if isinstance(segs[0], SegmentWithPole) and b < C:
-                if ~segs[0].left_pole:
-                    self.piecewise_pdf.addSegment(SegmentWithPole(1, exp(b / 2), self._exp_pdf, left_pole=True))
-                    self.piecewise_pdf.addSegment(SegmentWithPole(exp(b / 2), exp(segs[0].safe_b), self._exp_pdf, left_pole=False))
-            else:
-                self.piecewise_pdf.addSegment(SegmentWithPole(1, exp(b), self._exp_pdf, left_pole=True))
+        for i in range(0, len(segs)):
+            # Start with the possible problem at 0. First check if the range of the distribution morally includes 0,
+            # i.e. if it includes numbers < log(finfo(float).tiny) and if there is indeed a singularity.
+            if i == 0 and self.singularity_at_zero:
+                # The first segment will go from 0 to the min
+                # of C and exp(segs[0].safe_b)
+                if log(C) < segs[0].safe_b:
+                    b = log(C)
+                else:
+                    b = segs[0].safe_b
+                # Build the distribution from 0 to b.
+                # Test if the first segment of base_distribution has a right_pole
+                if isinstance(segs[0], SegmentWithPole) and segs[0].left_pole:
+                    self.piecewise_pdf.addSegment(ExpSegment(0, exp(b / 2), self._exp_pdf, left_pole=True))
+                    self.piecewise_pdf.addSegment(SegmentWithPole(exp(b / 2), exp(b), self._exp_pdf, left_pole=False))
+                else:
+                    self.piecewise_pdf.addSegment(ExpSegment(0, exp(b), self._exp_pdf))
+                # Add segment from b to segs[0].safe_b if necessary.
                 if b < segs[0].safe_b:
                     if self._exp_out_of_range(segs[0].safe_b):
-                        warnings.warn(
-                            "The support of exp(" + self.base_distribution.getName() + ") exceeds the range of "
-                                                                                       "representable numbers. A "
-                                                                                       "sub-distribution will be "
-                                                                                       "constructed")
                         self.piecewise_pdf.addSegment(PInfExpSegment(exp(b), self._exp_pdf))
-                        return
+                    # Check if next segment is too large to integrate reliably using standard methods
+                    elif segs[0].safe_b - b >= SEGMAX:
+                        self.piecewise_pdf.addSegment(ExpSegment(exp(b), exp(segs[0].safe_b), self._exp_pdf))
                     else:
                         self.piecewise_pdf.addSegment(Segment(exp(b), exp(segs[0].safe_b), self._exp_pdf))
-        else:
-            if self._exp_out_of_range(segs[0].safe_b):
-                warnings.warn("The support of exp(" + self.base_distribution.getName() + ") exceeds the range of "
-                                                                                         "representable numbers. A "
-                                                                                         "sub-distribution will be "
-                                                                                         "constructed")
-                self.piecewise_pdf.addSegment(PInfExpSegment(exp(segs[0].safe_a), self._exp_pdf))
-                return
             else:
-                self.piecewise_pdf.addSegment(Segment(exp(segs[0].safe_a), exp(segs[0].safe_b), self._exp_pdf))
-        if len(segs) > 1:
-            for i in range(1, len(segs)):
                 if self._exp_out_of_range(segs[i].safe_b):
                     self.piecewise_pdf.addSegment(PInfExpSegment(exp(segs[i].safe_a), self._exp_pdf))
                     return
+                # Check if segment is too large to integrate reliably using standard methods
+                elif (segs[i].safe_b - segs[i].safe_a) >= SEGMAX:
+                    self.piecewise_pdf.addSegment(ExpSegment(exp(segs[i].safe_a), exp(segs[i].safe_b), self._exp_pdf))
                 else:
                     self.piecewise_pdf.addSegment(Segment(exp(segs[i].safe_a), exp(segs[i].safe_b), self._exp_pdf))
 
@@ -165,23 +200,16 @@ class ExpDistr(Distr):
         """
         :return: A boolean value. True if pdf(ln(t))/t diverges at 0, False else. Divergence here is defined by:
         pdf(ln(t)) < t ** (1 + params.pole_detection.max_pole_exponent) for a sequence of small values starting at
-        the smallest positive normal number in single precision (2**-126)
+        the smallest positive normal number in single precision log(finfo(float).tiny)
         """
         # Test if t can ever get close to 0. For this, the pdf must be defined at ln(small t), i.e. at sufficiently
-        # negative numbers. We choose -40 as the cutoff.
-        if isinf(self.base_distribution.range_()[0]):
+        # negative numbers. We choose log(finfo(float).eps) as the cutoff.
+        cut_off = log(finfo(float).tiny)
+        if self._exp_out_of_range(self.base_distribution.range_()[0]):
             # Now test for divergence.
             for i in range(50):
-                u = self.base_distribution.get_piecewise_pdf()(log(2 ** (-126 + i)))
-                v = float_power(float_power(2, -126 + i), 1 + params.pole_detection.max_pole_exponent)
-                if u > v:
-                    return True
-        elif self.base_distribution.range_()[0] < -40:
-            # Now test for divergence. Here we start at min(2**-126, exp(self.base_distribution.range(0)))
-            s = max(-126, self.base_distribution.range_()[0])
-            for i in range(50):
-                u = self.base_distribution.get_piecewise_pdf()(log(float(2 ** (s + i))))
-                v = float_power(float_power(2, float(s + i)), 1 + params.pole_detection.max_pole_exponent)
+                u = self.base_distribution.get_piecewise_pdf()(cut_off * (2 ** i))
+                v = float_power(finfo(float).eps * (2 ** i), 1 + params.pole_detection.max_pole_exponent)
                 if u > v:
                     return True
         return False
@@ -315,16 +343,22 @@ def exp(d):
 def testExp():
     X = UniformDistr(0, 700)
     expX = exp(X)
-    print(expX.summary())
+    print('Error for ' + expX.getName() + ': ' + str(expX.int_error()))
     Y = UniformDistr(0, 1000)
     expY = exp(Y)
-    print(expY.summary())
+    print('Error for ' + expY.getName() + ': ' + str(expY.int_error()))
     Z = NormalDistr()
     expZ = exp(Z)
-    print(expZ.summary())
-    W = BetaDistr(0.5,0.5)
+    print('Error for ' + expZ.getName() + ': ' + str(expZ.int_error()))
+    U = UniformDistr(-700, 0)
+    expU = exp(U)
+    print('Error for ' + expU.getName() + ': ' + str(expU.int_error()))
+    V = UniformDistr(-1000, 0)
+    expV = exp(V)
+    print('Error for ' + expV.getName() + ': ' + str(expV.int_error()))
+    W = BetaDistr(0.5, 0.5)
     expW = exp(W)
-    print(expW.summary())
+    print('Error for ' + expW.getName() + ': ' + str(expW.int_error()))
 
 
 def testCos():
