@@ -1,0 +1,193 @@
+Execution Time:289.616327047348s 
+
+###### Info about Range Analysis on Round(distr)#######:
+
+Mode of the distribution: -0.6469837956692223
+
+
+Range: [-1.009430637705635,-0.28453695363281234] contains 25.0% of the distribution.
+
+Range: [-1.4329640261526793,0.13899643481422796] contains 50.0% of the distribution.
+
+Range: [-1.994960253130488,0.7009926617920326] contains 75.0% of the distribution.
+
+Range: [-2.0370808475365694,1.002352957417814] contains 85.0% of the distribution.
+
+Range: [-2.0370808475365694,1.4462485280017354] contains 95.0% of the distribution.
+
+Range: [-2.0370808475365694,1.7720434421917695] contains 99.0% of the distribution.
+
+Range: [-2.0370808475365694,2.0123171914069196] contains 99.99% of the distribution.
+
+Range: [-2.0370808475365694,2.0353555798388157] contains 100% of the distribution.
+
+###########################################
+
+##### Info about: Range Analysis#######
+
+
+Leftmost bin not empty: -2.035292148590088
+Rightmost bin not empty: 2.035593271255493
+Abs - Empty Bins: 0, out of 50 total bins.
+Abs - Ratio: 0.0
+
+Weighted - Empty Bins: 0.0, out of 4.070885419845581 total bins.
+Weighted - Ratio: 0.0
+
+########################
+
+##### Info about: Range Analysis#######
+
+
+Leftmost bin not empty: -2.035292148590088
+Rightmost bin not empty: 2.035593271255493
+Abs - Empty Bins: 0, out of 100 total bins.
+Abs - Ratio: 0.0
+
+Weighted - Empty Bins: 0.0, out of 4.070885419845581 total bins.
+Weighted - Ratio: 0.0
+
+########################
+
+##### Info about: Range Analysis#######
+
+
+Leftmost bin not empty: -2.035292148590088
+Rightmost bin not empty: 2.035593271255493
+Abs - Empty Bins: 0, out of 500 total bins.
+Abs - Ratio: 0.0
+
+Weighted - Empty Bins: 0.0, out of 4.070885419845581 total bins.
+Weighted - Ratio: 0.0
+
+########################
+
+##### Info about: Range Analysis#######
+
+
+Leftmost bin not empty: -2.035292148590088
+Rightmost bin not empty: 2.035593271255493
+Abs - Empty Bins: 0, out of 1000 total bins.
+Abs - Ratio: 0.0
+
+Weighted - Empty Bins: 0.0, out of 4.070885419845581 total bins.
+Weighted - Ratio: 0.0
+
+########################
+
+##### Info about: Range Analysis#######
+
+
+Leftmost bin not empty: -2.035292148590088
+Rightmost bin not empty: 2.035593271255493
+Abs - Empty Bins: 1, out of 5000 total bins.
+Abs - Ratio: 0.0002
+
+Weighted - Empty Bins: 0.0008141770839693585, out of 4.070885419845581 total bins.
+Weighted - Ratio: 0.00020000000000005953
+
+########################
+
+##### Info about: Range Analysis#######
+
+
+Leftmost bin not empty: -2.035292148590088
+Rightmost bin not empty: 2.035593271255493
+Abs - Empty Bins: 30, out of 10000 total bins.
+Abs - Ratio: 0.003
+
+Weighted - Empty Bins: 0.012212656259538157, out of 4.070885419845581 total bins.
+Weighted - Ratio: 0.0030000000000003474
+
+########################
+
+Picked Precision for histogram. mantissa:2, exp:8
+
+##### Info about: Range Analysis#######
+
+
+Leftmost bin not empty: -3.0
+Rightmost bin not empty: 2.0
+Abs - Empty Bins: 442, out of 519 total bins.
+Abs - Ratio: 0.8516377649325626
+
+Weighted - Empty Bins: 1.3589859008789056e-05, out of 4.999999999999998 total bins.
+Weighted - Ratio: 2.717971801757812e-06
+
+########################
+
+Picked Precision for histogram. mantissa:2, exp:8
+
+##### Info about: Range Analysis#######
+
+
+Leftmost bin not empty: -3.0
+Rightmost bin not empty: 2.0
+Abs - Empty Bins: 442, out of 519 total bins.
+Abs - Ratio: 0.8516377649325626
+
+Weighted - Empty Bins: 1.3589859008789056e-05, out of 4.999999999999998 total bins.
+Weighted - Ratio: 2.717971801757812e-06
+
+########################
+
+Picked Precision for histogram. mantissa:2, exp:8
+
+##### Info about: Range Analysis#######
+
+
+Leftmost bin not empty: -3.0
+Rightmost bin not empty: 2.0
+Abs - Empty Bins: 442, out of 519 total bins.
+Abs - Ratio: 0.8516377649325626
+
+Weighted - Empty Bins: 1.3589859008789056e-05, out of 4.999999999999998 total bins.
+Weighted - Ratio: 2.717971801757812e-06
+
+########################
+
+Picked Precision for histogram. mantissa:3, exp:8
+
+##### Info about: Range Analysis#######
+
+
+Leftmost bin not empty: -2.5
+Rightmost bin not empty: 2.0
+Abs - Empty Bins: 893, out of 1035 total bins.
+Abs - Ratio: 0.8628019323671497
+
+Weighted - Empty Bins: 3.7312507629394504e-05, out of 4.4999999999999964 total bins.
+Weighted - Ratio: 8.291668362087674e-06
+
+########################
+
+Picked Precision for histogram. mantissa:6, exp:8
+
+##### Info about: Range Analysis#######
+
+
+Leftmost bin not empty: -2.0625
+Rightmost bin not empty: 2.0
+Abs - Empty Bins: 7317, out of 8259 total bins.
+Abs - Ratio: 0.8859426080639302
+
+Weighted - Empty Bins: 0.0002834945917129499, out of 4.062499999999972 total bins.
+Weighted - Ratio: 6.97832841139574e-05
+
+########################
+
+Picked Precision for histogram. mantissa:7, exp:8
+
+##### Info about: Range Analysis#######
+
+
+Leftmost bin not empty: -2.0625
+Rightmost bin not empty: 2.03125
+Abs - Empty Bins: 14776, out of 16517 total bins.
+Abs - Ratio: 0.8945934491735787
+
+Weighted - Empty Bins: 0.0006162002682685783, out of 4.093749999999943 total bins.
+Weighted - Ratio: 0.000150522202935838
+
+########################
+
