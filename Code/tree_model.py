@@ -54,7 +54,8 @@ class Triple:
 
 
 class DistributionsManager:
-    def __init__(self):
+    def __init__(self, samples_dep_op):
+        self.samples_dep_op = samples_dep_op
         self.errordictionary = {}
         self.distrdictionary = {}
 
@@ -74,12 +75,12 @@ class DistributionsManager:
                 self.errordictionary[wrapDist.name]=tmp
                 return tmp
 
-    def createBinOperation(self, leftoperand, operator, rightoperand, poly_precision, regularize=True, convolution=True):
+    def createBinOperation(self, leftoperand, operator, rightoperand, poly_precision,  regularize=True, convolution=True):
         name="("+leftoperand.name+str(operator)+rightoperand.name+")"
         if name in self.distrdictionary:
             return self.distrdictionary[name]
         else:
-            tmp=BinOpDist(leftoperand, operator, rightoperand, poly_precision, regularize, convolution)
+            tmp=BinOpDist(leftoperand, operator, rightoperand, poly_precision, self.samples_dep_op, regularize, convolution)
             self.distrdictionary[name]=tmp
             return tmp
 
@@ -97,7 +98,7 @@ class DistributionsManager:
 
 class TreeModel:
 
-    def __init__(self, my_yacc, precision, exp, poly_precision, initialize=True):
+    def __init__(self, my_yacc, precision, exp, poly_precision, samples_dep_op, initialize=True):
         self.initialize = initialize
         self.precision = precision
         self.exp = exp
@@ -106,7 +107,8 @@ class TreeModel:
         self.tree = copy_tree(my_yacc.expression)
         # Evaluate tree
         self.eps = 2 ** (-self.precision)
-        self.manager=DistributionsManager()
+        self.samples_dep_op=samples_dep_op
+        self.manager=DistributionsManager(self.samples_dep_op)
         self.evaluate(self.tree)
 
     def evaluate(self, tree):
@@ -179,7 +181,7 @@ class TreeModel:
             d = numpy.append(d, float(printMPFRExactly(self.evaluate_at_sample(self.tree))))
             end_time=time.time()-start_time
         resetContextDefault()
-        return d
+        return d[1:]
 
     def evaluate_at_sample(self, tree):
         """ Sample from the leaf then evaluate tree in the tree's working precision"""
@@ -303,9 +305,9 @@ class TreeModel:
         #[50, 100, 250, 500, 1000, 2500, 5000, 10000]
 
         #fp means True, real means False
-        for fp_or_real in [True, False]:
+        for fp_or_real in [False, True]:
             #[50, 100, 500, 1000, 5000, 10000]
-            for binLen in [50, 100, 500, 1000, 5000, 10000, 30000]:
+            for binLen in [50, 100, 500, 1000, 5000, 10000]:
                 bins = []
 
                 if fp_or_real:
@@ -345,9 +347,10 @@ class TreeModel:
 
                 val_max = self.tree.root_value[2].distribution.mode()
                 max = abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(val_max))
-                plt.ylim(0, 2.0*max)
+                plt.autoscale(enable=True, axis='both', tight=False)
+                plt.ylim(top=2.0*max)
                 plt.plot(x, abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(x)), linewidth=7, color="red")
-                plotTicks(tmp_filename,"X","green", 2, 500, ticks=eval(range_fpt), label="FPT: "+str(range_fpt))
+                plotTicks(tmp_filename,"X","green", 4, 500, ticks=range_fpt, label="FPT: "+str(range_fpt))
                 plotBoundsDistr(tmp_filename, self.tree.root_value[2].distribution)
                 #plotTicks(file_name, "|", "g", 6, 600, ticks=[9.0, 15.0], label="99.99% prob. dist.\nin [9.0, 15.0]")
                 plt.xlabel('Distribution Range')
@@ -389,23 +392,25 @@ class TreeModel:
     def plot_empirical_error_distribution(self, summary_file, finalTime, benchmarks_path, file_name, abs_fpt, rel_fpt):
         rel_err_samples, abs_err_samples = self.generate_error_samples(finalTime)
 
-        abs_err = UnOpDist(BinOpDist(self.tree.root_value[2],"-", self.tree.root_value[0], 100, regularize=True, convolution=False), "abs_err", "abs")
-        rel_err = UnOpDist(BinOpDist(BinOpDist(self.tree.root_value[2],"-", self.tree.root_value[0], 100, regularize=True, convolution=False), "/", self.tree.root_value[0], 100, regularize=True, convolution=False), "rel_err", "abs")
+        abs_err = UnOpDist(BinOpDist(self.tree.root_value[2],"-", self.tree.root_value[0], 500, regularize=True, convolution=False), "abs_err", "abs")
+
+        #rel_err = UnOpDist(BinOpDist(BinOpDist(self.tree.root_value[2],"-", self.tree.root_value[0], 100, regularize=True, convolution=False), "/", self.tree.root_value[0], 100, regularize=True, convolution=False), "rel_err", "abs")
 
         abs_err.execute().get_piecewise_pdf()
-        rel_err.execute().get_piecewise_pdf()
+        #rel_err.execute().get_piecewise_pdf()
 
-        rel_a = rel_err_samples.min()
-        rel_b = rel_err_samples.max()
+        #rel_a = rel_err_samples.min()
+        #rel_b = rel_err_samples.max()
 
         abs_a = abs_err_samples.min()
         abs_b = abs_err_samples.max()
 
-        self.collectInfoAboutDistribution(summary_file, rel_err, "Relative Error Distribution")
+        #self.collectInfoAboutDistribution(summary_file, rel_err, "Relative Error Distribution")
         self.collectInfoAboutDistribution(summary_file, abs_err, "Abs Error Distribution")
 
         # as bins, choose multiples of 2*eps between a and b
         for n_bin in [10, 50, 100, 500, 1000]:
+            '''
             tmp_name="Rel_Error_Bins_"+str(n_bin)
             plt.figure(tmp_name, figsize=(15, 10))
             bins = np.linspace(rel_a, rel_b, n_bin)
@@ -421,7 +426,7 @@ class TreeModel:
             plt.legend(fontsize=25)
             plt.savefig(benchmarks_path+file_name+"/"+tmp_name)
             self.elaborateBinsAndEdges(summary_file, edges, vals, "Relative Error Distribution (samples)")
-
+            '''
             tmp_name="Abs_Error_Bins_"+str(n_bin)
             plt.figure(tmp_name, figsize=(15, 10))
             bins = np.linspace(abs_a, abs_b, n_bin)
@@ -505,7 +510,7 @@ class BinOpDist:
     Wrapper class for the result of an arithmetic operation on PaCal distributions
     Warning! leftoperand and rightoperant MUST be PaCal distributions
     """
-    def __init__(self, leftoperand, operator, rightoperand, poly_precision, regularize=True, convolution=True):
+    def __init__(self, leftoperand, operator, rightoperand, poly_precision, samples_dep_op, regularize=True, convolution=True):
         self.leftoperand = leftoperand
         self.operator = operator
         self.rightoperand = rightoperand
@@ -513,6 +518,8 @@ class BinOpDist:
         self.name="("+self.leftoperand.name+str(self.operator)+self.rightoperand.name+")"
 
         self.poly_precision=poly_precision
+
+        self.samples_dep_op=samples_dep_op
 
         self.regularize = regularize
         self.convolution=convolution
@@ -551,8 +558,8 @@ class BinOpDist:
         self.bConv = self.distributionConv.range_()[-1]
 
     def operationDependent(self):
-        leftOp = self.leftoperand.getSampleSet()
-        rightOp = self.rightoperand.getSampleSet()
+        leftOp = self.leftoperand.getSampleSet(self.samples_dep_op)
+        rightOp = self.rightoperand.getSampleSet(self.samples_dep_op)
 
         if self.operator == "*+":
             res = np.array(leftOp) * (1 + (self.rightoperand.eps * np.array(rightOp)))

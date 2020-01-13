@@ -6,6 +6,8 @@ import os
 import shutil
 from distributions import *
 from FPTaylor import *
+import traceback
+import logging
 
 matplotlib.pyplot.close("all")
 mantissa=24
@@ -32,7 +34,7 @@ for file in os.listdir(benchmarks_path):
             f.close()
             myYacc=FPRyacc(text, False)
             start_time = time.time()
-            T = TreeModel(myYacc, mantissa, exp, 50)
+            T = TreeModel(myYacc, mantissa, exp, 100, 250000)
             end_time = time.time()
             print("Exe time --- %s seconds ---" % (end_time - start_time))
             finalTime=end_time-start_time
@@ -43,9 +45,9 @@ for file in os.listdir(benchmarks_path):
             f.write("Execution Time:"+str(finalTime)+"s \n\n")
             T.collectInfoAboutDistribution(f, T.tree.root_value[2], "Range Analysis on Round(distr)")
             T.plot_range_analysis(f, finalTime,benchmarks_path,file_name, range_my_dict.get(file_name))
-            T.plot_empirical_error_distribution(f, finalTime,benchmarks_path,file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
+            #T.plot_empirical_error_distribution(f, finalTime,benchmarks_path,file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
             f.close()
         except Exception as e:
-            print(e)
+            logging.error(traceback.format_exc())
 
 print("\nDone\n")
