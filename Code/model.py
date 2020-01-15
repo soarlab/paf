@@ -55,6 +55,7 @@ def truncatedNormal(x):
             else:
                 res[index] = tmp.get_piecewise_pdf()(ti)
         return res
+    print("Really Bad!!!!!!")
     exit(-1)
 
 my_trunc_norm=None
@@ -77,7 +78,7 @@ class N:
         my_trunc_norm=chebfun(truncatedNormal, domain=[lower, upper], N=50)
         self.distribution = MyFunDistr(build_trunc_norm, breakPoints =[lower, upper], interpolated=True)
         self.distribution.get_piecewise_pdf()
-        self.distribution=normalizeDistribution(self.distribution)
+        self.distribution=normalizeDistribution(self.distribution, init=True)
 
 
     def execute(self):
@@ -95,6 +96,7 @@ class N:
             else:
                 self.sampleSet  = tmp_dist.rvs(size=n-2)
                 self.sampleSet  = np.append(self.sampleSet, [self.a, self.b])
+                #self.sampleSet  = sorted(self.sampleSet)
             self.sampleInit = False
         return self.sampleSet
 
@@ -149,6 +151,7 @@ class U:
             else:
                 self.sampleSet = self.distribution.rand(n-2)
                 self.sampleSet = np.append(self.sampleSet, [self.a, self.b])
+                #self.sampleSet  = sorted(self.sampleSet)
             self.sampleInit = False
         return self.sampleSet
 

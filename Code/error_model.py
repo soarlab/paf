@@ -330,5 +330,6 @@ class TypicalErrorModel:
         if self.sampleInit:
             self.sampleSet  = self.distribution.rand(n-2)
             self.sampleSet  = np.append(self.sampleSet, [-1.0, 1.0])
+            #self.sampleSet = sorted(self.sampleSet)
             self.sampleInit = False
         return self.sampleSet

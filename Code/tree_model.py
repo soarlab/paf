@@ -2,6 +2,7 @@ from model import *
 from error_model import *
 from regularizer import *
 import time
+from scipy.stats import *
 
 plt.rcParams.update({'font.size': 30})
 plt.rcParams.update({'figure.autolayout': True})
@@ -250,6 +251,7 @@ class TreeModel:
                 print("Operation not supported!")
                 exit(-1)
         else:
+            #NOT WORKING FOR GAUSSIAN INPUT
             sample = tree.root_value[0].execute().rand()
             return sample, mpfr(str(sample))
 
@@ -265,10 +267,10 @@ class TreeModel:
 
     def collectInfoAboutDistribution(self, f, finalDistr_wrapper, name):
         res="###### Info about "+name+"#######:\n\n"
-        mode=finalDistr_wrapper.execute().mode()
+        mode=finalDistr_wrapper.distribution.mode()
         res=res+"Mode of the distribution: " + str(mode) + "\n\n\n"
         gap=abs(finalDistr_wrapper.a-finalDistr_wrapper.b)
-        gap=gap/1000.0
+        gap=gap/10000.0
         for i in [0.25, 0.5, 0.75, 0.85, 0.95, 0.99, 0.9999]:
             val = 0
             lower = mode
@@ -290,13 +292,55 @@ class TreeModel:
         f.write(res)
         return
 
+    def measureDistances(self, fileHook, vals_PM, vals_golden, vals, edges_PM, edges_golden, edges, introStr):
+
+        if not (len(vals_PM)==len(vals_golden) and len(vals_golden)==len(vals)):
+            print("Failure in histograms!")
+            exit(-1)
+
+        var_distance_golden_PM=np.max(np.absolute(vals_golden-vals_PM))
+        var_distance_golden_sampling=np.max(np.absolute(vals_golden-vals))
+
+        avg_var_distance_golden_PM=np.average(np.absolute(vals_golden-vals_PM))
+        avg_var_distance_golden_sampling=np.average(np.absolute(vals_golden-vals))
+
+        KL_distance_golden_PM=scipy.stats.entropy(vals_golden, qk=vals_PM)
+        KL_distance_golden_sampling=scipy.stats.entropy(vals_golden, qk=vals)
+
+        WSS_distance_golden_PM=scipy.stats.wasserstein_distance(vals_golden, vals_PM)
+        WSS_distance_golden_sampling=scipy.stats.wasserstein_distance(vals_golden, vals)
+
+        fileHook.write("##### DISTANCE MEASURES ######\n\n")
+        fileHook.write(introStr+"\n")
+        fileHook.write("Variational Distance - Golden -> PM : "+str(var_distance_golden_PM)+"\n")
+        fileHook.write("Variational Distance - Golden -> Sampling : "+str(var_distance_golden_sampling)+"\n")
+
+        fileHook.write("AVG Variational Distance - Golden -> PM : " + str(avg_var_distance_golden_PM) + "\n")
+        fileHook.write("AVG Variational Distance - Golden -> Sampling : " + str(avg_var_distance_golden_sampling) + "\n")
+
+        fileHook.write("KL Distance - Golden -> PM : " + str(KL_distance_golden_PM) + "\n")
+        fileHook.write("KL Distance - Golden -> Sampling : " + str(KL_distance_golden_sampling) + "\n")
+
+        fileHook.write("WSS Distance - Golden -> PM : " + str(WSS_distance_golden_PM) + "\n")
+        fileHook.write("WSS Distance - Golden -> Sampling : " + str(WSS_distance_golden_sampling) + "\n")
+
+        fileHook.write("##################################")
+
+        fileHook.flush()
+
+        return
+
 
     def plot_range_analysis(self, fileHook, final_time, path, file_name, range_fpt):
         self.resetInit(self.tree)
         r = self.generate_output_samples(final_time)
+        golden_samples = self.generate_output_samples(1800)
+
         self.tree.root_value[2].execute()
         a = self.tree.root_value[2].a
         b = self.tree.root_value[2].b
+
+        #expand to fptaylor probably
         # as bins, choose at the intervals between successive pairs of representable numbers between a and b
 
         tmp_precision = 2
@@ -339,14 +383,33 @@ class TreeModel:
 
 
                 tmp_filename=file_name+"FP_"+str(fp_or_real)+"_Bins_"+str(binLen)
+
                 plt.figure(tmp_filename, figsize=(15,10))
 
-                vals, edges, patches =plt.hist(r, bins, density=True, color="b")
-                self.elaborateBinsAndEdges(fileHook, edges, vals, "Range Analysis")
+                pm_file=open(path + file_name + "/pm.txt","a+")
+                vals_PM, edges_PM, patches_PM =plt.hist(self.tree.root_value[2].distributionValues, bins, density=True, color="red")
+                self.outputEdgesVals(pm_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_PM,vals_PM)
+                plt.clf()
+
+                golden_file=open(path + file_name + "/golden.txt","a+")
+                vals_golden, edges_golden, patches_golden =plt.hist(golden_samples, bins, density=True, color="gold", label="Golden")
+                self.outputEdgesVals(golden_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_golden,vals_golden)
+                golden_file.close()
+
+                sampling_file=open(path + file_name + "/sampling.txt","a+")
+                vals, edges, patches =plt.hist(r, bins, density=True, color="b", label="Sampling")
+                self.outputEdgesVals(sampling_file, "BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n", edges, vals)
+                sampling_file.close()
+
+                self.measureDistances(fileHook, vals_PM, vals_golden, vals, edges_PM, edges_golden, edges, "Range Analysis comparison. Bins: "+str(binLen)+", Floating Point Spacing: "+str(fp_or_real))
+
+                #self.elaborateBinsAndEdges(fileHook, edges, vals, "Sampling Range Analysis. Bins: "+str(bins)+", Floating Point Spacing: "+str(fp_or_real))
+
                 x = np.linspace(a, b, 1000)
 
                 val_max = self.tree.root_value[2].distribution.mode()
                 max = abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(val_max))
+
                 plt.autoscale(enable=True, axis='both', tight=False)
                 plt.ylim(top=2.0*max)
                 plt.plot(x, abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(x)), linewidth=7, color="red")
@@ -361,28 +424,38 @@ class TreeModel:
                 plt.savefig(path+file_name+"/"+tmp_filename, dpi = 100)
                 plt.close("all")
 
+    def outputEdgesVals(self, file_hook, string_name, edges, vals):
+        file_hook.write(string_name)
+        for ind, val in enumerate(vals):
+            file_hook.write("["+str(edges[ind])+","+str(edges[ind+1])+"] -> "+str(val)+"\n")
+        file_hook.write("\n\n")
+        file_hook.flush()
+
     def elaborateBinsAndEdges(self, fileHook, edges, vals, name):
         #counter=np.count_nonzero(vals==0.0)
         counter=0.0
         tot=0.0
         abs_counter=0
         fileHook.write("##### Info about: "+str(name)+"#######\n\n\n")
+
         for ind, val in enumerate(vals):
             gap = abs(edges[ind + 1] - edges[ind])
             if val==0:
                 counter=counter+gap
                 abs_counter=abs_counter+1
+                fileHook.write("Bin ["+str(edges[ind])+","+str(edges[ind+1])+"] is empty.\n")
             tot=tot+gap
 
         for ind, val in enumerate(vals):
             if not val==0:
-                fileHook.write("Leftmost bin not empty: " + str(edges[ind])+"\n")
+                fileHook.write("Leftmost bin not empty: ["+str(edges[ind])+","+str(edges[ind+1])+"].\n")
                 break
 
         for ind, val in reversed(list(enumerate(vals))):
             if not val==0:
-                fileHook.write("Rightmost bin not empty: " + str(edges[ind+1])+"\n")
+                fileHook.write("Rightmost bin not empty: ["+str(edges[ind])+","+str(edges[ind+1])+"]\n")
                 break
+
         fileHook.write("Abs - Empty Bins: "+str(abs_counter)+", out of "+str(len(vals))+ " total bins.\n")
         fileHook.write("Abs - Ratio: " + str(float(abs_counter)/float(len(vals)))+"\n\n")
         fileHook.write("Weighted - Empty Bins: " + str(counter) + ", out of " + str(tot) + " total bins.\n")
@@ -482,17 +555,17 @@ class quantizedPointMass:
 
 tmp_pdf=None
 def my_tmp_pdf(t):
-    return tmp_pdf(t)
+    return np.absolute(tmp_pdf(t))
 
-bins=None
-n=None
-def op(t):
+#bins=None
+#n=None
+def op(t, bins, n):
     if isinstance(t, float) or isinstance(t, int) or len(t) == 1:
         if t < min(bins) or t > max(bins):
             return 0.0
         else:
             index_bin=np.digitize(t,bins)
-            return n[index_bin]
+            return abs(n[index_bin])
     else:
         res=np.zeros(len(t))
         tis=t
@@ -502,7 +575,7 @@ def op(t):
             else:
                 index_bin = np.digitize(ti, bins, right=True)
                 res[index] = n[index_bin-1]
-        return res
+        return abs(res)
     return 0
 
 class BinOpDist:
@@ -557,40 +630,53 @@ class BinOpDist:
         self.aConv = self.distributionConv.range_()[0]
         self.bConv = self.distributionConv.range_()[-1]
 
-    def operationDependent(self):
+    def operationDependent(self, elaborateBorders):
         leftOp = self.leftoperand.getSampleSet(self.samples_dep_op)
         rightOp = self.rightoperand.getSampleSet(self.samples_dep_op)
 
         if self.operator == "*+":
             res = np.array(leftOp) * (1 + (self.rightoperand.eps * np.array(rightOp)))
+            if elaborateBorders:
+                res = self.elaborateBorders(leftOp, self.operator, (1 + (self.rightoperand.eps * np.array(rightOp))), res)
         else:
             res = eval("np.array(leftOp)" + self.operator + "np.array(rightOp)")
+            if elaborateBorders:
+                res = self.elaborateBorders(leftOp, self.operator, rightOp, res)
 
+        return res
+
+    def elaborateBorders(self, leftOp, operator, rightOp, res):
+        x1 = min(leftOp)
+        x2 = max(leftOp)
+        y1 = min(rightOp)
+        y2 = max(rightOp)
+        tmp_res = []
+        for tmp_1 in [x1, x2]:
+            for tmp_2 in [y1, y2]:
+                tmp_res.append(eval(str(tmp_1)+operator+str(tmp_2)))
+        res[-1]=min(tmp_res)
+        res[-2]=max(tmp_res)
         return res
 
     def executeDependent(self):
 
-        res = self.distributionValues
+        tmp_res = self.distributionValues
 
-        bin_nb = int(math.ceil(math.sqrt(len(res))))
+        bin_nb = int(math.ceil(math.sqrt(len(tmp_res))))
 
-        global n, bins
-        n, bins, patches = plt.hist(res, bins=bin_nb, density=True)
+        n, bins, patches = plt.hist(tmp_res, bins=bin_nb, density=True)
 
         breaks=[min(bins), max(bins)]
 
         global tmp_pdf
-        tmp_pdf = chebfun(op, domain=breaks, N=self.poly_precision)
-
-        #global tmp_pdf
-        #tmp_pdf = chebfun(lambda t: op(t, bins, n), domain=[min(bins), max(bins)], N=100)
+        tmp_pdf = chebfun(lambda t : op(t, bins, n), domain=breaks, N=500)
 
         self.distributionSamp = MyFunDistr(my_tmp_pdf, breakPoints=breaks, interpolated=True)
-        self.distributionSamp.init_piecewise_pdf()
+        self.distributionSamp.get_piecewise_pdf()
 
         if self.regularize:
             self.distributionSamp = chebfunInterpDistr(self.distributionSamp, 10)
-            self.distributionSamp = normalizeDistribution(self.distributionSamp)
+            self.distributionSamp = normalizeDistribution(self.distributionSamp, init=True)
 
         self.aSamp = self.distributionSamp.range_()[0]
         self.bSamp = self.distributionSamp.range_()[-1]
@@ -599,12 +685,12 @@ class BinOpDist:
         if self.distribution==None:
             if self.convolution:
                 self.executeIndependent()
-                self.distributionValues = self.operationDependent()
+                self.distributionValues = self.operationDependent(elaborateBorders=False)
                 self.distribution=self.distributionConv
                 self.a = self.aConv
                 self.b = self.bConv
             else:
-                self.distributionValues = self.operationDependent()
+                self.distributionValues = self.operationDependent(elaborateBorders=False)
                 self.executeDependent()
                 self.distribution = self.distributionSamp
                 self.a = self.aSamp
