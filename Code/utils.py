@@ -6,6 +6,11 @@ from pacal import *
 import numpy
 from gmpy2 import *
 
+def init_pacal():
+    '''Limit pacal threads'''
+    #pacal.params.general.nprocs = 2
+    pacal.params.general.parallel = False
+
 class MyFunDistr(pacal.FunDistr):
     """General distribution defined as function with
     singularities at given breakPoints."""
@@ -24,8 +29,8 @@ def plotTicks(figureName, mark, col, lw, s, ticks, label=""):
         values_ticks=eval(ticks)
         minVal = values_ticks[0]
         maxVal = values_ticks[1]
-        labelMinVal = str("%.15f" % float(minVal))
-        labelMaxVal = str("%.15f" % float(maxVal))
+        labelMinVal = str("%.7f" % float(minVal))
+        labelMaxVal = str("%.7f" % float(maxVal))
         plt.figure(figureName)
         plt.scatter(x=[minVal, maxVal], y=[0, 0], c=col, marker=mark, label="FPT: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=lw, s=s)
 
@@ -33,8 +38,8 @@ def plotTicks(figureName, mark, col, lw, s, ticks, label=""):
 def plotBoundsDistr(figureName, distribution):
     minVal = distribution.range_()[0]
     maxVal = distribution.range_()[1]
-    labelMinVal = str("%.15f" % distribution.range_()[0])
-    labelMaxVal = str("%.15f" % distribution.range_()[1])
+    labelMinVal = str("%.7f" % distribution.range_()[0])
+    labelMaxVal = str("%.7f" % distribution.range_()[1])
     plt.figure(figureName)
     plt.scatter(x=[minVal, maxVal], y=[0, 0], c='r', marker="|",
                 label="PM: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=6, s=600)

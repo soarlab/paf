@@ -1,0 +1,7 @@
+Variables
+	float64 v in [-4.5, -0.3],
+	float64 w in [0.4, 0.9],
+	float64 r in [3.8, 7.8];
+
+Expressions
+	turbine1 rnd32 = (((3+(2/(r*r)))-(((0.125*(3-(2*v)))*(((w*w)*r)*r))/(1-v)))-4.5);

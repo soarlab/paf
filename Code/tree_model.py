@@ -334,7 +334,7 @@ class TreeModel:
     def plot_range_analysis(self, fileHook, final_time, path, file_name, range_fpt):
         self.resetInit(self.tree)
         r = self.generate_output_samples(final_time)
-        golden_samples = self.generate_output_samples(1800)
+        golden_samples = self.generate_output_samples(3600)
 
         self.tree.root_value[2].execute()
         a = self.tree.root_value[2].a
@@ -392,12 +392,12 @@ class TreeModel:
                 plt.clf()
 
                 golden_file=open(path + file_name + "/golden.txt","a+")
-                vals_golden, edges_golden, patches_golden =plt.hist(golden_samples, bins, density=True, color="gold", label="Golden")
+                vals_golden, edges_golden, patches_golden =plt.hist(golden_samples, bins, histtype='step', linewidth=4, density=True, color="darkgoldenrod", label="Golden model")
                 self.outputEdgesVals(golden_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_golden,vals_golden)
                 golden_file.close()
 
                 sampling_file=open(path + file_name + "/sampling.txt","a+")
-                vals, edges, patches =plt.hist(r, bins, density=True, color="b", label="Sampling")
+                vals, edges, patches =plt.hist(r, bins, alpha=0.7, linewidth=4, density=True, color="b", label="Sampling model")
                 self.outputEdgesVals(sampling_file, "BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n", edges, vals)
                 sampling_file.close()
 
@@ -412,7 +412,7 @@ class TreeModel:
 
                 plt.autoscale(enable=True, axis='both', tight=False)
                 plt.ylim(top=2.0*max)
-                plt.plot(x, abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(x)), linewidth=7, color="red")
+                plt.plot(x, abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(x)), linewidth=5, color="red")
                 plotTicks(tmp_filename,"X","green", 4, 500, ticks=range_fpt, label="FPT: "+str(range_fpt))
                 plotBoundsDistr(tmp_filename, self.tree.root_value[2].distribution)
                 #plotTicks(file_name, "|", "g", 6, 600, ticks=[9.0, 15.0], label="99.99% prob. dist.\nin [9.0, 15.0]")

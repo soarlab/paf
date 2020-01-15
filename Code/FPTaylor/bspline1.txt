@@ -1,0 +1,5 @@
+Variables
+	float64 u in [0, 1];
+
+Expressions
+	bspline3 rnd32= ((3.0 * (u * u * u)) - (6.0 *(u*u)) + 4.0 ) / 6.0;

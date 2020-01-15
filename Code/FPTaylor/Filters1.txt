@@ -1,0 +1,5 @@
+Variables
+	float64 x0 in [-2,2];
+	
+Expressions
+	filter1 rnd32 = 0.7*x0;

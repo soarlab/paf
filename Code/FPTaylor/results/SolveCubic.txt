@@ -1,0 +1,89 @@
+Loading configuration file: /home/roki/GIT/FPTaylor/./default.cfg
+FPTaylor, version 0.9.3+dev
+
+Loading: /home/roki/GIT/FPTaylor/benchmarks/probability/SolveCubic.txt
+Processing: solvecubic
+
+*************************************
+Taylor form for: rnd32((rnd32((rnd32((rnd32((rnd32((rnd32(2) * rnd32(a))) * rnd32(a))) * rnd32(a))) - rnd32((rnd32((rnd32((rnd32((rnd32(9) * rnd32(a))) * rnd32(b))) + rnd32((rnd32(27) * rnd32(c))))) / rnd32(54))))) + rnd32((rnd32((rnd32((rnd32(a) * rnd32(a))) - rnd32((rnd32(3) * rnd32(b))))) / rnd32(9)))))
+
+Conservative bound: [240.277639, 2011.112189]
+
+Simplified rounding: rnd[float32,ne,1.00,-24,0]((rnd[float32,ne,1.00,-24,0]((rnd32((rnd32(((2 * rnd32(a)) * rnd32(a))) * rnd32(a))) - rnd32((rnd[float32,ne,1.00,-24,0]((rnd32((rnd32((9 * rnd32(a))) * rnd32(b))) + rnd32((27 * rnd32(c))))) / 54)))) + rnd32((rnd[float32,ne,1.00,-24,0]((rnd32((rnd32(a) * rnd32(a))) - rnd32((3 * rnd32(b))))) / 9))))
+Building Taylor forms...
+Simplifying Taylor forms...
+success
+v0 = (((((2 * a) * a) * a) - ((((9 * a) * b) + (27 * c)) * (1 / 54))) + (((a * a) - (3 * b)) * (1 / 9)))
+-1 (71): exp = -24: (5366919935547933/18446744073709551616)
+1 (7): exp = -24: ((((((((2 * a) * a) * floor_power2(a)) + (a * ((2 * a) * floor_power2(a)))) + (a * (a * (2 * floor_power2(a))))) + (-(((1 / 54) * (b * (9 * floor_power2(a))))))) + ((1 / 9) * (a * floor_power2(a)))) + ((1 / 9) * (a * floor_power2(a))))
+2 (5): exp = -24: (a * floor_power2((((2 * a) * a) + interval(-1.90734867828723508865e-05, 1.90734867828723508865e-05))))
+3 (9): exp = -24: floor_power2(((((2 * a) * a) * a) + interval(-3.62396257514774604736e-04, 3.62396257514774604736e-04)))
+4 (13): exp = -24: (-(((1 / 54) * (b * floor_power2(((9 * a) + interval(-4.29153442382812500000e-06, 4.29153442382812500000e-06)))))))
+5 (15): exp = -24: ((-(((1 / 54) * ((9 * a) * floor_power2(b))))) + ((1 / 9) * (-((3 * floor_power2(b))))))
+6 (17): exp = -24: (-(((1 / 54) * floor_power2((((9 * a) * b) + interval(-6.19888324990825048200e-05, 6.19888324990825048200e-05))))))
+7 (19): exp = -24: (-(((1 / 54) * (27 * floor_power2(c)))))
+8 (21): exp = -24: (-(((1 / 54) * floor_power2(((27 * c) + interval(-6.43730163574218750000e-06, 6.43730163574218750000e-06))))))
+9 (23): exp = -24: (-(((1 / 54) * floor_power2(((((9 * a) * b) + (27 * c)) + interval(-9.13143177285746923200e-05, 9.13143177285746923200e-05))))))
+10 (27): exp = -24: (-(floor_power2((((((9 * a) * b) + (27 * c)) * (1 / 54)) + interval(-2.25614621951064306212e-06, 2.25614621951064306212e-06)))))
+11 (29): exp = -24: floor_power2((((((2 * a) * a) * a) - ((((9 * a) * b) + (27 * c)) * (1 / 54))) + interval(-4.26164397142488363904e-04, 4.26164397142488363904e-04)))
+12 (34): exp = -24: ((1 / 9) * floor_power2(((a * a) + interval(-9.53674339143617544323e-06, 9.53674339143617544323e-06))))
+13 (38): exp = -24: ((1 / 9) * (-(floor_power2(((3 * b) + interval(-7.15255737304687500000e-07, 7.15255737304687500000e-07))))))
+14 (40): exp = -24: ((1 / 9) * floor_power2((((a * a) - (3 * b)) + interval(-1.45435335525689896373e-05, 1.45435335525689896373e-05))))
+15 (44): exp = -24: floor_power2(((((a * a) - (3 * b)) * (1 / 9)) + interval(-2.03980342424377742634e-06, 2.03980342424377742634e-06)))
+16 (46): exp = -24: floor_power2(((((((2 * a) * a) * a) - ((((9 * a) * b) + (27 * c)) * (1 / 54))) + (((a * a) - (3 * b)) * (1 / 9))) + interval(-4.89716193974935247273e-04, 4.89716193974935247273e-04)))
+
+Corresponding original subexpressions:
+1: rnd32(a)
+2: rnd32(((2 * rnd32(a)) * rnd32(a)))
+3: rnd32((rnd32(((2 * rnd32(a)) * rnd32(a))) * rnd32(a)))
+4: rnd32((9 * rnd32(a)))
+5: rnd32(b)
+6: rnd32((rnd32((9 * rnd32(a))) * rnd32(b)))
+7: rnd32(c)
+8: rnd32((27 * rnd32(c)))
+9: rnd[float32,ne,1.00,-24,0]((rnd32((rnd32((9 * rnd32(a))) * rnd32(b))) + rnd32((27 * rnd32(c)))))
+10: rnd32((rnd[float32,ne,1.00,-24,0]((rnd32((rnd32((9 * rnd32(a))) * rnd32(b))) + rnd32((27 * rnd32(c))))) / 54))
+11: rnd[float32,ne,1.00,-24,0]((rnd32((rnd32(((2 * rnd32(a)) * rnd32(a))) * rnd32(a))) - rnd32((rnd[float32,ne,1.00,-24,0]((rnd32((rnd32((9 * rnd32(a))) * rnd32(b))) + rnd32((27 * rnd32(c))))) / 54))))
+12: rnd32((rnd32(a) * rnd32(a)))
+13: rnd32((3 * rnd32(b)))
+14: rnd[float32,ne,1.00,-24,0]((rnd32((rnd32(a) * rnd32(a))) - rnd32((3 * rnd32(b)))))
+15: rnd32((rnd[float32,ne,1.00,-24,0]((rnd32((rnd32(a) * rnd32(a))) - rnd32((3 * rnd32(b))))) / 9))
+16: rnd[float32,ne,1.00,-24,0]((rnd[float32,ne,1.00,-24,0]((rnd32((rnd32(((2 * rnd32(a)) * rnd32(a))) * rnd32(a))) - rnd32((rnd[float32,ne,1.00,-24,0]((rnd32((rnd32((9 * rnd32(a))) * rnd32(b))) + rnd32((27 * rnd32(c))))) / 54)))) + rnd32((rnd[float32,ne,1.00,-24,0]((rnd32((rnd32(a) * rnd32(a))) - rnd32((3 * rnd32(b))))) / 9))))
+
+bounds: [2.434028e+02, 2.011111e+03]
+
+Computing absolute errors
+-1: exp = -24: 2.909413e-04 (low = 2.909413e-04, subopt = 0.0%)
+
+Solving the exact optimization problem
+exact bound (exp = -24): 9.233407e+03 (low = 9.226741e+03, subopt = 0.1%)
+total2: 1.734145e-11 (low = 1.734145e-11, subopt = 0.0%)
+exact total: 5.503540e-04 (low = 5.499566e-04, subopt = 0.1%)
+
+Computing relative errors
+-1: exp = -24: 2.909413e-04 (low = 2.909413e-04, subopt = 0.0%)
+
+Solving the exact optimization problem
+exact bound-rel (exp = -24): 7.102652e+00 (low = 7.032902e+00, subopt = 1.0%)
+total2: 7.124591e-14 (low = 8.622822e-15, subopt = 87.9%)
+exact total-rel: 4.233511e-07 (low = 4.191936e-07, subopt = 1.0%)
+
+Elapsed time: 1.84920
+*************************************
+
+-------------------------------------------------------------------------------
+Problem: solvecubic
+
+Optimization lower bounds for error models:
+The absolute error model (exact): 5.499566e-04 (suboptimality = 0.1%)
+The relative error model (exact): 4.191936e-07 (suboptimality = 1.0%)
+
+Bounds (without rounding): [2.434028e+02, 2.011111e+03]
+Bounds (floating-point): [2.43402227423791799765e+02, 2.01111166146509731334e+03]
+
+Absolute error (exact): 5.503540e-04
+Relative error (exact): 4.233511e-07
+
+Elapsed time: 1.85
+
+

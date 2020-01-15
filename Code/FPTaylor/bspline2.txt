@@ -1,0 +1,5 @@
+Variables
+	float64 t in [0, 1];
+
+Expressions
+	bspline2 rnd32 = (((((-3)*(t*(t*t))) + (3*(t*t))) + (3*t)) + 1.0) * (1.0/6.0);

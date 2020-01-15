@@ -4,11 +4,11 @@ import shutil
 import subprocess
 
 def executeOnBenchmarks(fptaylorpath, folder_path):
-    if os.path.exists(folder_path+"/results"):
+    if os.path.exists(folder_path+"results"):
         print("WARNING!!! FPTaylor results already computed!")
         return
     else:
-        os.makedirs(folder_path+"/results")
+        os.makedirs(folder_path+"results")
     for file in os.listdir(folder_path):
         if file.endswith(".txt"):
             print("FpTaylor on: " + str(file))

@@ -1,3 +1,14 @@
+import os
+# disable openblas threading
+# This must be done before importing numpy
+
+par=4
+os.environ["OPENBLAS_NUM_THREADS"] = str(par)
+
+import utils
+utils.init_pacal()
+
+
 import matplotlib.pyplot
 from fpryacc import *
 from tree_model import TreeModel
@@ -9,17 +20,20 @@ import time
 from FPTaylor import *
 import traceback
 import logging
+import utils
 
-class NoDaemonProcess(multiprocessing.Process):
-    # make 'daemon' attribute always return False
-    def _get_daemon(self):
-        return False
-    def _set_daemon(self, value):
-        pass
-    daemon = property(_get_daemon, _set_daemon)
+# class NoDaemonProcess(multiprocessing.Process):
+#     # make 'daemon' attribute always return False
+#     def _get_daemon(self):
+#         return False
+#     def _set_daemon(self, value):
+#         pass
+#     daemon = property(_get_daemon, _set_daemon)
 
 class MyPool(multiprocessing.pool.Pool):
-    Process = NoDaemonProcess
+    #Process = NoDaemonProcess
+    pass
+
 
 def process_file(benchmarks_path, file, mantissa, exp, range_my_dict, abs_my_dict):
     try:
@@ -47,6 +61,7 @@ def process_file(benchmarks_path, file, mantissa, exp, range_my_dict, abs_my_dic
     except Exception as e:
         logging.error(traceback.format_exc())
 
+
 matplotlib.pyplot.close("all")
 mantissa=24
 exp=8
@@ -54,15 +69,16 @@ exp=8
 #mantissa with implicit bit of sign
 #gmpy2 set precision=p includes also sign bit.
 #print(computeLargestPositiveNumber(mantissa, exp))
+
 benchmarks_path="./benchmarks/"
-executeOnBenchmarks("/home/roki/GIT/FPTaylor/./fptaylor", "/home/roki/GIT/FPTaylor/benchmarks/probability/")
-abs_my_dict=getAbsoluteError("/home/roki/GIT/FPTaylor/benchmarks/probability/results")
-rel_my_dict=getRelativeError("/home/roki/GIT/FPTaylor/benchmarks/probability/results")
-range_my_dict=getBounds("/home/roki/GIT/FPTaylor/benchmarks/probability/results")
+executeOnBenchmarks("/home/roki/GIT/FPTaylor/./fptaylor", "./FPTaylor/")
+abs_my_dict=getAbsoluteError("./FPTaylor/results")
+rel_my_dict=getRelativeError("./FPTaylor/results")
+range_my_dict=getBounds("./FPTaylor/results")
 if not len(abs_my_dict) == len(rel_my_dict) and not len(range_my_dict) == len(rel_my_dict):
     print("WARNING!!! Mismatch ")
 
-pool = MyPool(processes=int(multiprocessing.cpu_count()/2))
+pool = MyPool(processes=int(os.cpu_count() / par))
 
 for file in os.listdir(benchmarks_path):
     if file.endswith(".txt"):

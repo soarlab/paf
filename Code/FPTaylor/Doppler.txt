@@ -1,0 +1,7 @@
+Variables
+	float64 u in [-100,100],
+	float64 v in [20,20000],
+	float64 t in [-30,50];
+
+Expressions
+	doppler rnd32 = (-((331.4+(0.6*t))*v))/(((331.4+(0.6*t))+u)*((331.4+(0.6*t))+u));

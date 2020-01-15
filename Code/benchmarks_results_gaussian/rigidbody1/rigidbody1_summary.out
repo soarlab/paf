@@ -1,0 +1,170 @@
+Execution Time:204.86833238601685s 
+
+###### Info about Range Analysis on Round(distr)#######:
+
+Mode of the distribution: 0.36619241622375615
+
+
+Range: [-0.2205244076198754,0.9529092400673878] contains 25.0% of the distribution.
+
+Range: [-0.8805808344439608,1.6129656668914722] contains 50.0% of the distribution.
+
+Range: [-1.6139768642484995,2.3463616966960106] contains 75.0% of the distribution.
+
+Range: [-2.0540144821312225,2.7863993145787336] contains 85.0% of the distribution.
+
+Range: [-2.714070908955307,3.446455741402818] contains 95.0% of the distribution.
+
+Range: [-3.227448129818484,3.959832962265995] contains 99.0% of the distribution.
+
+Range: [-8.727918353352521,9.460303185800033] contains 99.99% of the distribution.
+
+Range: [-705.0002861023454,28.39574370219412] contains 100% of the distribution.
+
+###########################################
+
+##### DISTANCE MEASURES ######
+
+Range Analysis comparison. Bins: 50, Floating Point Spacing: False
+Variational Distance - Golden -> PM : 0.24418291164255776
+Variational Distance - Golden -> Sampling : 0.02946072129486177
+AVG Variational Distance - Golden -> PM : 0.018952637138123396
+AVG Variational Distance - Golden -> Sampling : 0.0027751352786963153
+KL Distance - Golden -> PM : inf
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> PM : 0.016225799882616247
+WSS Distance - Golden -> Sampling : 0.0027750450235981736
+####################################### DISTANCE MEASURES ######
+
+Range Analysis comparison. Bins: 100, Floating Point Spacing: False
+Variational Distance - Golden -> PM : 0.2891006176097936
+Variational Distance - Golden -> Sampling : 0.03430129078547908
+AVG Variational Distance - Golden -> PM : 0.018952660449355806
+AVG Variational Distance - Golden -> Sampling : 0.002850526740811757
+KL Distance - Golden -> PM : inf
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> PM : 0.016225799882616236
+WSS Distance - Golden -> Sampling : 0.002816952168506957
+####################################### DISTANCE MEASURES ######
+
+Range Analysis comparison. Bins: 500, Floating Point Spacing: False
+Variational Distance - Golden -> PM : 0.30279457237520696
+Variational Distance - Golden -> Sampling : 0.03868486359925166
+AVG Variational Distance - Golden -> PM : 0.01895270557690485
+AVG Variational Distance - Golden -> Sampling : 0.0029134689665779997
+KL Distance - Golden -> PM : inf
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> PM : 0.01622579988261625
+WSS Distance - Golden -> Sampling : 0.002776804998011934
+####################################### DISTANCE MEASURES ######
+
+Range Analysis comparison. Bins: 1000, Floating Point Spacing: False
+Variational Distance - Golden -> PM : 0.30449813735260556
+Variational Distance - Golden -> Sampling : 0.0469566647370776
+AVG Variational Distance - Golden -> PM : 0.018952716485063185
+AVG Variational Distance - Golden -> Sampling : 0.0029361186464234184
+KL Distance - Golden -> PM : inf
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> PM : 0.016225799882616243
+WSS Distance - Golden -> Sampling : 0.002779106503014523
+####################################### DISTANCE MEASURES ######
+
+Range Analysis comparison. Bins: 5000, Floating Point Spacing: False
+Variational Distance - Golden -> PM : 0.3155543868749157
+Variational Distance - Golden -> Sampling : 0.06667820196930388
+AVG Variational Distance - Golden -> PM : 0.01895276161261226
+AVG Variational Distance - Golden -> Sampling : 0.003404075791523139
+KL Distance - Golden -> PM : inf
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> PM : 0.016225799882616226
+WSS Distance - Golden -> Sampling : 0.0028040620376504673
+####################################### DISTANCE MEASURES ######
+
+Range Analysis comparison. Bins: 10000, Floating Point Spacing: False
+Variational Distance - Golden -> PM : 0.3206312361452378
+Variational Distance - Golden -> Sampling : 0.09451563564434787
+AVG Variational Distance - Golden -> PM : 0.018952761612612258
+AVG Variational Distance - Golden -> Sampling : 0.003847696164178807
+KL Distance - Golden -> PM : inf
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> PM : 0.01622579988261623
+WSS Distance - Golden -> Sampling : 0.002842916857400087
+##################################Picked Precision for histogram. mantissa:2, exp:8
+
+##### DISTANCE MEASURES ######
+
+Range Analysis comparison. Bins: 50, Floating Point Spacing: True
+Variational Distance - Golden -> PM : 4.194337554700438
+Variational Distance - Golden -> Sampling : 2.690263670346643
+AVG Variational Distance - Golden -> PM : 0.03006139047373531
+AVG Variational Distance - Golden -> Sampling : 0.02467629194335144
+KL Distance - Golden -> PM : inf
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> PM : 0.011445010653584676
+WSS Distance - Golden -> Sampling : 0.01385116212693463
+##################################Picked Precision for histogram. mantissa:2, exp:8
+
+##### DISTANCE MEASURES ######
+
+Range Analysis comparison. Bins: 100, Floating Point Spacing: True
+Variational Distance - Golden -> PM : 4.194337554700438
+Variational Distance - Golden -> Sampling : 2.690263670346643
+AVG Variational Distance - Golden -> PM : 0.03006139047373531
+AVG Variational Distance - Golden -> Sampling : 0.02467629194335144
+KL Distance - Golden -> PM : inf
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> PM : 0.011445010653584676
+WSS Distance - Golden -> Sampling : 0.01385116212693463
+##################################Picked Precision for histogram. mantissa:2, exp:8
+
+##### DISTANCE MEASURES ######
+
+Range Analysis comparison. Bins: 500, Floating Point Spacing: True
+Variational Distance - Golden -> PM : 4.194337554700438
+Variational Distance - Golden -> Sampling : 2.690263670346643
+AVG Variational Distance - Golden -> PM : 0.03006139047373531
+AVG Variational Distance - Golden -> Sampling : 0.02467629194335144
+KL Distance - Golden -> PM : inf
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> PM : 0.011445010653584676
+WSS Distance - Golden -> Sampling : 0.01385116212693463
+##################################Picked Precision for histogram. mantissa:3, exp:8
+
+##### DISTANCE MEASURES ######
+
+Range Analysis comparison. Bins: 1000, Floating Point Spacing: True
+Variational Distance - Golden -> PM : 8.388641554566219
+Variational Distance - Golden -> Sampling : 5.380506634066119
+AVG Variational Distance - Golden -> PM : 0.0336410302356077
+AVG Variational Distance - Golden -> Sampling : 0.02829705797721663
+KL Distance - Golden -> PM : inf
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> PM : 0.011929774236597976
+WSS Distance - Golden -> Sampling : 0.014660804930296855
+##################################Picked Precision for histogram. mantissa:6, exp:8
+
+##### DISTANCE MEASURES ######
+
+Range Analysis comparison. Bins: 5000, Floating Point Spacing: True
+Variational Distance - Golden -> PM : 67.10913243652975
+Variational Distance - Golden -> Sampling : 43.04405307252895
+AVG Variational Distance - Golden -> PM : 0.04415992772441212
+AVG Variational Distance - Golden -> Sampling : 0.04209031252497713
+KL Distance - Golden -> PM : inf
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> PM : 0.013649189932439163
+WSS Distance - Golden -> Sampling : 0.01838004859756455
+##################################Picked Precision for histogram. mantissa:7, exp:8
+
+##### DISTANCE MEASURES ######
+
+Range Analysis comparison. Bins: 10000, Floating Point Spacing: True
+Variational Distance - Golden -> PM : 134.2182648730595
+Variational Distance - Golden -> Sampling : 86.0881061450579
+AVG Variational Distance - Golden -> PM : 0.04831602108106193
+AVG Variational Distance - Golden -> Sampling : 0.046697448891347804
+KL Distance - Golden -> PM : inf
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> PM : 0.014770930416326097
+WSS Distance - Golden -> Sampling : 0.018414677678183423
+##################################
