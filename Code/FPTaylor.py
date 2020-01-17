@@ -32,6 +32,7 @@ def getAbsoluteError(folder_path):
                     value=str(line.split(":")[1])
                     break
             my_dict[file_name.lower()]=value
+            my_dict[file_name.lower()+"_gaussian"] = value
             f.close()
     return my_dict
     print("Done")
@@ -49,6 +50,7 @@ def getRelativeError(folder_path):
                     value=str(line.split(":")[1])
                     break
             my_dict[file_name.lower()]=value
+            my_dict[file_name.lower()+"_gaussian"] = value
             f.close()
     return my_dict
     print("Done")
@@ -65,6 +67,7 @@ def getBounds(folder_path):
                 if "Bounds (floating-point):" in line:
                     value=str(line.split(":")[1])
             my_dict[file_name.lower()]=value
+            my_dict[file_name.lower()+"_gaussian"] = value
             f.close()
     return my_dict
     print("Done")

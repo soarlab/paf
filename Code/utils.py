@@ -8,8 +8,8 @@ from gmpy2 import *
 
 def init_pacal():
     '''Limit pacal threads'''
-    #pacal.params.general.nprocs = 2
-    pacal.params.general.parallel = False
+    pacal.params.general.nprocs = 8
+    pacal.params.general.parallel = True
 
 class MyFunDistr(pacal.FunDistr):
     """General distribution defined as function with

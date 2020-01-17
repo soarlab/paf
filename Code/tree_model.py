@@ -1,3 +1,5 @@
+from sympy.multipledispatch.conflict import edge
+
 from model import *
 from error_model import *
 from regularizer import *
@@ -267,7 +269,15 @@ class TreeModel:
 
     def collectInfoAboutDistribution(self, f, finalDistr_wrapper, name):
         res="###### Info about "+name+"#######:\n\n"
-        mode=finalDistr_wrapper.distribution.mode()
+
+        try:
+            mode=finalDistr_wrapper.distribution.mode()
+        except Exception as t:
+            print("Problem with call to mode method, using distribution values!")
+            vals_PM, edges_PM, patches_PM = plt.hist(self.tree.root_value[2].distributionValues, 500, density=True, color="red")
+            ind=vals_PM.argmax()
+            mode=edges_PM[ind]
+
         res=res+"Mode of the distribution: " + str(mode) + "\n\n\n"
         gap=abs(finalDistr_wrapper.a-finalDistr_wrapper.b)
         gap=gap/10000.0
@@ -289,6 +299,31 @@ class TreeModel:
         res = res + "Range: [" + str(finalDistr_wrapper.a) + "," + str(finalDistr_wrapper.b) + "] contains 100% of the distribution.\n\n"
         res = res+"###########################################\n\n"
         print(res)
+        f.write(res)
+        return
+
+    def collectInfoAboutSampling(self, f, vals, edges, name):
+        res="###### Info about "+name+"#######:\n\n"
+        ind=vals.argmax()
+        mode=edges[ind]
+        res=res+"Mode of the sampling distribution: " + str(mode) + "\n\n\n"
+        tot=sum(vals)
+        for i in [0.25, 0.5, 0.75, 0.85, 0.95, 0.99, 0.9999]:
+            val = vals[ind]
+            lower = ind
+            upper = ind+1
+            while (val/tot) < i:
+                lower = lower - 1
+                if lower < 0:
+                    lower = 0
+                upper = upper + 1
+                if upper > len(edges)-1:
+                    upper = len(edges)-1
+                val = sum(vals[lower:upper])
+            res = res + "Range: [" + str(edges[lower]) + "," + str(edges[upper]) + "] contains " + str(i * 100) + "% of the distribution.\n\n"
+        res = res + "Range: [" + str(edges[0]) + "," + str(edges[-1]) + "] contains 100% of the distribution.\n\n"
+        res = res+"###########################################\n\n"
+        #print(res)
         f.write(res)
         return
 
@@ -334,7 +369,7 @@ class TreeModel:
     def plot_range_analysis(self, fileHook, final_time, path, file_name, range_fpt):
         self.resetInit(self.tree)
         r = self.generate_output_samples(final_time)
-        golden_samples = self.generate_output_samples(3600)
+        golden_samples = self.generate_output_samples(60)
 
         self.tree.root_value[2].execute()
         a = self.tree.root_value[2].a
@@ -388,16 +423,19 @@ class TreeModel:
 
                 pm_file=open(path + file_name + "/pm.txt","a+")
                 vals_PM, edges_PM, patches_PM =plt.hist(self.tree.root_value[2].distributionValues, bins, density=True, color="red")
+                self.collectInfoAboutSampling(pm_file,vals_PM,edges_PM,"PM with num. bins: "+str(binLen))
                 self.outputEdgesVals(pm_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_PM,vals_PM)
                 plt.clf()
 
                 golden_file=open(path + file_name + "/golden.txt","a+")
-                vals_golden, edges_golden, patches_golden =plt.hist(golden_samples, bins, histtype='step', linewidth=4, density=True, color="darkgoldenrod", label="Golden model")
+                vals_golden, edges_golden, patches_golden =plt.hist(golden_samples, bins, density=True, color="black", label="Golden model")
+                self.collectInfoAboutSampling(golden_file,vals_golden,edges_golden,"Golden with num. bins: "+str(binLen))
                 self.outputEdgesVals(golden_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_golden,vals_golden)
                 golden_file.close()
 
                 sampling_file=open(path + file_name + "/sampling.txt","a+")
-                vals, edges, patches =plt.hist(r, bins, alpha=0.7, linewidth=4, density=True, color="b", label="Sampling model")
+                vals, edges, patches =plt.hist(r, bins, alpha=0.5, density=True, color="blue", label="Sampling model")
+                self.collectInfoAboutSampling(sampling_file,vals,edges,"Sampling with num. bins: "+str(binLen))
                 self.outputEdgesVals(sampling_file, "BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n", edges, vals)
                 sampling_file.close()
 

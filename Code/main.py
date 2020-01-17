@@ -2,7 +2,7 @@ import os
 # disable openblas threading
 # This must be done before importing numpy
 
-par=4
+par=1
 os.environ["OPENBLAS_NUM_THREADS"] = str(par)
 
 import utils
@@ -22,17 +22,16 @@ import traceback
 import logging
 import utils
 
-# class NoDaemonProcess(multiprocessing.Process):
-#     # make 'daemon' attribute always return False
-#     def _get_daemon(self):
-#         return False
-#     def _set_daemon(self, value):
-#         pass
-#     daemon = property(_get_daemon, _set_daemon)
+class NoDaemonProcess(multiprocessing.Process):
+     # make 'daemon' attribute always return False
+     def _get_daemon(self):
+         return False
+     def _set_daemon(self, value):
+        pass
+     daemon = property(_get_daemon, _set_daemon)
 
 class MyPool(multiprocessing.pool.Pool):
-    #Process = NoDaemonProcess
-    pass
+    Process = NoDaemonProcess
 
 
 def process_file(benchmarks_path, file, mantissa, exp, range_my_dict, abs_my_dict):
@@ -78,7 +77,7 @@ range_my_dict=getBounds("./FPTaylor/results")
 if not len(abs_my_dict) == len(rel_my_dict) and not len(range_my_dict) == len(rel_my_dict):
     print("WARNING!!! Mismatch ")
 
-pool = MyPool(processes=int(os.cpu_count() / par))
+pool = MyPool(processes=1)#int(os.cpu_count() / par))
 
 for file in os.listdir(benchmarks_path):
     if file.endswith(".txt"):
