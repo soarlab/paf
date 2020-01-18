@@ -76,7 +76,7 @@ range_my_dict=getBounds("./FPTaylor/results")
 if not len(abs_my_dict) == len(rel_my_dict) and not len(range_my_dict) == len(rel_my_dict):
     print("WARNING!!! Mismatch ")
 
-pool = MyPool(processes=2)#int(os.cpu_count() / par))
+pool = MyPool(processes=8)#int(os.cpu_count() / par))
 
 for file in os.listdir(benchmarks_path):
     if file.endswith(".txt"):

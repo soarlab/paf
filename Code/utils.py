@@ -8,7 +8,7 @@ from gmpy2 import *
 
 def init_pacal():
     '''Limit pacal threads'''
-    pacal.params.general.nprocs = 4
+    pacal.params.general.nprocs = 8
     pacal.params.general.parallel = True
 
 class MyFunDistr(pacal.FunDistr):

@@ -407,7 +407,7 @@ class TreeModel:
         #fp means True, real means False
         for fp_or_real in [False, True]:
             #[50, 100, 500, 1000, 5000, 10000]
-            for binLen in [50, 100, 500, 1000, 5000, 10000, 15000]:
+            for binLen in [50, 100, 500, 1000, 5000, 10000]:
                 bins = []
                 if fp_or_real:
                     while True:
@@ -465,7 +465,12 @@ class TreeModel:
                 #self.elaborateBinsAndEdges(fileHook, edges, vals, "Sampling Range Analysis. Bins: "+str(bins)+", Floating Point Spacing: "+str(fp_or_real))
 
                 x = np.linspace(a, b, 1000)
-                val_max = golden_mode #golden_rat _ratio self.tree.root_value[2].distribution.mode()
+                
+                try:
+                    val_max=self.tree.root_value[2].distribution.mode()
+                except Exception as e:
+                    print("Exception mode!\n")
+                    val_max = golden_mode #golden_rat _ratio self.tree.root_value[2].distribution.mode()
                 my_max = abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(val_max))
 
                 plt.autoscale(enable=True, axis='both', tight=False)
