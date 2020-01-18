@@ -325,18 +325,25 @@ class TreeModel:
 
     def measureFPPMwGoldenEdges(self, edges_golden):
         vals=[]
+        distr = self.tree.root_value[2].execute()
+        distr_pdf=distr.get_piecewise_pdf()
         for ind, edge in enumerate(edges_golden[:-1]):
-            distr=self.tree.root_value[2].execute().get_piecewise_pdf()
-            vals.append(distr(edge))
+            if edge>=self.tree.root_value[2].a and edge<=self.tree.root_value[2].b:
+                vals.append(abs(distr_pdf(edge)))
+            else:
+                vals.append(0.0)
         return vals
 
-    def measureDistances(self, fileHook, vals_PM, vals_golden, vals, edges_PM, edges_golden, edges, introStr):
+    def measureDistances(self, fileHook, vals_PM, vals_golden, vals, edges_PM, edges_golden, edges, introStr, fp_or_real):
 
         if not (len(vals_PM)==len(vals_golden) and len(vals_golden)==len(vals)):
             print("Failure in histograms!")
             exit(-1)
 
         vals_DistrPM=np.asarray(self.measureFPPMwGoldenEdges(edges_golden))
+
+        self.outputEdgesVals(fileHook, "BinLen: " + str(len(vals_golden)) + ", FP_or_real: " + str(fp_or_real) + "\n\n",
+                             edges_golden, vals_DistrPM)
 
         var_distance_golden_DistrPM = np.max(np.absolute(vals_golden - vals_DistrPM))
         var_distance_golden_PM=np.max(np.absolute(vals_golden-vals_PM))
@@ -402,7 +409,6 @@ class TreeModel:
             #[50, 100, 500, 1000, 5000, 10000]
             for binLen in [50, 100, 500, 1000, 5000, 10000, 15000]:
                 bins = []
-
                 if fp_or_real:
                     while True:
                         setCurrentContextPrecision(tmp_precision, tmp_exp)
@@ -441,29 +447,29 @@ class TreeModel:
                 self.outputEdgesVals(golden_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_golden,vals_golden)
                 golden_file.close()
 
-                self.collectInfoAboutDistribution(fileHook, self.tree.root_value[2], "Range Analysis on Round(distr)", golden_mode, binLen)
+                self.collectInfoAboutDistribution(fileHook, self.tree.root_value[2], "Range Analysis on Round(distr) with "+str(binLen)+" bins", golden_mode, binLen)
 
                 pm_file=open(path + file_name + "/pm.txt","a+")
-                vals_PM, edges_PM, patches_PM =plt.hist(self.tree.root_value[2].distributionValues, bins, density=True, alpha=0.0, color="red")
+                vals_PM, edges_PM, patches_PM =plt.hist(self.tree.root_value[2].distributionValues, edges_golden, density=True, alpha=0.0, color="red")
                 self.collectInfoAboutSampling(pm_file,vals_PM,edges_PM,"PM with num. bins: "+str(binLen), golden_mode=golden_mode, golden_ind=golden_ind)
                 self.outputEdgesVals(pm_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_PM,vals_PM)
 
                 sampling_file=open(path + file_name + "/sampling.txt","a+")
-                vals, edges, patches =plt.hist(r, bins, alpha=0.5, density=True, color="blue", label="Sampling model")
+                vals, edges, patches =plt.hist(r, edges_golden, alpha=0.5, density=True, color="blue", label="Sampling model")
                 self.collectInfoAboutSampling(sampling_file,vals,edges,"Sampling with num. bins: "+str(binLen), golden_mode=golden_mode, golden_ind=golden_ind)
                 self.outputEdgesVals(sampling_file, "BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n", edges, vals)
                 sampling_file.close()
 
-                self.measureDistances(fileHook, vals_PM, vals_golden, vals, edges_PM, edges_golden, edges, "Range Analysis comparison. Bins: "+str(binLen)+", Floating Point Spacing: "+str(fp_or_real))
+                self.measureDistances(fileHook, vals_PM, vals_golden, vals, edges_PM, edges_golden, edges, "Range Analysis comparison. Bins: "+str(binLen)+", Floating Point Spacing: "+str(fp_or_real), fp_or_real)
 
                 #self.elaborateBinsAndEdges(fileHook, edges, vals, "Sampling Range Analysis. Bins: "+str(bins)+", Floating Point Spacing: "+str(fp_or_real))
 
                 x = np.linspace(a, b, 1000)
                 val_max = golden_mode #golden_rat _ratio self.tree.root_value[2].distribution.mode()
-                max = abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(val_max))
+                my_max = abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(val_max))
 
                 plt.autoscale(enable=True, axis='both', tight=False)
-                plt.ylim(top=2.0*max)
+                plt.ylim(top=2.0*my_max)
                 plt.plot(x, abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(x)), linewidth=5, color="red")
                 plotTicks(tmp_filename,"X","green", 4, 500, ticks=range_fpt, label="FPT: "+str(range_fpt))
                 plotBoundsDistr(tmp_filename, self.tree.root_value[2].distribution)
