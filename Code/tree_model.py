@@ -334,6 +334,9 @@ class TreeModel:
                 vals.append(0.0)
         return vals
 
+    def my_KL_entropy(self, p, q):
+        return np.sum(np.where((p!=0) & (q!=0), p * np.log(p / q), 0))
+
     def measureDistances(self, fileHook, vals_PM, vals_golden, vals, edges_PM, edges_golden, edges, introStr, fp_or_real):
 
         if not (len(vals_PM)==len(vals_golden) and len(vals_golden)==len(vals)):
@@ -353,9 +356,9 @@ class TreeModel:
         avg_var_distance_golden_PM=np.average(np.absolute(vals_golden-vals_PM))
         avg_var_distance_golden_sampling=np.average(np.absolute(vals_golden-vals))
 
-        KL_distance_golden_DistrPM=scipy.stats.entropy(vals_golden, qk=vals_DistrPM)
-        KL_distance_golden_PM=scipy.stats.entropy(vals_golden, qk=vals_PM)
-        KL_distance_golden_sampling=scipy.stats.entropy(vals_golden, qk=vals)
+        KL_distance_golden_DistrPM=self.my_KL_entropy(vals_golden, vals_DistrPM)
+        KL_distance_golden_PM=self.my_KL_entropy(vals_golden, vals_PM)
+        KL_distance_golden_sampling=self.my_KL_entropy(vals_golden, vals)
 
         WSS_distance_golden_DistrPM=scipy.stats.wasserstein_distance(vals_golden, vals_DistrPM)
         WSS_distance_golden_PM=scipy.stats.wasserstein_distance(vals_golden, vals_PM)
@@ -376,7 +379,7 @@ class TreeModel:
         fileHook.write("KL Distance - Golden -> PM : " + str(KL_distance_golden_PM) + "\n")
         fileHook.write("KL Distance - Golden -> Sampling : " + str(KL_distance_golden_sampling) + "\n")
 
-        fileHook.write("WSS Distance - Golden -> PM : " + str(WSS_distance_golden_DistrPM) + "\n")
+        fileHook.write("WSS Distance - Golden -> DistrPM : " + str(WSS_distance_golden_DistrPM) + "\n")
         fileHook.write("WSS Distance - Golden -> PM : " + str(WSS_distance_golden_PM) + "\n")
         fileHook.write("WSS Distance - Golden -> Sampling : " + str(WSS_distance_golden_sampling) + "\n")
 
@@ -405,7 +408,7 @@ class TreeModel:
         #[50, 100, 250, 500, 1000, 2500, 5000, 10000]
 
         #fp means True, real means False
-        for fp_or_real in [False, True]:
+        for fp_or_real in [False]:
             #[50, 100, 500, 1000, 5000, 10000]
             for binLen in [50, 100, 500, 1000, 5000, 10000]:
                 bins = []
