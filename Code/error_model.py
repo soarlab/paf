@@ -137,8 +137,7 @@ class WrappedHighPrecisionError():
         self.eps = 2 ** (-self.precision)
         self.distribution = HighPrecisionErrorModel(input_distribution, precision, exponent)
 
-    def createTypicalErrorDistr(self):
-        global typVariable
+    def createErrorDistr(self):
         self.distribution.init_piecewise_pdf()
         return self.distribution
 
