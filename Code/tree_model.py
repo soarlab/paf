@@ -187,6 +187,31 @@ class TreeModel:
         resetContextDefault()
         return d[1:]
 
+    def generate_error_samples(self, sample_time):
+        """ Generate sample_nb samples of tree evaluation in the tree's working precision
+                    :return an array of samples """
+        print("Generating Samples...")
+        rel_err = []#np.zeros(1)
+        abs_err = []#np.zeros(1)
+        values  = []#np.zeros(1)
+
+        setCurrentContextPrecision(self.precision, self.exp)
+
+        start_time = time.time()
+        end_time=0
+        while end_time<=sample_time:
+            self.resetInit(self.tree)
+            sample, lp_sample = self.evaluate_error_at_sample(self.tree)
+            values.append(sample)
+            tmp_abs = abs(float(printMPFRExactly(lp_sample)) - sample)
+            abs_err.append(tmp_abs)
+            rel_err.append(tmp_abs/sample)
+            #rel_err = numpy.append(rel_err, abs((float(printMPFRExactly(lp_sample)) - sample)/sample)) # self.eps *
+            #abs_err = numpy.append(abs_err, tmp_abs) # self.eps *
+            end_time=time.time()-start_time
+        resetContextDefault()
+        return np.asarray(values), np.asarray(abs_err), np.asarray(rel_err)
+
     def evaluate_at_sample(self, tree):
         """ Sample from the leaf then evaluate tree in the tree's working precision"""
         if tree.left is not None or tree.right is not None:
@@ -215,26 +240,6 @@ class TreeModel:
            sample = tree.root_value[0].getSampleSet(n=1)[0]
            return mpfr(str(sample))
 
-    def generate_error_samples(self, sample_time):
-        """ Generate sample_nb samples of tree evaluation in the tree's working precision
-                    :return an array of samples """
-        print("Generating Error...")
-        rel_err = np.zeros(1)
-        abs_err = np.zeros(1)
-
-        setCurrentContextPrecision(self.precision, self.exp)
-
-        start_time = time.time()
-        end_time=0
-        while end_time<=sample_time:
-            sample, lp_sample = self.evaluate_error_at_sample(self.tree)
-            tmp_abs = abs(float(printMPFRExactly(lp_sample)) - sample)
-            rel_err = numpy.append(rel_err, abs((float(printMPFRExactly(lp_sample)) - sample)/sample)) # self.eps *
-            abs_err = numpy.append(abs_err, tmp_abs) # self.eps *
-            end_time=time.time()-start_time
-        resetContextDefault()
-        return rel_err, abs_err
-
     def evaluate_error_at_sample(self, tree):
         """ Sample from the leaf then evaluate tree in the tree's working precision"""
         if tree.left is not None or tree.right is not None:
@@ -254,8 +259,7 @@ class TreeModel:
                 print("Operation not supported!")
                 exit(-1)
         else:
-            #NOT WORKING FOR GAUSSIAN INPUT
-            sample = tree.root_value[0].execute().rand()
+            sample = tree.root_value[0].getSampleSet(n=1)[0]
             return sample, mpfr(str(sample))
 
     def resetInit(self, tree):
@@ -268,15 +272,16 @@ class TreeModel:
         else:
            tree.root_value[0].resetSampleInit()
 
-    def collectInfoAboutDistribution(self, f, finalDistr_wrapper, name, golden_mode, bin_val):
+    def collectInfoAboutDistribution(self, f, finalDistr_wrapper, name, distr_mode, bin_len):
         res="###### Info about "+name+"#######:\n\n"
-        res=res+"Mode of the distribution: " + str(golden_mode) + "\n\n\n"
+
+        res=res+"Mode of the distribution: " + str(distr_mode) + "\n\n\n"
         gap=abs(finalDistr_wrapper.a-finalDistr_wrapper.b)
-        gap=gap/float(bin_val)
+        gap=gap/float(bin_len)
         for i in [0.25, 0.5, 0.75, 0.85, 0.95, 0.99, 0.9999]:
             val = 0
-            lower = golden_mode
-            upper = golden_mode
+            lower = distr_mode
+            upper = distr_mode
             while val<i:
                 lower=lower-gap
                 if lower<finalDistr_wrapper.a:
@@ -323,30 +328,52 @@ class TreeModel:
         f.write(res)
         return mode, ind
 
-    def measureFPPMwGoldenEdges(self, edges_golden):
+
+
+    def measureDistrVsGoldenEdges(self, distr, edges_golden):
         vals=[]
-        distr = self.tree.root_value[2].execute()
-        distr_pdf=distr.get_piecewise_pdf()
+        distr_pdf=distr.distribution.get_piecewise_pdf()
         for ind, edge in enumerate(edges_golden[:-1]):
-            if edge>=self.tree.root_value[2].a and edge<=self.tree.root_value[2].b:
+            if edge>=distr.a and edge<=distr.b:
                 vals.append(abs(distr_pdf(edge)))
             else:
                 vals.append(0.0)
         return vals
 
     def my_KL_entropy(self, p, q):
-        return np.sum(np.where((p!=0) & (q!=0), p * np.log(p / q), 0))
+        #scipy.stats.entropy(p, q)
+        #res_p=p[np.where((p != 0) & (q != 0))]
+        #res_p=res_p/sum(res_p)
+        #res_q = q[np.where((p != 0) & (q != 0))]
+        #res_q = res_q / sum(res_q)
+        #return np.sum(res_p * np.log(res_p / res_q))
+        return scipy.stats.entropy(p, q)
 
-    def measureDistances(self, fileHook, vals_PM, vals_golden, vals, edges_PM, edges_golden, edges, introStr, fp_or_real):
+    def getValueHist(self, edges, vals, x):
+        if x < min(edges) or x >= max(edges):
+            return 0.0
+        else:
+            index_bin=np.digitize(x,edges,right=False)
+            return abs(vals[index_bin-1])
 
-        if not (len(vals_PM)==len(vals_golden) and len(vals_golden)==len(vals)):
-            print("Failure in histograms!")
-            exit(-1)
+    def measureDistances(self, distr_wrapper, fileHook, vals_PM_orig, vals_golden, vals_orig, edges_PM_orig, edges_golden, edges_orig, introStr):
 
-        vals_DistrPM=np.asarray(self.measureFPPMwGoldenEdges(edges_golden))
+        #if not (len(vals_PM_orig)==len(vals_golden) and len(vals_golden)==len(vals_orig)):
+        #    print("Failure in histograms!")
+        #    exit(-1)
 
-        self.outputEdgesVals(fileHook, "BinLen: " + str(len(vals_golden)) + ", FP_or_real: " + str(fp_or_real) + "\n\n",
-                             edges_golden, vals_DistrPM)
+        vals_DistrPM = np.asarray(self.measureDistrVsGoldenEdges(distr_wrapper, edges_golden))
+
+        vals_PM=[]
+        vals=[]
+        for edge_golden in edges_golden[:-1]:
+            vals_PM.append(self.getValueHist(edges_PM_orig, vals_PM_orig, edge_golden))
+            vals.append(self.getValueHist(edges_orig, vals_orig, edge_golden))
+
+        vals_PM=np.asarray(vals_PM)
+        vals=np.asarray(vals)
+        #self.outputEdgesVals(fileHook, "BinLen: " + str(len(vals_golden)) + ", FP_or_real: " + str(fp_or_real) + "\n\n",
+        #                     edges_golden, vals_DistrPM)
 
         var_distance_golden_DistrPM = np.max(np.absolute(vals_golden - vals_DistrPM))
         var_distance_golden_PM=np.max(np.absolute(vals_golden-vals_PM))
@@ -384,16 +411,14 @@ class TreeModel:
         fileHook.write("WSS Distance - Golden -> Sampling : " + str(WSS_distance_golden_sampling) + "\n")
 
         fileHook.write("##################################")
-
         fileHook.flush()
-
         return
 
 
-    def plot_range_analysis(self, fileHook, final_time, path, file_name, range_fpt):
-        self.resetInit(self.tree)
-        r = self.generate_output_samples(final_time)
-        golden_samples = self.generate_output_samples(3600)
+    def plot_range_analysis(self, r, golden_samples, fileHook, path, file_name, range_fpt):
+        #self.resetInit(self.tree)
+        #r = self.generate_output_samples(final_time)
+        #golden_samples = self.generate_output_samples(3600)
 
         self.tree.root_value[2].execute()
         a = self.tree.root_value[2].a
@@ -410,6 +435,7 @@ class TreeModel:
         #fp means True, real means False
         for fp_or_real in [False]:
             #[50, 100, 500, 1000, 5000, 10000]
+            '''
             for binLen in [50, 100, 500, 1000, 5000, 10000]:
                 bins = []
                 if fp_or_real:
@@ -436,59 +462,67 @@ class TreeModel:
 
                 else:
                     bins=binLen
+            '''
 
-                print("Generating Graphs\n")
+            print("Generating Graphs Range Analysis\n")
+
+            tmp_filename=file_name+"FP_"+str(fp_or_real)+"_Bins_Auto"#+str(binLen)
+
+            plt.figure(tmp_filename, figsize=(15,10))
+            golden_file=open(path + file_name + "/golden.txt","a+")
+
+            vals_golden, edges_golden, patches_golden =plt.hist(golden_samples, bins='auto', density=True, color="black", label="Golden model")
+
+            binLenGolden=len(vals_golden)
+
+            golden_mode, golden_ind=self.collectInfoAboutSampling(golden_file,vals_golden,edges_golden,"Golden with num. bins: "+str(binLenGolden))
+            #self.outputEdgesVals(golden_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_golden,vals_golden)
+            golden_file.close()
+
+            distr_mode = self.tree.root_value[2].distribution.mode()
+            binLenDistr=1000
+            self.collectInfoAboutDistribution(fileHook, self.tree.root_value[2], "Range Analysis on Round(distr) with "+str(binLenDistr)+" bins", distr_mode, binLenDistr)
+
+            pm_file=open(path + file_name + "/pm.txt","a+")
+            vals_PM, edges_PM, patches_PM =plt.hist(self.tree.root_value[2].distributionValues, bins='auto', density=True, alpha=0.0, color="red")
+            #vals_PM, edges_PM, patches_PM =plt.hist(self.tree.root_value[2].distributionValues, edges_golden, density=True, alpha=0.0, color="red")
+            binLenPM = len(vals_PM)
+            self.collectInfoAboutSampling(pm_file,vals_PM,edges_PM,"PM with num. bins: "+str(binLenPM))#, golden_mode=golden_mode, golden_ind=golden_ind)
+            #self.outputEdgesVals(pm_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_PM,vals_PM)
+            pm_file.close()
+
+            sampling_file=open(path + file_name + "/sampling.txt","a+")
+            vals, edges, patches =plt.hist(r, bins='auto', alpha=0.5, density=True, color="blue", label="Sampling model")
+            #vals, edges, patches =plt.hist(r, edges_golden, alpha=0.5, density=True, color="blue", label="Sampling model")
+            binLenSamp=len(vals)
+            self.collectInfoAboutSampling(sampling_file,vals,edges,"Sampling with num. bins: "+str(binLenSamp))#, golden_mode=golden_mode, golden_ind=golden_ind)
+            #self.outputEdgesVals(sampling_file, "BinLen: "+str(binLenSamp)+", FP_or_real: "+str(fp_or_real)+"\n\n", edges, vals)
+            sampling_file.close()
+
+            self.measureDistances(self.tree.root_value[2], fileHook, vals_PM, vals_golden, vals, edges_PM, edges_golden, edges, "Measure Distances Range Analysis")
 
 
-                tmp_filename=file_name+"FP_"+str(fp_or_real)+"_Bins_"+str(binLen)
+            x = np.linspace(a, b, 1000)
+            try:
+                val_max=self.tree.root_value[2].distribution.mode()
+            except Exception as e:
+                print("Exception mode!\n")
+                val_max = golden_mode #golden_rat _ratio self.tree.root_value[2].distribution.mode()
+            my_max = abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(val_max))
 
-                plt.figure(tmp_filename, figsize=(15,10))
-
-                golden_file=open(path + file_name + "/golden.txt","a+")
-                vals_golden, edges_golden, patches_golden =plt.hist(golden_samples, bins, density=True, color="black", label="Golden model")
-                golden_mode, golden_ind=self.collectInfoAboutSampling(golden_file,vals_golden,edges_golden,"Golden with num. bins: "+str(binLen))
-                self.outputEdgesVals(golden_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_golden,vals_golden)
-                golden_file.close()
-
-                self.collectInfoAboutDistribution(fileHook, self.tree.root_value[2], "Range Analysis on Round(distr) with "+str(binLen)+" bins", golden_mode, binLen)
-
-                pm_file=open(path + file_name + "/pm.txt","a+")
-                vals_PM, edges_PM, patches_PM =plt.hist(self.tree.root_value[2].distributionValues, edges_golden, density=True, alpha=0.0, color="red")
-                self.collectInfoAboutSampling(pm_file,vals_PM,edges_PM,"PM with num. bins: "+str(binLen), golden_mode=golden_mode, golden_ind=golden_ind)
-                self.outputEdgesVals(pm_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_PM,vals_PM)
-
-                sampling_file=open(path + file_name + "/sampling.txt","a+")
-                vals, edges, patches =plt.hist(r, edges_golden, alpha=0.5, density=True, color="blue", label="Sampling model")
-                self.collectInfoAboutSampling(sampling_file,vals,edges,"Sampling with num. bins: "+str(binLen), golden_mode=golden_mode, golden_ind=golden_ind)
-                self.outputEdgesVals(sampling_file, "BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n", edges, vals)
-                sampling_file.close()
-
-                self.measureDistances(fileHook, vals_PM, vals_golden, vals, edges_PM, edges_golden, edges, "Range Analysis comparison. Bins: "+str(binLen)+", Floating Point Spacing: "+str(fp_or_real), fp_or_real)
-
-                #self.elaborateBinsAndEdges(fileHook, edges, vals, "Sampling Range Analysis. Bins: "+str(bins)+", Floating Point Spacing: "+str(fp_or_real))
-
-                x = np.linspace(a, b, 1000)
-                
-                try:
-                    val_max=self.tree.root_value[2].distribution.mode()
-                except Exception as e:
-                    print("Exception mode!\n")
-                    val_max = golden_mode #golden_rat _ratio self.tree.root_value[2].distribution.mode()
-                my_max = abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(val_max))
-
-                plt.autoscale(enable=True, axis='both', tight=False)
-                plt.ylim(top=2.0*my_max)
-                plt.plot(x, abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(x)), linewidth=5, color="red")
-                plotTicks(tmp_filename,"X","green", 4, 500, ticks=range_fpt, label="FPT: "+str(range_fpt))
-                plotBoundsDistr(tmp_filename, self.tree.root_value[2].distribution)
-                #plotTicks(file_name, "|", "g", 6, 600, ticks=[9.0, 15.0], label="99.99% prob. dist.\nin [9.0, 15.0]")
-                plt.xlabel('Distribution Range')
-                plt.ylabel('PDF')
-                plt.title(file_name+" - Range Analysis"+"\nprec="+str(self.precision)+", exp="+str(self.exp)+"\n")
-                plt.legend(fontsize=25)
-                #+file_name.replace('./', '')
-                plt.savefig(path+file_name+"/"+tmp_filename, dpi = 100)
-                plt.close("all")
+            plt.autoscale(enable=True, axis='both', tight=False)
+            plt.ylim(top=2.0*my_max)
+            plt.plot(x, abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(x)), linewidth=5, color="red")
+            plotTicks(tmp_filename,"X","green", 4, 500, ticks=range_fpt, label="FPT: "+str(range_fpt))
+            plotBoundsDistr(tmp_filename, self.tree.root_value[2].distribution)
+            #plotTicks(file_name, "|", "g", 6, 600, ticks=[9.0, 15.0], label="99.99% prob. dist.\nin [9.0, 15.0]")
+            plt.xlabel('Distribution Range')
+            plt.ylabel('PDF')
+            plt.title(file_name+" - Range Analysis"+"\nprec="+str(self.precision)+", exp="+str(self.exp)+"\n")
+            plt.legend(fontsize=25)
+            #+file_name.replace('./', '')
+            plt.savefig(path+file_name+"/"+tmp_filename, dpi = 100)
+            plt.close("all")
 
     def outputEdgesVals(self, file_hook, string_name, edges, vals):
         file_hook.write(string_name)
@@ -528,10 +562,9 @@ class TreeModel:
         fileHook.write("Weighted - Ratio: " + str(float(counter) / float(tot)) + "\n\n")
         fileHook.write("########################\n\n")
 
-    def plot_empirical_error_distribution(self, summary_file, finalTime, benchmarks_path, file_name, abs_fpt, rel_fpt):
-        rel_err_samples, abs_err_samples = self.generate_error_samples(finalTime)
+    def plot_empirical_error_distribution(self, abs_err_samples, abs_err_golden, summary_file, benchmarks_path, file_name, abs_fpt, rel_fpt):
 
-        abs_err = UnOpDist(BinOpDist(self.tree.root_value[2],"-", self.tree.root_value[0], 500, regularize=True, convolution=False), "abs_err", "abs")
+        abs_err = UnOpDist(BinOpDist(self.tree.root_value[2],"-", self.tree.root_value[0], 500, 250000, regularize=True, convolution=False), "abs_err", "abs")
 
         #rel_err = UnOpDist(BinOpDist(BinOpDist(self.tree.root_value[2],"-", self.tree.root_value[0], 100, regularize=True, convolution=False), "/", self.tree.root_value[0], 100, regularize=True, convolution=False), "rel_err", "abs")
 
@@ -545,44 +578,64 @@ class TreeModel:
         abs_b = abs_err_samples.max()
 
         #self.collectInfoAboutDistribution(summary_file, rel_err, "Relative Error Distribution")
-        self.collectInfoAboutDistribution(summary_file, abs_err, "Abs Error Distribution")
-
         # as bins, choose multiples of 2*eps between a and b
-        for n_bin in [10, 50, 100, 500, 1000]:
-            '''
-            tmp_name="Rel_Error_Bins_"+str(n_bin)
-            plt.figure(tmp_name, figsize=(15, 10))
-            bins = np.linspace(rel_a, rel_b, n_bin)
-            vals, edges, patches = plt.hist(rel_err_samples, bins, density=True)
-            rel_err.distribution.plot(linewidth=4, color="red")
-            if not rel_fpt is None:
-                plotTicks(tmp_name,"X","green", 2, 500, ticks=[0, rel_fpt], label="FPT: "+str(rel_fpt))
-                plt.xlim(0, max(float(rel_fpt), rel_err.b))
-            else:
-                plt.xlim(0, float(rel_err.b))
-            plotBoundsDistr(tmp_name, rel_err.distribution)
-            plt.title(tmp_name)
-            plt.legend(fontsize=25)
-            plt.savefig(benchmarks_path+file_name+"/"+tmp_name)
-            self.elaborateBinsAndEdges(summary_file, edges, vals, "Relative Error Distribution (samples)")
-            '''
-            tmp_name="Abs_Error_Bins_"+str(n_bin)
-            plt.figure(tmp_name, figsize=(15, 10))
-            bins = np.linspace(abs_a, abs_b, n_bin)
-            vals, edges, patches = plt.hist(abs_err_samples, bins, density=True)
-            abs_err.distribution.plot(linewidth=4, color="red")
-            if not abs_fpt is None:
-                plotTicks(tmp_name, "X", "green", 2, 500, ticks=[0, abs_fpt], label="FPT:" + str(abs_fpt))
-                plt.xlim(0, max(float(abs_fpt), abs_err.b))
-            else:
-                plt.xlim(0, float(abs_err.b))
-            plotBoundsDistr(tmp_name, abs_err.distribution)
-            plt.title(tmp_name)
-            plt.legend(fontsize=25)
-            plt.savefig(benchmarks_path+file_name+"/"+tmp_name)
-            self.elaborateBinsAndEdges(summary_file, edges, vals, "Abs Error Distribution (samples)")
+        #for n_bin in [10, 50, 100, 500, 1000]:
+        '''
+        tmp_name="Rel_Error_Bins_"+str(n_bin)
+        plt.figure(tmp_name, figsize=(15, 10))
+        bins = np.linspace(rel_a, rel_b, n_bin)
+        vals, edges, patches = plt.hist(rel_err_samples, bins, density=True)
+        rel_err.distribution.plot(linewidth=4, color="red")
+        if not rel_fpt is None:
+            plotTicks(tmp_name,"X","green", 2, 500, ticks=[0, rel_fpt], label="FPT: "+str(rel_fpt))
+            plt.xlim(0, max(float(rel_fpt), rel_err.b))
+        else:
+            plt.xlim(0, float(rel_err.b))
+        plotBoundsDistr(tmp_name, rel_err.distribution)
+        plt.title(tmp_name)
+        plt.legend(fontsize=25)
+        plt.savefig(benchmarks_path+file_name+"/"+tmp_name)
+        self.elaborateBinsAndEdges(summary_file, edges, vals, "Relative Error Distribution (samples)")
+        '''
+        print("Generating Graphs Error Analysis\n")
 
-            plt.close("all")
+        tmp_name="Abs_Error_Bins_Auto"
+        plt.figure(tmp_name, figsize=(15, 10))
+
+        distr_mode = abs_err.execute().mode()
+        self.collectInfoAboutDistribution(summary_file, abs_err, "Abs Error Distribution", distr_mode, 1000)
+
+        vals_golden, edges_golden, patches_golden = plt.hist(abs_err_golden, bins='auto', density=True, color="black", label="Golden model")
+        binLenGolden = len(vals_golden)
+        self.collectInfoAboutSampling(summary_file, vals_golden, edges_golden, "Golden with num. bins: " + str(binLenGolden))
+
+        vals, edges, patches = plt.hist(abs_err_samples, bins='auto', alpha=0.5, density=True, color="blue", label="Sampling model")
+        binLenSamp = len(vals)
+        self.collectInfoAboutSampling(summary_file, vals, edges, "Sampling with num. bins: " + str(binLenSamp))
+
+        vals_PM, edges_PM, patches_PM = plt.hist(np.absolute(abs_err.operand.distributionValues), bins='auto', density=True, alpha=0.0, color="red")
+        binLenPM = len(vals_PM)
+        self.collectInfoAboutSampling(summary_file, vals_PM, edges_PM, "PM with num. bins: " + str(binLenPM))
+
+        my_max = abs(abs_err.distribution.get_piecewise_pdf()(distr_mode))
+        plt.autoscale(enable=True, axis='both', tight=False)
+        plt.ylim(top=2.0 * my_max)
+
+        x = np.linspace(abs_err.a, abs_err.b, 1000)
+        plt.plot(x, abs(abs_err.distribution.get_piecewise_pdf()(x)), linewidth=5, color="red")
+
+        plotTicks(tmp_name, "X", "green", 4, 500, ticks="[0.0, "+str(abs_fpt)+"]", label="FPT: " + str(abs_fpt))
+
+        plotBoundsDistr(tmp_name, abs_err.distribution)
+
+        plt.title(tmp_name)
+        plt.legend(fontsize=25)
+        plt.savefig(benchmarks_path+file_name+"/"+tmp_name)
+
+        self.measureDistances(abs_err, summary_file, vals_PM, vals_golden, vals, edges_PM, edges_golden, edges,
+                              "Measure Distances Abs error")
+
+        plt.close("all")
 
 class quantizedPointMass:
 
@@ -728,9 +781,9 @@ class BinOpDist:
 
         tmp_res = self.distributionValues
 
-        bin_nb = int(math.ceil(math.sqrt(len(tmp_res))))
+        #bin_nb = int(math.ceil(math.sqrt(len(tmp_res))))
 
-        n, bins, patches = plt.hist(tmp_res, bins=bin_nb, density=True)
+        n, bins, patches = plt.hist(tmp_res, bins='auto', density=True)
 
         breaks=[min(bins), max(bins)]
 

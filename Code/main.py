@@ -53,8 +53,12 @@ def process_file(benchmarks_path, file, mantissa, exp, range_my_dict, abs_my_dic
         os.makedirs(benchmarks_path+file_name)
         f = open(benchmarks_path + file_name + "/" + file_name + "_summary.out", "w+")
         f.write("Execution Time:"+str(finalTime)+"s \n\n")
-        T.plot_range_analysis(f, finalTime,benchmarks_path,file_name, range_my_dict.get(file_name))
-        #T.plot_empirical_error_distribution(f, finalTime,benchmarks_path,file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
+
+        values_samples, abs_err_samples, rel_err_samples = T.generate_error_samples(5)
+        values_golden, abs_err_golden, rel_err_golden = T.generate_error_samples(60)
+
+        T.plot_range_analysis(values_samples, values_golden, f, benchmarks_path,file_name, range_my_dict.get(file_name))
+        T.plot_empirical_error_distribution(abs_err_samples, abs_err_golden, f,benchmarks_path,file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
         f.close()
     except Exception as e:
         logging.error(traceback.format_exc())
@@ -76,7 +80,7 @@ range_my_dict=getBounds("./FPTaylor/results")
 if not len(abs_my_dict) == len(rel_my_dict) and not len(range_my_dict) == len(rel_my_dict):
     print("WARNING!!! Mismatch ")
 
-pool = MyPool(processes=8)#int(os.cpu_count() / par))
+pool = MyPool(processes=1)#int(os.cpu_count() / par))
 
 for file in os.listdir(benchmarks_path):
     if file.endswith(".txt"):

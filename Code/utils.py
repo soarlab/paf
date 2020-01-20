@@ -25,7 +25,7 @@ class MyFunDistr(pacal.FunDistr):
         return tmp
 
 def plotTicks(figureName, mark, col, lw, s, ticks, label=""):
-    if not ticks is None:
+    if not ticks is None and not None in eval(ticks):
         values_ticks=eval(ticks)
         minVal = values_ticks[0]
         maxVal = values_ticks[1]
@@ -37,9 +37,9 @@ def plotTicks(figureName, mark, col, lw, s, ticks, label=""):
 
 def plotBoundsDistr(figureName, distribution):
     minVal = distribution.range_()[0]
-    maxVal = distribution.range_()[1]
+    maxVal = distribution.range_()[-1]
     labelMinVal = str("%.7f" % distribution.range_()[0])
-    labelMaxVal = str("%.7f" % distribution.range_()[1])
+    labelMaxVal = str("%.7f" % distribution.range_()[-1])
     plt.figure(figureName)
     plt.scatter(x=[minVal, maxVal], y=[0, 0], c='r', marker="|",
                 label="PM: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=6, s=600)
