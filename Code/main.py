@@ -61,6 +61,8 @@ def process_file(benchmarks_path, file, mantissa, exp, range_my_dict, abs_my_dic
         logging.error(traceback.format_exc())
 
 
+test_error_model()
+
 matplotlib.pyplot.close("all")
 mantissa=24
 exp=8
