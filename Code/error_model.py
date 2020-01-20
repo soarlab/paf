@@ -12,6 +12,7 @@ from pacal.segments import PiecewiseDistribution, Segment
 from pacal.utils import wrap_pdf
 from numpy import isscalar, zeros_like, asfarray
 from scipy import integrate
+from scipy.stats import kstest
 import dill
 import pickle
 
@@ -125,19 +126,42 @@ def genericPdf(x):
         return res
     exit(-1)
 
+class WrappedHighPrecisionError():
+
+    def __init__(self, input_distribution, precision, exponent):
+        self.name = "Error(" + input_distribution.getName() + ")"
+        self.precision = precision
+        self.exp = exponent
+        self.sampleInit = True
+        self.eps = 2 ** (-self.precision)
+        self.distribution = HighPrecisionErrorModel(input_distribution, precision, exponent)
+
+    def createTypicalErrorDistr(self):
+        global typVariable
+        self.distribution.init_piecewise_pdf()
+        return self.distribution
+
+    def execute(self):
+        return self.distribution
+
+    def getSampleSet(self, n=100000):
+        # it remembers values for future operations
+        if self.sampleInit:
+            self.sampleSet = self.distribution.rand(n)
+            self.sampleInit = False
+        return self.sampleSet
 
 class HighPrecisionErrorModel(Distr):
 
-    def __init__(self, input_distribution, precision, exp, poly_precision):
+    def __init__(self, input_distribution, precision, exp):
         '''
     The class implements the high-precision error distribution function.
     Inputs:
         input_distribution: a PaCal object representing the distribution for which we want to compute
                             the rounding error distribution
         precision, minexp, maxexp: specify the low precision environment suing gmpy2
-        poly_precision: the maximum number of exact evaluations of the density function used to
-                        build the interpolating polynomial representing it
         '''
+        super(HighPrecisionErrorModel, self).__init__()
         self.input_distribution = input_distribution
         self.input_distribution.init_piecewise_pdf()
         self.name = "Error(" + self.input_distribution.getName() + ")"
@@ -146,7 +170,6 @@ class HighPrecisionErrorModel(Distr):
         self.sampleInit = True
         self.central_constant = None
         self.eps = 2 ** (-self.precision)
-        self.poly_precision = poly_precision
         self._get_min_exponent()
         self._get_max_exponent()
 
@@ -187,6 +210,26 @@ class HighPrecisionErrorModel(Distr):
                 elif abs(ti) <= 1:
                     y[index] = self._pdf_wing(ti)
             return y
+
+    def compare(self, n=100000):
+        """A function to compare the density function with a Monte-Carlo simulation and return a K-S test"""
+        empirical = self.input_distribution.rand(n)
+        rounded = np.zeros_like(empirical)
+        setCurrentContextPrecision(self.precision, self.exp)
+        for index, ti in enumerate(empirical):
+            rounded[index] = mpfr(str(empirical[index]))
+        resetContextDefault()
+        for index, ti in enumerate(empirical):
+            empirical[index] = (ti - rounded[index]) / ti
+        x = np.linspace(-1, 1, 201)
+        plt.close()
+        plt.hist(empirical, density=True)
+        y = self.piecewise_pdf(x)
+        plt.plot(x, y)
+        plt.savefig("pics/"+self.getName()+"theoretical_vs_empirical")
+        plt.clf()
+
+
 
     def _pdf_wing(self, x):
         """
@@ -287,40 +330,45 @@ class HighPrecisionErrorModel(Distr):
 
 
 def test_error_model():
+    U = UniformDistr(64, 1024)
+    wrapped = WrappedHighPrecisionError(U, 23, 8)
+    x = wrapped.getSampleSet()
     t = time()
     U = UniformDistr(-4, 4)
-    E = HighPrecisionErrorModel(U, 23, 8, 30)
+    E = HighPrecisionErrorModel(U, 23, 8)
+    E.compare()
     print(E.getName())
     E.init_piecewise_pdf()
     print(E.int_error())
     print(time() - t)
     t = time()
     U = UniformDistr(64, 1024)
-    E = HighPrecisionErrorModel(U, 23, 8, 30)
+    E = HighPrecisionErrorModel(U, 23, 8)
     print(E.getName())
     E.init_piecewise_pdf()
     print(E.int_error())
     print(time() - t)
     t = time()
     U = UniformDistr(-1024, -64)
-    E = HighPrecisionErrorModel(U, 23, 8, 30)
+    E = HighPrecisionErrorModel(U, 23, 8)
     print(E.getName())
     E.init_piecewise_pdf()
     print(E.int_error())
     print(time() - t)
     t = time()
     U = BetaDistr()
-    E = HighPrecisionErrorModel(U, 23, 8, 30)
+    E = HighPrecisionErrorModel(U, 23, 8)
     print(E.getName())
     E.init_piecewise_pdf()
     print(E.int_error())
     print(time() - t)
     U = NormalDistr()
-    E = HighPrecisionErrorModel(U, 23, 8, 30)
+    E = HighPrecisionErrorModel(U, 23, 8)
     print(E.getName())
     E.init_piecewise_pdf()
     print(E.int_error())
     print(time() - t)
+
 
 class ErrorModel:
 
@@ -532,8 +580,7 @@ class WrappedPiecewiseTypicalError():
     def getSampleSet(self, n=100000):
         # it remembers values for future operations
         if self.sampleInit:
-            self.sampleSet = self.distribution.rand(n - 2)
-            self.sampleSet = np.append(self.sampleSet, [-1.0, 1.0])
+            self.sampleSet = self.distribution.rand(n)
             self.sampleInit = False
         return self.sampleSet
 
