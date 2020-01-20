@@ -126,6 +126,7 @@ def genericPdf(x):
         return res
     exit(-1)
 
+
 class WrappedHighPrecisionError():
 
     def __init__(self, input_distribution, precision, exponent):
@@ -150,6 +151,7 @@ class WrappedHighPrecisionError():
             self.sampleSet = self.distribution.rand(n)
             self.sampleInit = False
         return self.sampleSet
+
 
 class HighPrecisionErrorModel(Distr):
 
@@ -214,22 +216,26 @@ class HighPrecisionErrorModel(Distr):
     def compare(self, n=100000):
         """A function to compare the density function with a Monte-Carlo simulation and return a K-S test"""
         empirical = self.input_distribution.rand(n)
+        f = self.get_piecewise_pdf()
         rounded = np.zeros_like(empirical)
         setCurrentContextPrecision(self.precision, self.exp)
         for index, ti in enumerate(empirical):
             rounded[index] = mpfr(str(empirical[index]))
         resetContextDefault()
         for index, ti in enumerate(empirical):
-            empirical[index] = (ti - rounded[index]) / ti
+            x = (ti - rounded[index]) / (ti * self.eps)
+            if is_finite(x) and ~is_nan(x):
+                empirical[index] = x
+            else:
+                empirical[index] = 0
+        KS = kstest(empirical, f)
         x = np.linspace(-1, 1, 201)
         plt.close()
-        plt.hist(empirical, density=True)
-        y = self.piecewise_pdf(x)
-        plt.plot(x, y)
-        plt.savefig("pics/"+self.getName()+"theoretical_vs_empirical")
-        plt.clf()
-
-
+        plt.hist(empirical, bins=math.floor(n ** (1 / 3)), range=[-1, 1], density=True)
+        y = f(x)
+        h = plt.plot(x, y)
+        plt.show()
+        return KS
 
     def _pdf_wing(self, x):
         """
@@ -330,16 +336,13 @@ class HighPrecisionErrorModel(Distr):
 
 
 def test_error_model():
-    U = UniformDistr(64, 1024)
-    wrapped = WrappedHighPrecisionError(U, 23, 8)
-    x = wrapped.getSampleSet()
     t = time()
-    U = UniformDistr(-4, 4)
+    U = BetaDistr(3, 2)
     E = HighPrecisionErrorModel(U, 23, 8)
-    E.compare()
-    print(E.getName())
     E.init_piecewise_pdf()
+    print(E.getName())
     print(E.int_error())
+    print(E.compare())
     print(time() - t)
     t = time()
     U = UniformDistr(64, 1024)
@@ -431,8 +434,8 @@ class ErrorModel:
         # it remembers values for future operations
         if self.sampleInit:
             self.sampleSet = self.distribution.rand(n)
-            #self.sampleSet = self.distribution.rand(n - 2)
-            #self.sampleSet = np.append(self.sampleSet, [-1.0, 1.0])
+            # self.sampleSet = self.distribution.rand(n - 2)
+            # self.sampleSet = np.append(self.sampleSet, [-1.0, 1.0])
             self.sampleInit = False
         return self.sampleSet
 
@@ -693,8 +696,8 @@ class TypicalErrorModel:
         # it remembers values for future operations
         if self.sampleInit:
             self.sampleSet = self.distribution.rand(n)
-            #self.sampleSet  = self.distribution.rand(n-2)
-            #self.sampleSet  = np.append(self.sampleSet, [-1.0, 1.0])
-            #self.sampleSet = sorted(self.sampleSet)
+            # self.sampleSet  = self.distribution.rand(n-2)
+            # self.sampleSet  = np.append(self.sampleSet, [-1.0, 1.0])
+            # self.sampleSet = sorted(self.sampleSet)
             self.sampleInit = False
         return self.sampleSet
