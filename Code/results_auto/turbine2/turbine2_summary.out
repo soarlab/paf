@@ -1,0 +1,148 @@
+Execution Time:72.12408113479614s 
+
+###### Info about Range Analysis on Round(distr) with 1000 bins#######:
+
+Mode of the distribution: -3.9570996464823964
+
+
+Range: [-6.695287232002025,-1.2189120609627995] contains 25.0% of the distribution.
+
+Range: [-11.301885169993872,3.3876858770290057] contains 50.0% of the distribution.
+
+Range: [-17.358111829731403,3.7468942467330284] contains 75.0% of the distribution.
+
+Range: [-20.16072735843973,3.7468942467330284] contains 85.0% of the distribution.
+
+Range: [-23.672050262223724,3.7468942467330284] contains 95.0% of the distribution.
+
+Range: [-26.088098131799867,3.7468942467330284] contains 99.0% of the distribution.
+
+Range: [-28.117578342243828,3.7468942467330284] contains 99.99% of the distribution.
+
+Range: [-28.467077347615323,3.7468942467330284] contains 100% of the distribution.
+
+###########################################
+
+##### DISTANCE MEASURES ######
+
+Measure Distances Range Analysis
+Variational Distance - Golden -> DistrPM : 0.0044419593773927304
+Variational Distance - Golden -> PM : 0.0041398036567162
+Variational Distance - Golden -> Sampling : 0.0042367006487437076
+AVG Variational Distance - Golden -> DistrPM : 0.0006202740134010401
+AVG Variational Distance - Golden -> PM : 0.000639255085989676
+AVG Variational Distance - Golden -> Sampling : 0.0006894422546901929
+KL Distance - Golden -> DistrPM : inf
+KL Distance - Golden -> PM : inf
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> DistrPM : 0.00029989423799126687
+WSS Distance - Golden -> PM : 0.00034920372243941994
+WSS Distance - Golden -> Sampling : 0.0004345061369507287
+######################################## Info about Abs Error Distribution#######:
+
+Mode of the distribution: 3.9746108435352186e-15
+
+
+Range: [0.0,2.051272786074544e-07] contains 25.0% of the distribution.
+
+Range: [0.0,4.786303114512464e-07] contains 50.0% of the distribution.
+
+Range: [0.0,9.367478914645984e-07] contains 75.0% of the distribution.
+
+Range: [0.0,1.2512763792349593e-06] contains 85.0% of the distribution.
+
+Range: [0.0,1.9008460822389657e-06] contains 95.0% of the distribution.
+
+Range: [0.0,2.694004877485963e-06] contains 99.0% of the distribution.
+
+Range: [0.0,5.039293384121405e-06] contains 99.99% of the distribution.
+
+Range: [0.0,6.837575821094788e-06] contains 100% of the distribution.
+
+###########################################
+
+###### Info about Golden with num. bins: 908#######:
+
+Mode of the sampling distribution: 1.3972810323368006e-08
+
+
+Range: [4.618527782440651e-14,2.0260512618758547e-07] contains 25.0% of the distribution.
+
+Range: [4.618527782440651e-14,4.611012627422538e-07] contains 50.0% of the distribution.
+
+Range: [4.618527782440651e-14,8.942569510230494e-07] contains 75.0% of the distribution.
+
+Range: [4.618527782440651e-14,1.1946713799919883e-06] contains 85.0% of the distribution.
+
+Range: [4.618527782440651e-14,1.7955002379298661e-06] contains 95.0% of the distribution.
+
+Range: [4.618527782440651e-14,2.557015883455781e-06] contains 99.0% of the distribution.
+
+Range: [4.618527782440651e-14,4.338543311062279e-06] contains 99.99% of the distribution.
+
+Range: [4.618527782440651e-14,6.34363496487822e-06] contains 100% of the distribution.
+
+###########################################
+
+###### Info about Sampling with num. bins: 206#######:
+
+Mode of the sampling distribution: 4.973799150320701e-14
+
+
+Range: [4.973799150320701e-14,2.073008138394983e-07] contains 25.0% of the distribution.
+
+Range: [4.973799150320701e-14,4.664267689663818e-07] contains 50.0% of the distribution.
+
+Range: [4.973799150320701e-14,9.069408926820837e-07] contains 75.0% of the distribution.
+
+Range: [4.973799150320701e-14,1.1919794433216555e-06] contains 85.0% of the distribution.
+
+Range: [4.973799150320701e-14,1.7879691401134875e-06] contains 95.0% of the distribution.
+
+Range: [4.973799150320701e-14,2.565347005494138e-06] contains 99.0% of the distribution.
+
+Range: [4.973799150320701e-14,4.456966477920388e-06] contains 99.99% of the distribution.
+
+Range: [4.973799150320701e-14,5.337994725351791e-06] contains 100% of the distribution.
+
+###########################################
+
+###### Info about PM with num. bins: 295#######:
+
+Mode of the sampling distribution: 4.635896347934209e-08
+
+
+Range: [2.5344171206143074e-12,2.0860646519711725e-07] contains 25.0% of the distribution.
+
+Range: [2.5344171206143074e-12,4.867450395704461e-07] contains 50.0% of the distribution.
+
+Range: [2.5344171206143074e-12,9.503093301926608e-07] contains 75.0% of the distribution.
+
+Range: [2.5344171206143074e-12,1.274804333628211e-06] contains 85.0% of the distribution.
+
+Range: [2.5344171206143074e-12,1.900616125968201e-06] contains 95.0% of the distribution.
+
+Range: [2.5344171206143074e-12,2.711853634557077e-06] contains 99.0% of the distribution.
+
+Range: [2.5344171206143074e-12,4.867427585950376e-06] contains 99.99% of the distribution.
+
+Range: [2.5344171206143074e-12,6.837575821094788e-06] contains 100% of the distribution.
+
+###########################################
+
+##### DISTANCE MEASURES ######
+
+Measure Distances Abs error
+Variational Distance - Golden -> DistrPM : 58239.561850228114
+Variational Distance - Golden -> PM : 1328081.930250514
+Variational Distance - Golden -> Sampling : 1328081.930250514
+AVG Variational Distance - Golden -> DistrPM : 5876.144878008539
+AVG Variational Distance - Golden -> PM : 7783.592833818697
+AVG Variational Distance - Golden -> Sampling : 4766.761180883128
+KL Distance - Golden -> DistrPM : 0.0021791340486610666
+KL Distance - Golden -> PM : inf
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> DistrPM : 5851.311655419662
+WSS Distance - Golden -> PM : 6492.344238613105
+WSS Distance - Golden -> Sampling : 2795.243996789397
+##################################

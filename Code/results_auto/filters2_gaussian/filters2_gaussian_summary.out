@@ -1,0 +1,41 @@
+Execution Time:83.44580078125s 
+
+###### Info about Range Analysis on Round(distr) with 1000 bins#######:
+
+Mode of the distribution: 0.06617480706424002
+
+
+Range: [-0.16861238145823043,0.30096199558671055] contains 25.0% of the distribution.
+
+Range: [-0.41959178987880297,0.551941404007283] contains 50.0% of the distribution.
+
+Range: [-0.7474842428153547,0.8798338569438336] contains 75.0% of the distribution.
+
+Range: [-0.9336947716435193,1.0660443857720001] contains 85.0% of the distribution.
+
+Range: [-1.24134694970745,1.3736965638359326] contains 95.0% of the distribution.
+
+Range: [-1.5449510727968572,1.6773006869253397] contains 99.0% of the distribution.
+
+Range: [-1.9376124053258237,2.023772859754749] contains 99.99% of the distribution.
+
+Range: [-2.024282114770604,2.023772859754749] contains 100% of the distribution.
+
+###########################################
+
+##### DISTANCE MEASURES ######
+
+Measure Distances Range Analysis
+Variational Distance - Golden -> DistrPM : 0.030253319765700448
+Variational Distance - Golden -> PM : 0.025996401612755182
+Variational Distance - Golden -> Sampling : 0.04532449181638565
+AVG Variational Distance - Golden -> DistrPM : 0.006509330300713361
+AVG Variational Distance - Golden -> PM : 0.006172288799624409
+AVG Variational Distance - Golden -> Sampling : 0.010419285593041156
+KL Distance - Golden -> DistrPM : inf
+KL Distance - Golden -> PM : inf
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> DistrPM : 0.0033688664432947046
+WSS Distance - Golden -> PM : 0.0033356662604831625
+WSS Distance - Golden -> Sampling : 0.005434943739700493
+##################################
