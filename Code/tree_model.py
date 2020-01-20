@@ -1,3 +1,4 @@
+from scipy.constants import golden_ratio
 from sympy.multipledispatch.conflict import edge
 
 from model import *
@@ -267,24 +268,15 @@ class TreeModel:
         else:
            tree.root_value[0].resetSampleInit()
 
-    def collectInfoAboutDistribution(self, f, finalDistr_wrapper, name):
+    def collectInfoAboutDistribution(self, f, finalDistr_wrapper, name, golden_mode, bin_val):
         res="###### Info about "+name+"#######:\n\n"
-
-        try:
-            mode=finalDistr_wrapper.distribution.mode()
-        except Exception as t:
-            print("Problem with call to mode method, using distribution values!")
-            vals_PM, edges_PM, patches_PM = plt.hist(self.tree.root_value[2].distributionValues, 500, density=True, color="red")
-            ind=vals_PM.argmax()
-            mode=edges_PM[ind]
-
-        res=res+"Mode of the distribution: " + str(mode) + "\n\n\n"
+        res=res+"Mode of the distribution: " + str(golden_mode) + "\n\n\n"
         gap=abs(finalDistr_wrapper.a-finalDistr_wrapper.b)
-        gap=gap/10000.0
+        gap=gap/float(bin_val)
         for i in [0.25, 0.5, 0.75, 0.85, 0.95, 0.99, 0.9999]:
             val = 0
-            lower = mode
-            upper = mode
+            lower = golden_mode
+            upper = golden_mode
             while val<i:
                 lower=lower-gap
                 if lower<finalDistr_wrapper.a:
@@ -298,14 +290,18 @@ class TreeModel:
                     break
         res = res + "Range: [" + str(finalDistr_wrapper.a) + "," + str(finalDistr_wrapper.b) + "] contains 100% of the distribution.\n\n"
         res = res+"###########################################\n\n"
-        print(res)
+        #print(res)
         f.write(res)
         return
 
-    def collectInfoAboutSampling(self, f, vals, edges, name):
+    def collectInfoAboutSampling(self, f, vals, edges, name, golden_mode=None, golden_ind=None):
         res="###### Info about "+name+"#######:\n\n"
-        ind=vals.argmax()
-        mode=edges[ind]
+        if golden_mode is None:
+            ind = vals.argmax()
+            mode = edges[ind]
+        else:
+            ind = golden_ind
+            mode = golden_mode
         res=res+"Mode of the sampling distribution: " + str(mode) + "\n\n\n"
         tot=sum(vals)
         for i in [0.25, 0.5, 0.75, 0.85, 0.95, 0.99, 0.9999]:
@@ -325,37 +321,65 @@ class TreeModel:
         res = res+"###########################################\n\n"
         #print(res)
         f.write(res)
-        return
+        return mode, ind
 
-    def measureDistances(self, fileHook, vals_PM, vals_golden, vals, edges_PM, edges_golden, edges, introStr):
+    def measureFPPMwGoldenEdges(self, edges_golden):
+        vals=[]
+        distr = self.tree.root_value[2].execute()
+        distr_pdf=distr.get_piecewise_pdf()
+        for ind, edge in enumerate(edges_golden[:-1]):
+            if edge>=self.tree.root_value[2].a and edge<=self.tree.root_value[2].b:
+                vals.append(abs(distr_pdf(edge)))
+            else:
+                vals.append(0.0)
+        return vals
+
+    def my_KL_entropy(self, p, q):
+        return np.sum(np.where((p!=0) & (q!=0), p * np.log(p / q), 0))
+
+    def measureDistances(self, fileHook, vals_PM, vals_golden, vals, edges_PM, edges_golden, edges, introStr, fp_or_real):
 
         if not (len(vals_PM)==len(vals_golden) and len(vals_golden)==len(vals)):
             print("Failure in histograms!")
             exit(-1)
 
+        vals_DistrPM=np.asarray(self.measureFPPMwGoldenEdges(edges_golden))
+
+        self.outputEdgesVals(fileHook, "BinLen: " + str(len(vals_golden)) + ", FP_or_real: " + str(fp_or_real) + "\n\n",
+                             edges_golden, vals_DistrPM)
+
+        var_distance_golden_DistrPM = np.max(np.absolute(vals_golden - vals_DistrPM))
         var_distance_golden_PM=np.max(np.absolute(vals_golden-vals_PM))
         var_distance_golden_sampling=np.max(np.absolute(vals_golden-vals))
 
+        avg_var_distance_golden_DistrPM=np.average(np.absolute(vals_golden-vals_DistrPM))
         avg_var_distance_golden_PM=np.average(np.absolute(vals_golden-vals_PM))
         avg_var_distance_golden_sampling=np.average(np.absolute(vals_golden-vals))
 
-        KL_distance_golden_PM=scipy.stats.entropy(vals_golden, qk=vals_PM)
-        KL_distance_golden_sampling=scipy.stats.entropy(vals_golden, qk=vals)
+        KL_distance_golden_DistrPM=self.my_KL_entropy(vals_golden, vals_DistrPM)
+        KL_distance_golden_PM=self.my_KL_entropy(vals_golden, vals_PM)
+        KL_distance_golden_sampling=self.my_KL_entropy(vals_golden, vals)
 
+        WSS_distance_golden_DistrPM=scipy.stats.wasserstein_distance(vals_golden, vals_DistrPM)
         WSS_distance_golden_PM=scipy.stats.wasserstein_distance(vals_golden, vals_PM)
         WSS_distance_golden_sampling=scipy.stats.wasserstein_distance(vals_golden, vals)
 
         fileHook.write("##### DISTANCE MEASURES ######\n\n")
         fileHook.write(introStr+"\n")
+
+        fileHook.write("Variational Distance - Golden -> DistrPM : " + str(var_distance_golden_DistrPM) + "\n")
         fileHook.write("Variational Distance - Golden -> PM : "+str(var_distance_golden_PM)+"\n")
         fileHook.write("Variational Distance - Golden -> Sampling : "+str(var_distance_golden_sampling)+"\n")
 
+        fileHook.write("AVG Variational Distance - Golden -> DistrPM : " + str(avg_var_distance_golden_DistrPM) + "\n")
         fileHook.write("AVG Variational Distance - Golden -> PM : " + str(avg_var_distance_golden_PM) + "\n")
         fileHook.write("AVG Variational Distance - Golden -> Sampling : " + str(avg_var_distance_golden_sampling) + "\n")
 
+        fileHook.write("KL Distance - Golden -> DistrPM : " + str(KL_distance_golden_DistrPM) + "\n")
         fileHook.write("KL Distance - Golden -> PM : " + str(KL_distance_golden_PM) + "\n")
         fileHook.write("KL Distance - Golden -> Sampling : " + str(KL_distance_golden_sampling) + "\n")
 
+        fileHook.write("WSS Distance - Golden -> PM : " + str(WSS_distance_golden_DistrPM) + "\n")
         fileHook.write("WSS Distance - Golden -> PM : " + str(WSS_distance_golden_PM) + "\n")
         fileHook.write("WSS Distance - Golden -> Sampling : " + str(WSS_distance_golden_sampling) + "\n")
 
@@ -369,7 +393,7 @@ class TreeModel:
     def plot_range_analysis(self, fileHook, final_time, path, file_name, range_fpt):
         self.resetInit(self.tree)
         r = self.generate_output_samples(final_time)
-        golden_samples = self.generate_output_samples(60)
+        golden_samples = self.generate_output_samples(5)
 
         self.tree.root_value[2].execute()
         a = self.tree.root_value[2].a
@@ -384,11 +408,10 @@ class TreeModel:
         #[50, 100, 250, 500, 1000, 2500, 5000, 10000]
 
         #fp means True, real means False
-        for fp_or_real in [False, True]:
+        for fp_or_real in [False]:
             #[50, 100, 500, 1000, 5000, 10000]
-            for binLen in [50, 100, 500, 1000, 5000, 10000]:
+            for binLen in [50, 100, 500]:#, 1000, 5000, 10000, 15000]:
                 bins = []
-
                 if fp_or_real:
                     while True:
                         setCurrentContextPrecision(tmp_precision, tmp_exp)
@@ -421,35 +444,35 @@ class TreeModel:
 
                 plt.figure(tmp_filename, figsize=(15,10))
 
-                pm_file=open(path + file_name + "/pm.txt","a+")
-                vals_PM, edges_PM, patches_PM =plt.hist(self.tree.root_value[2].distributionValues, bins, density=True, color="red")
-                self.collectInfoAboutSampling(pm_file,vals_PM,edges_PM,"PM with num. bins: "+str(binLen))
-                self.outputEdgesVals(pm_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_PM,vals_PM)
-                plt.clf()
-
                 golden_file=open(path + file_name + "/golden.txt","a+")
                 vals_golden, edges_golden, patches_golden =plt.hist(golden_samples, bins, density=True, color="black", label="Golden model")
-                self.collectInfoAboutSampling(golden_file,vals_golden,edges_golden,"Golden with num. bins: "+str(binLen))
+                golden_mode, golden_ind=self.collectInfoAboutSampling(golden_file,vals_golden,edges_golden,"Golden with num. bins: "+str(binLen))
                 self.outputEdgesVals(golden_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_golden,vals_golden)
                 golden_file.close()
 
+                self.collectInfoAboutDistribution(fileHook, self.tree.root_value[2], "Range Analysis on Round(distr) with "+str(binLen)+" bins", golden_mode, binLen)
+
+                pm_file=open(path + file_name + "/pm.txt","a+")
+                vals_PM, edges_PM, patches_PM =plt.hist(self.tree.root_value[2].distributionValues, edges_golden, density=True, alpha=0.0, color="red")
+                self.collectInfoAboutSampling(pm_file,vals_PM,edges_PM,"PM with num. bins: "+str(binLen), golden_mode=golden_mode, golden_ind=golden_ind)
+                self.outputEdgesVals(pm_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_PM,vals_PM)
+
                 sampling_file=open(path + file_name + "/sampling.txt","a+")
-                vals, edges, patches =plt.hist(r, bins, alpha=0.5, density=True, color="blue", label="Sampling model")
-                self.collectInfoAboutSampling(sampling_file,vals,edges,"Sampling with num. bins: "+str(binLen))
+                vals, edges, patches =plt.hist(r, edges_golden, alpha=0.5, density=True, color="blue", label="Sampling model")
+                self.collectInfoAboutSampling(sampling_file,vals,edges,"Sampling with num. bins: "+str(binLen), golden_mode=golden_mode, golden_ind=golden_ind)
                 self.outputEdgesVals(sampling_file, "BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n", edges, vals)
                 sampling_file.close()
 
-                self.measureDistances(fileHook, vals_PM, vals_golden, vals, edges_PM, edges_golden, edges, "Range Analysis comparison. Bins: "+str(binLen)+", Floating Point Spacing: "+str(fp_or_real))
+                self.measureDistances(fileHook, vals_PM, vals_golden, vals, edges_PM, edges_golden, edges, "Range Analysis comparison. Bins: "+str(binLen)+", Floating Point Spacing: "+str(fp_or_real), fp_or_real)
 
                 #self.elaborateBinsAndEdges(fileHook, edges, vals, "Sampling Range Analysis. Bins: "+str(bins)+", Floating Point Spacing: "+str(fp_or_real))
 
                 x = np.linspace(a, b, 1000)
-
-                val_max = self.tree.root_value[2].distribution.mode()
-                max = abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(val_max))
+                val_max = golden_mode #golden_rat _ratio self.tree.root_value[2].distribution.mode()
+                my_max = abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(val_max))
 
                 plt.autoscale(enable=True, axis='both', tight=False)
-                plt.ylim(top=2.0*max)
+                plt.ylim(top=2.0*my_max)
                 plt.plot(x, abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(x)), linewidth=5, color="red")
                 plotTicks(tmp_filename,"X","green", 4, 500, ticks=range_fpt, label="FPT: "+str(range_fpt))
                 plotBoundsDistr(tmp_filename, self.tree.root_value[2].distribution)

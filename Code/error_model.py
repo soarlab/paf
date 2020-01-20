@@ -382,8 +382,9 @@ class ErrorModel:
     def getSampleSet(self, n=100000):
         # it remembers values for future operations
         if self.sampleInit:
-            self.sampleSet = self.distribution.rand(n - 2)
-            self.sampleSet = np.append(self.sampleSet, [-1.0, 1.0])
+            self.sampleSet = self.distribution.rand(n)
+            #self.sampleSet = self.distribution.rand(n - 2)
+            #self.sampleSet = np.append(self.sampleSet, [-1.0, 1.0])
             self.sampleInit = False
         return self.sampleSet
 
@@ -644,8 +645,9 @@ class TypicalErrorModel:
     def getSampleSet(self, n=100000):
         # it remembers values for future operations
         if self.sampleInit:
-            self.sampleSet = self.distribution.rand(n - 2)
-            self.sampleSet = np.append(self.sampleSet, [-1.0, 1.0])
-            # self.sampleSet = sorted(self.sampleSet)
+            self.sampleSet = self.distribution.rand(n)
+            #self.sampleSet  = self.distribution.rand(n-2)
+            #self.sampleSet  = np.append(self.sampleSet, [-1.0, 1.0])
+            #self.sampleSet = sorted(self.sampleSet)
             self.sampleInit = False
         return self.sampleSet
