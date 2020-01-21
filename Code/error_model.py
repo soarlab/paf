@@ -34,17 +34,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def setCurrentContextPrecision(mantissa, exponent):
-    ctx = gmpy2.get_context()
-    ctx.precision = mantissa
-    ctx.emax = 2 ** (exponent - 1)
-    ctx.emin = 1 - ctx.emax
-
-
-def resetContextDefault():
-    gmpy2.set_context(gmpy2.context())
-
-
 class ErrorModelNaive:
     def __init__(self, distribution, precision, exp, samplesize):
         self.inputdistribution = distribution
@@ -447,9 +436,9 @@ class TypicalErrorModel:
     def getSampleSet(self, n=100000):
         # it remembers values for future operations
         if self.sampleInit:
-            self.sampleSet = self.distribution.rand(n)
-            #self.sampleSet  = self.distribution.rand(n-2)
-            #self.sampleSet  = np.append(self.sampleSet, [-1.0, 1.0])
+            #self.sampleSet = self.distribution.rand(n)
+            self.sampleSet  = self.distribution.rand(n-2)
+            self.sampleSet  = np.append(self.sampleSet, [-1.0, 1.0])
             #self.sampleSet = sorted(self.sampleSet)
             self.sampleInit = False
         return self.sampleSet

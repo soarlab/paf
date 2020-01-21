@@ -1,11 +1,9 @@
-from scipy.constants import golden_ratio
-from sympy.multipledispatch.conflict import edge
-
-from model import *
 from error_model import *
 from regularizer import *
 import time
 from scipy.stats import *
+import os.path
+from operations import *
 
 plt.rcParams.update({'font.size': 30})
 plt.rcParams.update({'figure.autolayout': True})
@@ -49,13 +47,6 @@ def isPointMassDistr(dist):
     if dist.distribution.range_()[0] == dist.distribution.range_()[-1]:
         return True
     return False
-
-class Triple:
-    def __init__(self, dist, error, qdist):
-        self.dist=dist
-        self.error=error
-        self.qdist=qdist
-
 
 class DistributionsManager:
     def __init__(self, samples_dep_op):
@@ -187,10 +178,14 @@ class TreeModel:
         resetContextDefault()
         return d[1:]
 
-    def generate_error_samples(self, sample_time):
+    def generate_error_samples(self, sample_time, name, loadIfExists=False):
         """ Generate sample_nb samples of tree evaluation in the tree's working precision
                     :return an array of samples """
         print("Generating Samples...")
+
+        if loadIfExists and os.path.exists("./storage/"+name+"/"):
+            return True, [], [], []
+
         rel_err = []#np.zeros(1)
         abs_err = []#np.zeros(1)
         values  = []#np.zeros(1)
@@ -210,7 +205,7 @@ class TreeModel:
             #abs_err = numpy.append(abs_err, tmp_abs) # self.eps *
             end_time=time.time()-start_time
         resetContextDefault()
-        return np.asarray(values), np.asarray(abs_err), np.asarray(rel_err)
+        return False, np.asarray(values), np.asarray(abs_err), np.asarray(rel_err)
 
     def evaluate_at_sample(self, tree):
         """ Sample from the leaf then evaluate tree in the tree's working precision"""
@@ -328,8 +323,6 @@ class TreeModel:
         f.write(res)
         return mode, ind
 
-
-
     def measureDistrVsGoldenEdges(self, distr, edges_golden):
         vals=[]
         distr_pdf=distr.distribution.get_piecewise_pdf()
@@ -341,12 +334,6 @@ class TreeModel:
         return vals
 
     def my_KL_entropy(self, p, q):
-        #scipy.stats.entropy(p, q)
-        #res_p=p[np.where((p != 0) & (q != 0))]
-        #res_p=res_p/sum(res_p)
-        #res_q = q[np.where((p != 0) & (q != 0))]
-        #res_q = res_q / sum(res_q)
-        #return np.sum(res_p * np.log(res_p / res_q))
         return scipy.stats.entropy(p, q)
 
     def getValueHist(self, edges, vals, x):
@@ -415,114 +402,120 @@ class TreeModel:
         return
 
 
-    def plot_range_analysis(self, r, golden_samples, fileHook, path, file_name, range_fpt):
-        #self.resetInit(self.tree)
-        #r = self.generate_output_samples(final_time)
-        #golden_samples = self.generate_output_samples(3600)
+    def plot_range_analysis(self, loadedGolden, r, golden_samples, fileHook, path, file_name, range_fpt):
 
         self.tree.root_value[2].execute()
         a = self.tree.root_value[2].a
         b = self.tree.root_value[2].b
 
-        #expand to fptaylor probably
+        # expand to fptaylor probably
         # as bins, choose at the intervals between successive pairs of representable numbers between a and b
-
         tmp_precision = 2
         tmp_exp = self.exp
 
-        #[50, 100, 250, 500, 1000, 2500, 5000, 10000]
-
-        #fp means True, real means False
-        for fp_or_real in [False]:
-            #[50, 100, 500, 1000, 5000, 10000]
-            '''
-            for binLen in [50, 100, 500, 1000, 5000, 10000]:
-                bins = []
-                if fp_or_real:
-                    while True:
-                        setCurrentContextPrecision(tmp_precision, tmp_exp)
-                        f = mpfr(str(a))
-                        if a < float(printMPFRExactly(f)):
-                            f = gmpy2.next_below(f)
-                        while f < b:
-                            bins.append(float(printMPFRExactly(f)))
-                            f = gmpy2.next_above(f)
-                        resetContextDefault()
-                        if len(bins)>=binLen:
-                            break
-                        else:
-                            bins=[]
-                            tmp_precision = tmp_precision+1
-
-                    if len(bins)==0:
-                        bins=1
-
-                    fileHook.write("Picked Precision for histogram. mantissa:"+str(tmp_precision)+", exp:"+str(tmp_exp)+"\n\n")
-                    fileHook.flush()
-
-                else:
-                    bins=binLen
-            '''
-
-            print("Generating Graphs Range Analysis\n")
-
-            tmp_filename=file_name+"FP_"+str(fp_or_real)+"_Bins_Auto"#+str(binLen)
-
-            plt.figure(tmp_filename, figsize=(15,10))
-            golden_file=open(path + file_name + "/golden.txt","a+")
-
-            vals_golden, edges_golden, patches_golden =plt.hist(golden_samples, bins='auto', density=True, color="black", label="Golden model")
-
-            binLenGolden=len(vals_golden)
-
-            golden_mode, golden_ind=self.collectInfoAboutSampling(golden_file,vals_golden,edges_golden,"Golden with num. bins: "+str(binLenGolden))
-            #self.outputEdgesVals(golden_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_golden,vals_golden)
-            golden_file.close()
-
-            distr_mode = self.tree.root_value[2].distribution.mode()
-            binLenDistr=1000
-            self.collectInfoAboutDistribution(fileHook, self.tree.root_value[2], "Range Analysis on Round(distr) with "+str(binLenDistr)+" bins", distr_mode, binLenDistr)
-
-            pm_file=open(path + file_name + "/pm.txt","a+")
-            vals_PM, edges_PM, patches_PM =plt.hist(self.tree.root_value[2].distributionValues, bins='auto', density=True, alpha=0.0, color="red")
-            #vals_PM, edges_PM, patches_PM =plt.hist(self.tree.root_value[2].distributionValues, edges_golden, density=True, alpha=0.0, color="red")
-            binLenPM = len(vals_PM)
-            self.collectInfoAboutSampling(pm_file,vals_PM,edges_PM,"PM with num. bins: "+str(binLenPM))#, golden_mode=golden_mode, golden_ind=golden_ind)
-            #self.outputEdgesVals(pm_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_PM,vals_PM)
-            pm_file.close()
-
-            sampling_file=open(path + file_name + "/sampling.txt","a+")
-            vals, edges, patches =plt.hist(r, bins='auto', alpha=0.5, density=True, color="blue", label="Sampling model")
-            #vals, edges, patches =plt.hist(r, edges_golden, alpha=0.5, density=True, color="blue", label="Sampling model")
-            binLenSamp=len(vals)
-            self.collectInfoAboutSampling(sampling_file,vals,edges,"Sampling with num. bins: "+str(binLenSamp))#, golden_mode=golden_mode, golden_ind=golden_ind)
-            #self.outputEdgesVals(sampling_file, "BinLen: "+str(binLenSamp)+", FP_or_real: "+str(fp_or_real)+"\n\n", edges, vals)
-            sampling_file.close()
-
-            self.measureDistances(self.tree.root_value[2], fileHook, vals_PM, vals_golden, vals, edges_PM, edges_golden, edges, "Measure Distances Range Analysis")
+        fp_or_real=False
 
 
-            x = np.linspace(a, b, 1000)
-            try:
-                val_max=self.tree.root_value[2].distribution.mode()
-            except Exception as e:
-                print("Exception mode!\n")
-                val_max = golden_mode #golden_rat _ratio self.tree.root_value[2].distribution.mode()
-            my_max = abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(val_max))
+        '''
+        for binLen in [50, 100, 500, 1000, 5000, 10000]:
+            bins = []
+            if fp_or_real:
+                while True:
+                    setCurrentContextPrecision(tmp_precision, tmp_exp)
+                    f = mpfr(str(a))
+                    if a < float(printMPFRExactly(f)):
+                        f = gmpy2.next_below(f)
+                    while f < b:
+                        bins.append(float(printMPFRExactly(f)))
+                        f = gmpy2.next_above(f)
+                    resetContextDefault()
+                    if len(bins)>=binLen:
+                        break
+                    else:
+                        bins=[]
+                        tmp_precision = tmp_precision+1
 
-            plt.autoscale(enable=True, axis='both', tight=False)
-            plt.ylim(top=2.0*my_max)
-            plt.plot(x, abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(x)), linewidth=5, color="red")
-            plotTicks(tmp_filename,"X","green", 4, 500, ticks=range_fpt, label="FPT: "+str(range_fpt))
-            plotBoundsDistr(tmp_filename, self.tree.root_value[2].distribution)
-            #plotTicks(file_name, "|", "g", 6, 600, ticks=[9.0, 15.0], label="99.99% prob. dist.\nin [9.0, 15.0]")
-            plt.xlabel('Distribution Range')
-            plt.ylabel('PDF')
-            plt.title(file_name+" - Range Analysis"+"\nprec="+str(self.precision)+", exp="+str(self.exp)+"\n")
-            plt.legend(fontsize=25)
-            #+file_name.replace('./', '')
-            plt.savefig(path+file_name+"/"+tmp_filename, dpi = 100)
-            plt.close("all")
+                if len(bins)==0:
+                    bins=1
+
+                fileHook.write("Picked Precision for histogram. mantissa:"+str(tmp_precision)+", exp:"+str(tmp_exp)+"\n\n")
+                fileHook.flush()
+
+            else:
+                bins=binLen
+        '''
+
+        print("Generating Graphs Range Analysis\n")
+
+        tmp_filename=file_name+"range__Bins_Auto"#+str(binLen)
+
+        plt.figure(tmp_filename, figsize=(15,10))
+        golden_file=open(path + file_name + "/golden.txt","a+")
+
+        if loadedGolden:
+            data_auto = np.load("./storage/"+file_name+"/"+file_name+"_range_auto.npz")
+            data_tt = np.load("./storage/"+file_name+"/"+file_name+"_range_10000.npz")
+            vals_golden, edges_golden = data_auto["vals_golden"], data_auto["edges_golden"]
+            plt.fill_between(edges_golden, np.concatenate(([0], vals_golden)), step="pre", color="black", label="Golden model")
+            data_auto.close()
+            data_tt.close()
+        else:
+            vals_golden_tt, edges_golden_tt, patches_golden_tt = plt.hist(golden_samples, bins=10000, alpha=0.0, density=True, color="black")
+            vals_golden, edges_golden, patches_golden = plt.hist(golden_samples, bins='auto', density=True, color="black", label="Golden model")
+            if not os.path.exists("./storage/"+file_name+"/"):
+                os.makedirs("./storage/"+file_name+"/")
+            np.savez("./storage/"+file_name+"/"+file_name+"_range_10000.npz", vals_golden=vals_golden_tt, edges_golden=edges_golden_tt)
+            np.savez("./storage/"+file_name+"/"+file_name+"_range_auto.npz", vals_golden=vals_golden, edges_golden=edges_golden)
+
+        binLenGolden=len(vals_golden)
+
+        golden_mode, golden_ind=self.collectInfoAboutSampling(golden_file,vals_golden,edges_golden,"Golden with num. bins: "+str(binLenGolden))
+        #self.outputEdgesVals(golden_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_golden,vals_golden)
+        golden_file.close()
+
+        distr_mode = self.tree.root_value[2].distribution.mode()
+        binLenDistr=1000
+        self.collectInfoAboutDistribution(fileHook, self.tree.root_value[2], "Range Analysis on Round(distr) with "+str(binLenDistr)+" bins", distr_mode, binLenDistr)
+
+        pm_file=open(path + file_name + "/pm.txt","a+")
+        vals_PM, edges_PM, patches_PM =plt.hist(self.tree.root_value[2].distributionValues, bins='auto', density=True, alpha=0.0, color="red")
+        #vals_PM, edges_PM, patches_PM =plt.hist(self.tree.root_value[2].distributionValues, edges_golden, density=True, alpha=0.0, color="red")
+        binLenPM = len(vals_PM)
+        pm_mode,pm_ind=self.collectInfoAboutSampling(pm_file,vals_PM,edges_PM,"PM with num. bins: "+str(binLenPM))#, golden_mode=golden_mode, golden_ind=golden_ind)
+        #self.outputEdgesVals(pm_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_PM,vals_PM)
+        pm_file.close()
+
+        sampling_file=open(path + file_name + "/sampling.txt","a+")
+        vals, edges, patches =plt.hist(r, bins='auto', alpha=0.5, density=True, color="blue", label="Sampling model")
+        #vals, edges, patches =plt.hist(r, edges_golden, alpha=0.5, density=True, color="blue", label="Sampling model")
+        binLenSamp=len(vals)
+        self.collectInfoAboutSampling(sampling_file,vals,edges,"Sampling with num. bins: "+str(binLenSamp))#, golden_mode=golden_mode, golden_ind=golden_ind)
+        #self.outputEdgesVals(sampling_file, "BinLen: "+str(binLenSamp)+", FP_or_real: "+str(fp_or_real)+"\n\n", edges, vals)
+        sampling_file.close()
+
+        self.measureDistances(self.tree.root_value[2], fileHook, vals_PM, vals_golden, vals, edges_PM, edges_golden, edges, "Measure Distances Range Analysis")
+
+        golden_max = abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(golden_mode))
+        pm_max = abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(pm_mode))
+        mode_distr = self.tree.root_value[2].distribution.mode()
+        distr_max = abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(mode_distr))
+
+        finalMax=max(golden_max, pm_max, distr_max)
+
+        plt.autoscale(enable=True, axis='both', tight=False)
+        plt.ylim(top=2.0*finalMax)
+        x = np.linspace(a, b, 1000)
+        plt.plot(x, abs(self.tree.root_value[2].distribution.get_piecewise_pdf()(x)), linewidth=5, color="red")
+        plotTicks(tmp_filename,"X","green", 4, 500, ticks=range_fpt, label="FPT: "+str(range_fpt))
+        plotBoundsDistr(tmp_filename, self.tree.root_value[2].distribution)
+        #plotTicks(file_name, "|", "g", 6, 600, ticks=[9.0, 15.0], label="99.99% prob. dist.\nin [9.0, 15.0]")
+        plt.xlabel('Distribution Range')
+        plt.ylabel('PDF')
+        plt.title(file_name+" - Range Analysis"+"\nprec="+str(self.precision)+", exp="+str(self.exp)+"\n")
+        plt.legend(fontsize=25)
+        #+file_name.replace('./', '')
+        plt.savefig(path+file_name+"/"+tmp_filename, dpi = 100)
+        plt.close("all")
 
     def outputEdgesVals(self, file_hook, string_name, edges, vals):
         file_hook.write(string_name)
@@ -562,24 +555,16 @@ class TreeModel:
         fileHook.write("Weighted - Ratio: " + str(float(counter) / float(tot)) + "\n\n")
         fileHook.write("########################\n\n")
 
-    def plot_empirical_error_distribution(self, abs_err_samples, abs_err_golden, summary_file, benchmarks_path, file_name, abs_fpt, rel_fpt):
+    def plot_empirical_error_distribution(self, loadedGolden, abs_err_samples, abs_err_golden, summary_file, benchmarks_path, file_name, abs_fpt, rel_fpt):
 
         abs_err = UnOpDist(BinOpDist(self.tree.root_value[2],"-", self.tree.root_value[0], 500, 250000, regularize=True, convolution=False), "abs_err", "abs")
-
         #rel_err = UnOpDist(BinOpDist(BinOpDist(self.tree.root_value[2],"-", self.tree.root_value[0], 100, regularize=True, convolution=False), "/", self.tree.root_value[0], 100, regularize=True, convolution=False), "rel_err", "abs")
 
         abs_err.execute().get_piecewise_pdf()
-        #rel_err.execute().get_piecewise_pdf()
-
-        #rel_a = rel_err_samples.min()
-        #rel_b = rel_err_samples.max()
 
         abs_a = abs_err_samples.min()
         abs_b = abs_err_samples.max()
 
-        #self.collectInfoAboutDistribution(summary_file, rel_err, "Relative Error Distribution")
-        # as bins, choose multiples of 2*eps between a and b
-        #for n_bin in [10, 50, 100, 500, 1000]:
         '''
         tmp_name="Rel_Error_Bins_"+str(n_bin)
         plt.figure(tmp_name, figsize=(15, 10))
@@ -597,17 +582,32 @@ class TreeModel:
         plt.savefig(benchmarks_path+file_name+"/"+tmp_name)
         self.elaborateBinsAndEdges(summary_file, edges, vals, "Relative Error Distribution (samples)")
         '''
+
         print("Generating Graphs Error Analysis\n")
 
-        tmp_name="Abs_Error_Bins_Auto"
+        tmp_name=file_name+"_Abs_Error_Bins_Auto"
         plt.figure(tmp_name, figsize=(15, 10))
 
         distr_mode = abs_err.execute().mode()
         self.collectInfoAboutDistribution(summary_file, abs_err, "Abs Error Distribution", distr_mode, 1000)
 
-        vals_golden, edges_golden, patches_golden = plt.hist(abs_err_golden, bins='auto', density=True, color="black", label="Golden model")
+        if loadedGolden:
+            data_auto = np.load("./storage/"+file_name+"/"+file_name+"_error_auto.npz")
+            data_tt = np.load("./storage/"+file_name+"/"+file_name+"_error_10000.npz")
+            vals_golden, edges_golden = data_auto["vals_golden"], data_auto["edges_golden"]
+            plt.fill_between(edges_golden, np.concatenate(([0], vals_golden)), step="pre", color="black", label="Golden model")
+            data_auto.close()
+            data_tt.close()
+        else:
+            vals_golden_tt, edges_golden_tt, patches_golden_tt = plt.hist(abs_err_golden, bins=10000, alpha=0.0, density=True, color="black")
+            vals_golden, edges_golden, patches_golden = plt.hist(abs_err_golden, bins='auto', density=True, color="black", label="Golden model")
+            if not os.path.exists("./storage/"+file_name+"/"):
+                os.makedirs("./storage/"+file_name+"/")
+            np.savez("./storage/"+file_name+"/"+file_name+"_error_10000.npz", vals_golden=vals_golden_tt, edges_golden=edges_golden_tt)
+            np.savez("./storage/"+file_name+"/"+file_name+"_error_auto.npz", vals_golden=vals_golden, edges_golden=edges_golden)
+
         binLenGolden = len(vals_golden)
-        self.collectInfoAboutSampling(summary_file, vals_golden, edges_golden, "Golden with num. bins: " + str(binLenGolden))
+        golden_mode, golden_ind = self.collectInfoAboutSampling(summary_file, vals_golden, edges_golden, "Golden with num. bins: " + str(binLenGolden))
 
         vals, edges, patches = plt.hist(abs_err_samples, bins='auto', alpha=0.5, density=True, color="blue", label="Sampling model")
         binLenSamp = len(vals)
@@ -615,11 +615,17 @@ class TreeModel:
 
         vals_PM, edges_PM, patches_PM = plt.hist(np.absolute(abs_err.operand.distributionValues), bins='auto', density=True, alpha=0.0, color="red")
         binLenPM = len(vals_PM)
-        self.collectInfoAboutSampling(summary_file, vals_PM, edges_PM, "PM with num. bins: " + str(binLenPM))
+        pm_mode, pm_ind = self.collectInfoAboutSampling(summary_file, vals_PM, edges_PM, "PM with num. bins: " + str(binLenPM))
 
-        my_max = abs(abs_err.distribution.get_piecewise_pdf()(distr_mode))
+        golden_max = abs(abs_err.execute().get_piecewise_pdf()(golden_mode))
+        pm_max = abs(abs_err.execute().get_piecewise_pdf()(pm_mode))
+        mode_distr = abs_err.execute().mode()
+        distr_max = abs(abs_err.execute().get_piecewise_pdf()(mode_distr))
+
+        finalMax = max(golden_max, pm_max, distr_max)
+
         plt.autoscale(enable=True, axis='both', tight=False)
-        plt.ylim(top=2.0 * my_max)
+        plt.ylim(top=2.0 * finalMax)
 
         x = np.linspace(abs_err.a, abs_err.b, 1000)
         plt.plot(x, abs(abs_err.distribution.get_piecewise_pdf()(x)), linewidth=5, color="red")
@@ -636,232 +642,3 @@ class TreeModel:
                               "Measure Distances Abs error")
 
         plt.close("all")
-
-class quantizedPointMass:
-
-   def __init__(self, wrapperInputDistribution, precision, exp):
-       self.wrapperInputDistribution = wrapperInputDistribution
-       self.inputdistribution = self.wrapperInputDistribution.execute()
-       self.precision = precision
-       self.exp = exp
-       setCurrentContextPrecision(self.precision, self.exp)
-       qValue = printMPFRExactly(mpfr(str(self.inputdistribution.rand(1)[0])))
-       resetContextDefault()
-       self.name = qValue
-       self.sampleInit=True
-       self.distribution = ConstDistr(float(qValue))
-       self.distribution.get_piecewise_pdf()
-       self.a = self.distribution.range_()[0]
-       self.b = self.distribution.range_()[-1]
-
-   def execute(self):
-       return self.distribution
-
-   def resetSampleInit(self):
-       self.sampleInit=True
-
-   def getSampleSet(self, n=100000):
-       # it remembers values for future operations
-       if self.sampleInit:
-           # self.sampleSet = self.distribution.rand(n)
-           if n <= 2:
-               self.sampleSet = self.distribution.rand(n)
-           else:
-               self.sampleSet = self.distribution.rand(n - 2)
-               self.sampleSet = np.append(self.sampleSet, [self.a, self.b])
-           self.sampleInit = False
-       return self.sampleSet
-
-tmp_pdf=None
-def my_tmp_pdf(t):
-    return np.absolute(tmp_pdf(t))
-
-#bins=None
-#n=None
-def op(t, bins, n):
-    if isinstance(t, float) or isinstance(t, int) or len(t) == 1:
-        if t < min(bins) or t > max(bins):
-            return 0.0
-        else:
-            index_bin=np.digitize(t,bins)
-            return abs(n[index_bin])
-    else:
-        res=np.zeros(len(t))
-        tis=t
-        for index,ti in enumerate(tis):
-            if ti < min(bins) or ti > max(bins):
-                res[index] = 0.0
-            else:
-                index_bin = np.digitize(ti, bins, right=True)
-                res[index] = n[index_bin-1]
-        return abs(res)
-    return 0
-
-class BinOpDist:
-    """
-    Wrapper class for the result of an arithmetic operation on PaCal distributions
-    Warning! leftoperand and rightoperant MUST be PaCal distributions
-    """
-    def __init__(self, leftoperand, operator, rightoperand, poly_precision, samples_dep_op, regularize=True, convolution=True):
-        self.leftoperand = leftoperand
-        self.operator = operator
-        self.rightoperand = rightoperand
-
-        self.name="("+self.leftoperand.name+str(self.operator)+self.rightoperand.name+")"
-
-        self.poly_precision=poly_precision
-
-        self.samples_dep_op=samples_dep_op
-
-        self.regularize = regularize
-        self.convolution=convolution
-
-        self.distribution=None
-        self.distributionConv = None
-        self.distributionSamp = None
-
-        self.sampleInit=True
-        self.execute()
-
-
-    def executeIndependent(self):
-        if self.operator == "+":
-            self.distributionConv = self.leftoperand.execute() + self.rightoperand.execute()
-        elif self.operator == "-":
-            self.distributionConv = self.leftoperand.execute() - self.rightoperand.execute()
-        elif self.operator == "*":
-            self.distributionConv = self.leftoperand.execute() * self.rightoperand.execute()
-        elif self.operator == "/":
-            self.distributionConv = self.leftoperand.execute() / self.rightoperand.execute()
-        # operator to multiply by a relative error
-        elif self.operator == "*+":
-            self.distributionConv = self.leftoperand.execute() * (1.0 + (self.rightoperand.eps*self.rightoperand.execute()))
-        else:
-            print("Operation not supported!")
-            exit(-1)
-
-        self.distributionConv.get_piecewise_pdf()
-
-        if self.regularize:
-            self.distributionConv = chebfunInterpDistr(self.distributionConv, 10)
-            self.distributionConv = normalizeDistribution(self.distributionConv)
-
-        self.aConv = self.distributionConv.range_()[0]
-        self.bConv = self.distributionConv.range_()[-1]
-
-    def operationDependent(self, elaborateBorders):
-        leftOp = self.leftoperand.getSampleSet(self.samples_dep_op)
-        rightOp = self.rightoperand.getSampleSet(self.samples_dep_op)
-
-        if self.operator == "*+":
-            res = np.array(leftOp) * (1 + (self.rightoperand.eps * np.array(rightOp)))
-            if elaborateBorders:
-                res = self.elaborateBorders(leftOp, self.operator, (1 + (self.rightoperand.eps * np.array(rightOp))), res)
-        else:
-            res = eval("np.array(leftOp)" + self.operator + "np.array(rightOp)")
-            if elaborateBorders:
-                res = self.elaborateBorders(leftOp, self.operator, rightOp, res)
-
-        return res
-
-    def elaborateBorders(self, leftOp, operator, rightOp, res):
-        x1 = min(leftOp)
-        x2 = max(leftOp)
-        y1 = min(rightOp)
-        y2 = max(rightOp)
-        tmp_res = []
-        for tmp_1 in [x1, x2]:
-            for tmp_2 in [y1, y2]:
-                tmp_res.append(eval(str(tmp_1)+operator+str(tmp_2)))
-        res[-1]=min(tmp_res)
-        res[-2]=max(tmp_res)
-        return res
-
-    def executeDependent(self):
-
-        tmp_res = self.distributionValues
-
-        #bin_nb = int(math.ceil(math.sqrt(len(tmp_res))))
-
-        n, bins, patches = plt.hist(tmp_res, bins='auto', density=True)
-
-        breaks=[min(bins), max(bins)]
-
-        global tmp_pdf
-        tmp_pdf = chebfun(lambda t : op(t, bins, n), domain=breaks, N=500)
-
-        self.distributionSamp = MyFunDistr(my_tmp_pdf, breakPoints=breaks, interpolated=True)
-        self.distributionSamp.get_piecewise_pdf()
-
-        if self.regularize:
-            self.distributionSamp = chebfunInterpDistr(self.distributionSamp, 10)
-            self.distributionSamp = normalizeDistribution(self.distributionSamp, init=True)
-
-        self.aSamp = self.distributionSamp.range_()[0]
-        self.bSamp = self.distributionSamp.range_()[-1]
-
-    def execute(self):
-        if self.distribution==None:
-            if self.convolution:
-                self.executeIndependent()
-                self.distributionValues = self.operationDependent(elaborateBorders=False)
-                self.distribution=self.distributionConv
-                self.a = self.aConv
-                self.b = self.bConv
-            else:
-                self.distributionValues = self.operationDependent(elaborateBorders=False)
-                self.executeDependent()
-                self.distribution = self.distributionSamp
-                self.a = self.aSamp
-                self.b = self.bSamp
-
-            self.distribution.get_piecewise_pdf()
-        return self.distribution
-
-    def getSampleSet(self,n=100000):
-        #it remembers values for future operations
-        if self.sampleInit:
-            self.execute()
-            self.sampleSet  = self.distributionValues
-            self.sampleInit = False
-        return self.sampleSet
-
-    def resetSampleInit(self):
-        self.sampleInit=True
-
-class UnOpDist:
-    """
-    Wrapper class for the result of unary operation on a PaCal distribution
-    """
-    def __init__(self, operand, name, operation=None):
-        if operation is None:
-            self.distribution = operand.execute()
-        elif operation is "exp":
-            self.distribution = pacal.exp(operand.execute())
-            self.distribution.get_piecewise_pdf()
-        elif operation is "cos":
-            self.distribution = pacal.cos(operand.execute())
-            self.distribution.get_piecewise_pdf()
-        elif operation is "sin":
-            self.distribution = pacal.sin(operand.execute())
-            self.distribution.get_piecewise_pdf()
-        elif operation is "abs":
-            self.distribution = abs(operand.execute())
-            self.distribution.get_piecewise_pdf()
-        else:
-            print("Unary operation not yet supported")
-            exit(-1)
-
-        self.operand = operand
-        self.name = name
-        self.a = self.distribution.range_()[0]
-        self.b = self.distribution.range_()[-1]
-
-    def execute(self):
-        return self.distribution
-
-    def resetSampleInit(self):
-        self.operand.sampleInit=True
-
-    def getSampleSet(self,n=100000):
-        return self.operand.getSampleSet(n)
