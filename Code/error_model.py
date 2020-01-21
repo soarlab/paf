@@ -215,23 +215,19 @@ class HighPrecisionErrorModel(Distr):
     def compare(self, n=100000):
         """A function to compare the density function with a Monte-Carlo simulation and return a K-S test"""
         empirical = self.input_distribution.rand(n)
-        f = self.get_piecewise_pdf()
+        pdf = self.get_piecewise_pdf()
+        cdf = self.get_piecewise_cdf()
         rounded = np.zeros_like(empirical)
         setCurrentContextPrecision(self.precision, self.exp)
         for index, ti in enumerate(empirical):
             rounded[index] = mpfr(str(empirical[index]))
         resetContextDefault()
-        for index, ti in enumerate(empirical):
-            x = (ti - rounded[index]) / (ti * self.eps)
-            if is_finite(x) and ~is_nan(x):
-                empirical[index] = x
-            else:
-                empirical[index] = 0
-        KS = kstest(empirical, f)
+        empirical = (empirical - rounded) / (empirical * self.eps)
+        KS = kstest(empirical, cdf)
         x = np.linspace(-1, 1, 201)
         plt.close()
-        plt.hist(empirical, bins=math.floor(n ** (1 / 3)), range=[-1, 1], density=True)
-        y = f(x)
+        plt.hist(empirical, bins=2*math.floor(n ** (1 / 3)), range=[-1, 1], density=True)
+        y = pdf(x)
         h = plt.plot(x, y)
         plt.show()
         return KS
@@ -336,7 +332,7 @@ class HighPrecisionErrorModel(Distr):
 
 def test_error_model():
     t = time()
-    U = BetaDistr(3, 2)
+    U = UniformDistr(2,3)
     E = HighPrecisionErrorModel(U, 23, 8)
     E.init_piecewise_pdf()
     print(E.getName())
