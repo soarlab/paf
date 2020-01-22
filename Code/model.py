@@ -94,9 +94,9 @@ class N:
             if n<=2:
                 self.sampleSet = tmp_dist.rvs(size=n)
             else:
-                #self.sampleSet = tmp_dist.rvs(size=n)
-                self.sampleSet  = tmp_dist.rvs(size=n-2)
-                self.sampleSet  = np.append(self.sampleSet, [self.a, self.b])
+                self.sampleSet = tmp_dist.rvs(size=n)
+                #self.sampleSet  = tmp_dist.rvs(size=n-2)
+                #self.sampleSet  = np.append(self.sampleSet, [self.a, self.b])
                 #self.sampleSet  = sorted(self.sampleSet)
             self.sampleInit = False
         return self.sampleSet
@@ -123,9 +123,9 @@ class B:
             if n<=2:
                 self.sampleSet = self.distribution.rand(n)
             else:
-                #self.sampleSet = self.distribution.rand(n)
-                self.sampleSet  = self.distribution.rand(n-2)
-                self.sampleSet  = np.append(self.sampleSet, [self.a, self.b])
+                self.sampleSet = self.distribution.rand(n)
+                #self.sampleSet  = self.distribution.rand(n-2)
+                #self.sampleSet  = np.append(self.sampleSet, [self.a, self.b])
             self.sampleInit = False
         return self.sampleSet
 
@@ -151,9 +151,9 @@ class U:
             if n<=2:
                 self.sampleSet = self.distribution.rand(n)
             else:
-                #self.sampleSet = self.distribution.rand(n)
-                self.sampleSet = self.distribution.rand(n-2)
-                self.sampleSet = np.append(self.sampleSet, [self.a, self.b])
+                self.sampleSet = self.distribution.rand(n)
+                #self.sampleSet = self.distribution.rand(n-2)
+                #self.sampleSet = np.append(self.sampleSet, [self.a, self.b])
                 #self.sampleSet  = sorted(self.sampleSet)
             self.sampleInit = False
         return self.sampleSet

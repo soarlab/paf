@@ -60,6 +60,7 @@ class DistributionsManager:
                 return self.errordictionary[wrapDist.name]
             else:
                 tmp=TypicalErrorModel(precision, exp, pol_prec)
+                #tmp=WrappedHighPrecisionError(wrapDist, precision, exp)
                 self.errordictionary[wrapDist.name] = tmp
                 return tmp
         else:
