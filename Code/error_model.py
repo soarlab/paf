@@ -13,6 +13,7 @@ from pacal.utils import wrap_pdf
 from numpy import isscalar, zeros_like, asfarray
 from scipy import integrate
 from scipy.stats import kstest
+import matplotlib
 import dill
 import pickle
 
@@ -212,7 +213,7 @@ class HighPrecisionErrorModel(Distr):
                     y[index] = self._pdf_wing(ti)
             return y
 
-    def compare(self, n=100000):
+    def compare(self, n=1000000):
         """A function to compare the density function with a Monte-Carlo simulation and return a K-S test"""
         empirical = self.input_distribution.rand(n)
         pdf = self.get_piecewise_pdf()
@@ -226,10 +227,14 @@ class HighPrecisionErrorModel(Distr):
         KS = kstest(empirical, cdf)
         x = np.linspace(-1, 1, 201)
         plt.close()
+        matplotlib.rcParams.update({'font.size': 12})
         plt.hist(empirical, bins=2*math.floor(n ** (1 / 3)), range=[-1, 1], density=True)
         y = pdf(x)
         h = plt.plot(x, y)
-        plt.show()
+        plt.title(self.input_distribution.getName()+", KS-test="+str(round(KS[0],4))+", p-val="+str(round(KS[1],4)))
+        #plt.show()
+        plt.savefig("pics/"+self.getName()+".png")
+        matplotlib.pyplot.close("all")
         return KS
 
     def _pdf_wing(self, x):
@@ -331,40 +336,39 @@ class HighPrecisionErrorModel(Distr):
 
 
 def test_error_model():
+    exp = 8
+    mantissa = 24
     t = time()
-    U = UniformDistr(2,3)
-    E = HighPrecisionErrorModel(U, 23, 8)
+    U = UniformDistr(4, 32)
+    E = HighPrecisionErrorModel(U, mantissa, exp)
     E.init_piecewise_pdf()
     print(E.getName())
     print(E.int_error())
     print(E.compare())
     print(time() - t)
     t = time()
-    U = UniformDistr(64, 1024)
-    E = HighPrecisionErrorModel(U, 23, 8)
-    print(E.getName())
+    U = UniformDistr(4, 5)
+    E = HighPrecisionErrorModel(U, mantissa, exp)
     E.init_piecewise_pdf()
+    print(E.getName())
     print(E.int_error())
+    print(E.compare())
     print(time() - t)
     t = time()
-    U = UniformDistr(-1024, -64)
-    E = HighPrecisionErrorModel(U, 23, 8)
-    print(E.getName())
+    U = UniformDistr(7, 8)
+    E = HighPrecisionErrorModel(U, mantissa, exp)
     E.init_piecewise_pdf()
+    print(E.getName())
     print(E.int_error())
+    print(E.compare())
     print(time() - t)
     t = time()
-    U = BetaDistr()
-    E = HighPrecisionErrorModel(U, 23, 8)
-    print(E.getName())
-    E.init_piecewise_pdf()
-    print(E.int_error())
-    print(time() - t)
     U = NormalDistr()
-    E = HighPrecisionErrorModel(U, 23, 8)
-    print(E.getName())
+    E = HighPrecisionErrorModel(U, mantissa, exp)
     E.init_piecewise_pdf()
+    print(E.getName())
     print(E.int_error())
+    print(E.compare())
     print(time() - t)
 
 

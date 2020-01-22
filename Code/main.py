@@ -59,15 +59,13 @@ def process_file(benchmarks_path, file, mantissa, exp, range_my_dict, abs_my_dic
     except Exception as e:
         logging.error(traceback.format_exc())
 
+
+
 matplotlib.pyplot.close("all")
 mantissa=24
 exp=8
 
-file = "Bspline0.txt"
-benchmarks_path="./benchmarks/"
-abs_my_dict=getAbsoluteError("./FPTaylor/results")
-range_my_dict=getBounds("./FPTaylor/results")
-process_file(benchmarks_path, file, mantissa, exp, range_my_dict, abs_my_dict)
+test_error_model()
 
 #mantissa with implicit bit of sign
 #gmpy2 set precision=p includes also sign bit.
