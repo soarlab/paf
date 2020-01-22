@@ -17,6 +17,7 @@ import time
 from FPTaylor import *
 import traceback
 import logging
+import gc
 
 class NoDaemonProcess(multiprocessing.Process):
      # make 'daemon' attribute always return False
@@ -49,8 +50,8 @@ def process_file(benchmarks_path, file, mantissa, exp, range_my_dict, abs_my_dic
         f = open(benchmarks_path + file_name + "/" + file_name + "_summary.out", "w+")
         f.write("Execution Time:"+str(finalTime)+"s \n\n")
 
-        loadedSamples, values_samples, abs_err_samples, rel_err_samples = T.generate_error_samples(5, file_name)
-        loadedGolden, values_golden, abs_err_golden, rel_err_golden = T.generate_error_samples(60, file_name, True)
+        loadedSamples, values_samples, abs_err_samples, rel_err_samples = T.generate_error_samples(finalTime, file_name)
+        loadedGolden, values_golden, abs_err_golden, rel_err_golden = T.generate_error_samples(3600, file_name, True)
 
         T.plot_range_analysis(loadedGolden, values_samples, values_golden, f, benchmarks_path,file_name, range_my_dict.get(file_name))
         T.plot_empirical_error_distribution(loadedGolden, abs_err_samples, abs_err_golden, f, benchmarks_path,file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
@@ -60,6 +61,7 @@ def process_file(benchmarks_path, file, mantissa, exp, range_my_dict, abs_my_dic
 
         del values_samples, abs_err_samples, rel_err_samples
         del values_golden, abs_err_golden, rel_err_golden
+
 
     except Exception as e:
         logging.error(traceback.format_exc())
