@@ -347,7 +347,7 @@ class TreeModel:
             index_bin=np.digitize(x,edges,right=False)
             return abs(vals[index_bin-1])
 
-    def measureDistances(self, distr_wrapper, fileHook, vals_PM_orig, vals_golden, vals_orig, edges_PM_orig, edges_golden, edges_orig, introStr, pdf=True):
+    def measureDistances(self, distr_wrapper, fileHook, vals_PM_orig, vals_golden, vals_orig, edges_PM_orig, edges_golden, edges_orig, introStr, pdf=True, normalize=True):
 
         vals_DistrPM = np.asarray(self.measureDistrVsGoldenEdges(distr_wrapper, edges_golden, pdf))
 
@@ -359,8 +359,12 @@ class TreeModel:
 
         vals_PM=np.asarray(vals_PM)
         vals=np.asarray(vals)
-        #self.outputEdgesVals(fileHook, "BinLen: " + str(len(vals_golden)) + ", FP_or_real: " + str(fp_or_real) + "\n\n",
-        #                     edges_golden, vals_DistrPM)
+
+        if pdf and normalize:
+            vals_DistrPM=vals_DistrPM/sum(vals_DistrPM)
+            vals_PM = vals_PM / sum(vals_PM)
+            vals=vals/sum(vals)
+            vals_golden=vals_golden/sum(vals_golden)
 
         var_distance_golden_DistrPM = np.max(np.absolute(vals_golden - vals_DistrPM))
         var_distance_golden_PM=np.max(np.absolute(vals_golden-vals_PM))
