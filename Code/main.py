@@ -47,25 +47,35 @@ def process_file(benchmarks_path, file, mantissa, exp, range_my_dict, abs_my_dic
         if os.path.exists(benchmarks_path+file_name):
             shutil.rmtree(benchmarks_path+file_name)
         os.makedirs(benchmarks_path+file_name)
-        f = open(benchmarks_path + file_name + "/" + file_name + "_summary.out", "w+")
+
+        f = open(benchmarks_path + file_name + "/" + file_name + "_CDF_summary.out", "w+")
         f.write("Execution Time:"+str(finalTime)+"s \n\n")
 
         loadedSamples, values_samples, abs_err_samples, rel_err_samples = T.generate_error_samples(finalTime, file_name)
-        loadedGolden, values_golden, abs_err_golden, rel_err_golden = T.generate_error_samples(3600, file_name, True)
+        loadedGolden, values_golden, abs_err_golden, rel_err_golden = T.generate_error_samples(7200, file_name, True)
 
-        T.plot_range_analysis(loadedGolden, values_samples, values_golden, f, benchmarks_path,file_name, range_my_dict.get(file_name))
-        T.plot_empirical_error_distribution(loadedGolden, abs_err_samples, abs_err_golden, f, benchmarks_path,file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
+        T.plot_range_analysis_CDF(loadedGolden, values_samples, values_golden, f, benchmarks_path,file_name, range_my_dict.get(file_name))
+        T.plot_empirical_error_distribution_CDF(loadedGolden, abs_err_samples, abs_err_golden, f, benchmarks_path,file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
 
         f.flush()
         f.close()
 
-        del values_samples, abs_err_samples, rel_err_samples
-        del values_golden, abs_err_golden, rel_err_golden
+        f = open(benchmarks_path + file_name + "/" + file_name + "_PDF_summary.out", "w+")
+        f.write("Execution Time:"+str(finalTime)+"s \n\n")
 
+        T.plot_range_analysis_PDF(loadedGolden, values_samples, values_golden, f, benchmarks_path,file_name, range_my_dict.get(file_name))
+        T.plot_empirical_error_distribution_PDF(loadedGolden, abs_err_samples, abs_err_golden, f, benchmarks_path,file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
+
+        f.flush()
+        f.close()
 
     except Exception as e:
         logging.error(traceback.format_exc())
 
+    finally:
+        del values_samples, abs_err_samples, rel_err_samples
+        del values_golden, abs_err_golden, rel_err_golden
+        gc.collect()
 
 
 matplotlib.pyplot.close("all")

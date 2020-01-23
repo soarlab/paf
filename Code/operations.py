@@ -159,7 +159,7 @@ class BinOpDist:
         breaks=[min(bins), max(bins)]
 
         global tmp_pdf
-        tmp_pdf = chebfun(lambda t : op(t, bins, n), domain=breaks, N=500)
+        tmp_pdf = chebfun(lambda t : op(t, bins, n), domain=breaks, N=100)
 
         self.distributionSamp = MyFunDistr(my_tmp_pdf, breakPoints=breaks, interpolated=True)
         self.distributionSamp.get_piecewise_pdf()
