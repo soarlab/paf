@@ -328,43 +328,54 @@ class TreeModel:
         vals=[]
         if pdf:
             distr_fun = distr.distribution.get_piecewise_pdf()
+            for ind, edge in enumerate(edges_golden[:-1]):
+                if edge >= distr.a and edge <= distr.b:
+                    vals.append(abs(distr_fun(edge)))
+                else:
+                    vals.append(0.0)
+            return vals
         else:
             distr_fun = distr.distribution.get_piecewise_cdf()
-        for ind, edge in enumerate(edges_golden[:-1]):
-            if edge>=distr.a and edge<=distr.b:
-                vals.append(abs(distr_fun(edge)))
-            else:
-                vals.append(0.0)
-        return vals
+            for ind, edge in enumerate(edges_golden[:-1]):
+                if edge <= distr.a:
+                    vals.append(0.0)
+                elif edge >= distr.b:
+                    vals.append(1.0)
+                else:
+                    vals.append(abs(distr_fun(edge)))
+            return vals
 
     def my_KL_entropy(self, p, q):
         return scipy.stats.entropy(p, q)
 
-    def getValueHist(self, edges, vals, x):
-        if x < min(edges) or x >= max(edges):
-            return 0.0
+    def getValueHist(self, edges, vals, x, pdf):
+        if pdf:
+            if x <= min(edges) or x >= max(edges):
+                return 0.0
+            else:
+                index_bin=np.digitize(x,edges,right=False)
+                return abs(vals[index_bin-1])
         else:
-            index_bin=np.digitize(x,edges,right=False)
-            return abs(vals[index_bin-1])
+            if x <= min(edges):
+                return 0.0
+            elif x >= max(edges):
+                return 1.0
+            else:
+                index_bin = np.digitize(x, edges, right=False)
+                return abs(vals[index_bin - 1])
 
-    def measureDistances(self, distr_wrapper, fileHook, vals_PM_orig, vals_golden, vals_orig, edges_PM_orig, edges_golden, edges_orig, introStr, pdf=True, normalize=True):
+    def measureDistances(self, distr_wrapper, fileHook, vals_PM_orig, vals_golden, vals_orig, edges_PM_orig, edges_golden, edges_orig, introStr, pdf=True):
 
         vals_DistrPM = np.asarray(self.measureDistrVsGoldenEdges(distr_wrapper, edges_golden, pdf))
 
         vals_PM=[]
         vals=[]
         for edge_golden in edges_golden[:-1]:
-            vals_PM.append(self.getValueHist(edges_PM_orig, vals_PM_orig, edge_golden))
-            vals.append(self.getValueHist(edges_orig, vals_orig, edge_golden))
+            vals_PM.append(self.getValueHist(edges_PM_orig, vals_PM_orig, edge_golden, pdf))
+            vals.append(self.getValueHist(edges_orig, vals_orig, edge_golden, pdf))
 
         vals_PM=np.asarray(vals_PM)
         vals=np.asarray(vals)
-
-        if pdf and normalize:
-            vals_DistrPM=vals_DistrPM/sum(vals_DistrPM)
-            vals_PM = vals_PM / sum(vals_PM)
-            vals=vals/sum(vals)
-            vals_golden=vals_golden/sum(vals_golden)
 
         var_distance_golden_DistrPM = np.max(np.absolute(vals_golden - vals_DistrPM))
         var_distance_golden_PM=np.max(np.absolute(vals_golden-vals_PM))
