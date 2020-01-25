@@ -65,7 +65,7 @@ matplotlib.pyplot.close("all")
 mantissa=24
 exp=8
 
-test_error_model()
+test_LP_error_model()
 
 #mantissa with implicit bit of sign
 #gmpy2 set precision=p includes also sign bit.

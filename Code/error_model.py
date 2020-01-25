@@ -13,6 +13,7 @@ from pacal.utils import wrap_pdf
 from numpy import isscalar, zeros_like, asfarray
 from scipy import integrate
 from scipy.stats import kstest
+import model
 import matplotlib
 import dill
 import pickle
@@ -155,7 +156,7 @@ class WrappedHighPrecisionError():
 
 class HighPrecisionErrorModel(Distr):
 
-    def __init__(self, input_distribution, precision, exp):
+    def __init__(self, input_distribution, precision, exponent):
         '''
     The class implements the high-precision error distribution function.
     Inputs:
@@ -168,7 +169,7 @@ class HighPrecisionErrorModel(Distr):
         self.input_distribution.init_piecewise_pdf()
         self.name = "Error(" + self.input_distribution.getName() + ")"
         self.precision = precision
-        self.exp = exp
+        self.exponent = exponent
         self.sampleInit = True
         self.central_constant = None
         self.eps = 2 ** (-self.precision)
@@ -228,12 +229,13 @@ class HighPrecisionErrorModel(Distr):
         x = np.linspace(-1, 1, 201)
         plt.close()
         matplotlib.rcParams.update({'font.size': 12})
-        plt.hist(empirical, bins=2*math.floor(n ** (1 / 3)), range=[-1, 1], density=True)
+        plt.hist(empirical, bins=2 * math.floor(n ** (1 / 3)), range=[-1, 1], density=True)
         y = pdf(x)
         h = plt.plot(x, y)
-        plt.title(self.input_distribution.getName()+", KS-test="+str(round(KS[0],4))+", p-val="+str(round(KS[1],4)))
-        #plt.show()
-        plt.savefig("pics/"+self.getName()+".png")
+        plt.title(
+            self.input_distribution.getName() + ", KS-test=" + str(round(KS[0], 4)) + ", p-val=" + str(round(KS[1], 4)))
+        # plt.show()
+        plt.savefig("pics/" + self.getName() + ".png")
         matplotlib.pyplot.close("all")
         return KS
 
@@ -335,12 +337,12 @@ class HighPrecisionErrorModel(Distr):
         resetContextDefault()
 
 
-def test_error_model():
-    exp = 8
+def test_HP_error_model():
+    exponent = 8
     mantissa = 24
     t = time()
     U = UniformDistr(4, 32)
-    E = HighPrecisionErrorModel(U, mantissa, exp)
+    E = HighPrecisionErrorModel(U, mantissa, exponent)
     E.init_piecewise_pdf()
     print(E.getName())
     print(E.int_error())
@@ -348,7 +350,7 @@ def test_error_model():
     print(time() - t)
     t = time()
     U = UniformDistr(4, 5)
-    E = HighPrecisionErrorModel(U, mantissa, exp)
+    E = HighPrecisionErrorModel(U, mantissa, exponent)
     E.init_piecewise_pdf()
     print(E.getName())
     print(E.int_error())
@@ -356,7 +358,7 @@ def test_error_model():
     print(time() - t)
     t = time()
     U = UniformDistr(7, 8)
-    E = HighPrecisionErrorModel(U, mantissa, exp)
+    E = HighPrecisionErrorModel(U, mantissa, exponent)
     E.init_piecewise_pdf()
     print(E.getName())
     print(E.int_error())
@@ -364,7 +366,7 @@ def test_error_model():
     print(time() - t)
     t = time()
     U = NormalDistr()
-    E = HighPrecisionErrorModel(U, mantissa, exp)
+    E = HighPrecisionErrorModel(U, mantissa, exponent)
     E.init_piecewise_pdf()
     print(E.getName())
     print(E.int_error())
@@ -399,7 +401,7 @@ class ErrorModel:
         # Test if the range of floating point number covers enough of the inputdistribution
         x = gmpy2.next_above(gmpy2.inf(-1))
         y = gmpy2.next_below(gmpy2.inf(1))
-        # check exponenent out of range (overflow)
+        # check exponent out of range (overflow)
         # instead in case of accuracy problem
         # (normalize: divide by the current coverage ex. 0.995/0.995)
 
@@ -543,6 +545,76 @@ class ErrorModel:
             return sum
         else:
             return sums
+
+    def compare(self, n=100000):
+        """A function to compare the density function with a Monte-Carlo simulation and return a K-S test"""
+        empirical = self.inputdistribution.rand(n)
+        pdf = self.distribution.get_piecewise_pdf()
+        cdf = self.distribution.get_piecewise_cdf()
+        rounded = np.zeros_like(empirical)
+        setCurrentContextPrecision(self.precision, self.exp)
+        for index, ti in enumerate(empirical):
+            rounded[index] = mpfr(str(empirical[index]))
+        resetContextDefault()
+        empirical = (empirical - rounded) / (empirical * self.eps)
+        KS = kstest(empirical, cdf)
+        x = np.linspace(-1, 1, 201)
+        plt.close()
+        matplotlib.rcParams.update({'font.size': 13})
+        plt.hist(empirical, bins=2 * math.floor(n ** (1 / 3)), range=[-1, 1], density=True)
+        y = pdf(x)
+        h = plt.plot(x, y)
+        plt.title(self.inputdistribution.getName() + ", KS-test=" + str(round(KS[0], 4)) + ", p-val=" + str(
+            round(KS[1], 4)))
+        # plt.show()
+        plt.savefig("pics/E(" + self.inputdistribution.getName() + "_" + str(self.precision) + "_" + str(self.exp) + ").png")
+        matplotlib.pyplot.close("all")
+        return KS
+
+
+def test_LP_error_model():
+    exponent = 3
+    mantissa = 4
+    poly_precision = 200
+    t = time()
+    D = model.U("U", 2, 4)
+    E = ErrorModel(D, mantissa, exponent, poly_precision)
+    print(E.distribution.int_error())
+    print(E.compare())
+    print(time() - t)
+    t = time()
+    D = model.N("N", 0, 1)
+    E = ErrorModel(D, mantissa, exponent, poly_precision)
+    print(E.distribution.int_error())
+    print(E.compare())
+    print(time() - t)
+    t = time()
+    D = model.B("Beta", 2, 2)
+    E = ErrorModel(D, mantissa, exponent, poly_precision)
+    print(E.distribution.int_error())
+    print(E.compare())
+    print(time() - t)
+    exponent = 5
+    mantissa = 11
+    poly_precision = 50
+    t = time()
+    D = model.U("U", 2, 4)
+    E = ErrorModel(D, mantissa, exponent, poly_precision)
+    print(E.distribution.int_error())
+    print(E.compare())
+    print(time() - t)
+    t = time()
+    D = model.N("N", 0, 1)
+    E = ErrorModel(D, mantissa, exponent, poly_precision)
+    print(E.distribution.int_error())
+    print(E.compare())
+    print(time() - t)
+    t = time()
+    D = model.B("Beta", 2, 2)
+    E = ErrorModel(D, mantissa, exponent, poly_precision)
+    print(E.distribution.int_error())
+    print(E.compare())
+    print(time() - t)
 
 
 def getTypical(x):
