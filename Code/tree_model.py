@@ -295,7 +295,7 @@ class TreeModel:
         f.write(res)
         return
 
-    def collectInfoAboutSampling(self, f, vals, edges, name, golden_mode_index=None):
+    def collectInfoAboutSampling(self, f, vals, edges, name, pdf, golden_mode_index=None):
         res="###### Info about "+name+"#######:\n\n"
         if golden_mode_index is None:
             ind = vals.argmax()
@@ -304,20 +304,31 @@ class TreeModel:
             ind = golden_mode_index
             mode = edges[ind]
         res=res+"Starting from value " + str(mode) + "\n\n\n"
-        tot=sum(vals)
-        for i in [0.25, 0.5, 0.75, 0.85, 0.95, 0.99, 0.9999]:
-            val = vals[ind]
-            lower = ind
-            upper = ind+1
-            while (val/tot) < i:
-                lower = lower - 1
-                if lower < 0:
-                    lower = 0
-                upper = upper + 1
-                if upper > len(edges)-1:
-                    upper = len(edges)-1
-                val = sum(vals[lower:upper])
-            res = res + "Range: [" + str(edges[lower]) + "," + str(edges[upper]) + "] contains " + str(i * 100) + "% of the distribution.\n\n"
+        if pdf:
+            tot=sum(vals)
+            for i in [0.25, 0.5, 0.75, 0.85, 0.95, 0.99, 0.9999]:
+                val = vals[ind]
+                lower = ind
+                upper = ind+1
+                while (val/tot) < i:
+                    lower = lower - 1
+                    if lower < 0:
+                        lower = 0
+                    upper = upper + 1
+                    if upper > len(edges)-1:
+                        upper = len(edges)-1
+                    val = sum(vals[lower:upper])
+                res = res + "Range: [" + str(edges[lower]) + "," + str(edges[upper]) + "] contains " + str(i * 100) + "% of the distribution.\n\n"
+        else:
+            tot = vals[-1]
+            for i in [0.25, 0.5, 0.75, 0.85, 0.95, 0.99, 0.9999]:
+                val = vals[0]
+                lower = 0
+                upper = -1
+                while (val / tot) < i:
+                    upper = upper + 1
+                    val = vals[upper]
+                res = res + "Range: [" + str(edges[lower]) + "," + str(edges[upper+1]) + "] contains " + str(i * 100) + "% of the distribution.\n\n"
         res = res + "Range: [" + str(edges[0]) + "," + str(edges[-1]) + "] contains 100% of the distribution.\n\n"
         res = res+"###########################################\n\n\n"
         #print(res)
@@ -454,7 +465,7 @@ class TreeModel:
         golden_file=open(path + file_name + "/golden.txt","a+")
 
         binLenGolden=len(vals_golden)
-        golden_mode, golden_ind=self.collectInfoAboutSampling(golden_file,vals_golden,edges_golden,"PDF Range Analysis with Golden Model with num. bins: "+str(binLenGolden))
+        golden_mode, golden_ind=self.collectInfoAboutSampling(golden_file,vals_golden,edges_golden,"PDF Range Analysis with Golden Model with num. bins: "+str(binLenGolden),pdf=True)
         #self.outputEdgesVals(golden_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_golden,vals_golden)
         golden_file.close()
 
@@ -466,7 +477,7 @@ class TreeModel:
         vals_PM, edges_PM, patches_PM =plt.hist(self.tree.root_value[2].distributionValues, bins='auto', density=True, alpha=0.0, color="red")
         #vals_PM, edges_PM, patches_PM =plt.hist(self.tree.root_value[2].distributionValues, edges_golden, density=True, alpha=0.0, color="red")
         binLenPM = len(vals_PM)
-        pm_mode,pm_ind=self.collectInfoAboutSampling(pm_file,vals_PM,edges_PM,"PDF Range Analysis with PM Model with num. bins: "+str(binLenPM))#, golden_mode=golden_mode, golden_ind=golden_ind)
+        pm_mode,pm_ind=self.collectInfoAboutSampling(pm_file,vals_PM,edges_PM,"PDF Range Analysis with PM Model with num. bins: "+str(binLenPM), pdf=True)#, golden_mode=golden_mode, golden_ind=golden_ind)
         #self.outputEdgesVals(pm_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_PM,vals_PM)
         pm_file.close()
 
@@ -474,7 +485,7 @@ class TreeModel:
         vals, edges, patches =plt.hist(r, bins='auto', alpha=0.5, density=True, color="blue", label="Sampling model")
         #vals, edges, patches =plt.hist(r, edges_golden, alpha=0.5, density=True, color="blue", label="Sampling model")
         binLenSamp=len(vals)
-        self.collectInfoAboutSampling(sampling_file,vals,edges,"PDF Range Analysis with Sampling Model with num. bins: "+str(binLenSamp))#, golden_mode=golden_mode, golden_ind=golden_ind)
+        self.collectInfoAboutSampling(sampling_file,vals,edges,"PDF Range Analysis with Sampling Model with num. bins: "+str(binLenSamp),pdf=True)#, golden_mode=golden_mode, golden_ind=golden_ind)
         #self.outputEdgesVals(sampling_file, "BinLen: "+str(binLenSamp)+", FP_or_real: "+str(fp_or_real)+"\n\n", edges, vals)
         sampling_file.close()
 
@@ -554,7 +565,7 @@ class TreeModel:
         binLenGolden=len(vals_golden)
 
         golden_file=open(path + file_name + "/golden.txt","a+")
-        golden_mode, golden_ind=self.collectInfoAboutSampling(golden_file,vals_golden,edges_golden," CDF Range Analysis with Golden Model with num. bins: "+str(binLenGolden), golden_mode_index=0)
+        golden_mode, golden_ind=self.collectInfoAboutSampling(golden_file,vals_golden,edges_golden," CDF Range Analysis with Golden Model with num. bins: "+str(binLenGolden), pdf=False, golden_mode_index=0)
         #self.outputEdgesVals(golden_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_golden,vals_golden)
         golden_file.close()
 
@@ -567,7 +578,7 @@ class TreeModel:
         #vals_PM, edges_PM, patches_PM =plt.hist(self.tree.root_value[2].distributionValues, edges_golden, density=True, alpha=0.0, color="red")
 
         binLenPM = len(vals_PM)
-        pm_mode,pm_ind=self.collectInfoAboutSampling(pm_file,vals_PM,edges_PM," CDF Range Analysis with PM with num. bins: "+str(binLenPM), golden_mode_index=0)#, golden_mode=golden_mode, golden_ind=golden_ind)
+        pm_mode,pm_ind=self.collectInfoAboutSampling(pm_file,vals_PM,edges_PM," CDF Range Analysis with PM with num. bins: "+str(binLenPM), pdf=False, golden_mode_index=0)#, golden_mode=golden_mode, golden_ind=golden_ind)
         #self.outputEdgesVals(pm_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_PM,vals_PM)
         pm_file.close()
 
@@ -578,7 +589,7 @@ class TreeModel:
 
         #vals, edges, patches =plt.hist(r, edges_golden, alpha=0.5, density=True, color="blue", label="Sampling model")
         binLenSamp=len(vals)
-        self.collectInfoAboutSampling(sampling_file,vals,edges," CDF Range Analysis with Sampling model with num. bins: "+str(binLenSamp), golden_mode_index=0)#, golden_mode=golden_mode, golden_ind=golden_ind)
+        self.collectInfoAboutSampling(sampling_file,vals,edges," CDF Range Analysis with Sampling model with num. bins: "+str(binLenSamp), pdf=False, golden_mode_index=0)#, golden_mode=golden_mode, golden_ind=golden_ind)
         #self.outputEdgesVals(sampling_file, "BinLen: "+str(binLenSamp)+", FP_or_real: "+str(fp_or_real)+"\n\n", edges, vals)
         sampling_file.close()
 
@@ -679,19 +690,19 @@ class TreeModel:
 
         golden_file=open(benchmarks_path + file_name + "/golden.txt","a+")
         binLenGolden = len(vals_golden)
-        golden_mode, golden_ind = self.collectInfoAboutSampling(golden_file, vals_golden, edges_golden, "PDF Error Analysis with Golden Model with num. bins: " + str(binLenGolden))
+        golden_mode, golden_ind = self.collectInfoAboutSampling(golden_file, vals_golden, edges_golden, "PDF Error Analysis with Golden Model with num. bins: " + str(binLenGolden),pdf=True)
         golden_file.close()
 
         sampling_file=open(benchmarks_path + file_name + "/sampling.txt","a+")
         vals, edges, patches = plt.hist(abs_err_samples, bins='auto', alpha=0.5, density=True, color="blue", label="Sampling model")
         binLenSamp = len(vals)
-        self.collectInfoAboutSampling(sampling_file, vals, edges, "PDF Error Analysis with Sampling Model with num. bins: " + str(binLenSamp))
+        self.collectInfoAboutSampling(sampling_file, vals, edges, "PDF Error Analysis with Sampling Model with num. bins: " + str(binLenSamp),pdf=True)
         sampling_file.close()
 
         pm_file=open(benchmarks_path + file_name + "/pm.txt","a+")
         vals_PM, edges_PM, patches_PM = plt.hist(np.absolute(abs_err.operand.distributionValues), bins='auto', density=True, alpha=0.0, color="red")
         binLenPM = len(vals_PM)
-        pm_mode, pm_ind = self.collectInfoAboutSampling(pm_file, vals_PM, edges_PM, "PDF Error Analysis with PM with num. bins: " + str(binLenPM))
+        pm_mode, pm_ind = self.collectInfoAboutSampling(pm_file, vals_PM, edges_PM, "PDF Error Analysis with PM with num. bins: " + str(binLenPM),pdf=True)
         pm_file.close()
 
         golden_max = abs(abs_err.execute().get_piecewise_pdf()(golden_mode))
@@ -758,7 +769,7 @@ class TreeModel:
 
         golden_file=open(benchmarks_path + file_name + "/golden.txt","a+")
         binLenGolden = len(vals_golden)
-        golden_mode, golden_ind = self.collectInfoAboutSampling(golden_file, vals_golden, edges_golden, "CDF Error Analysis with Golden Model with num. bins: " + str(binLenGolden), golden_mode_index=0)
+        golden_mode, golden_ind = self.collectInfoAboutSampling(golden_file, vals_golden, edges_golden, "CDF Error Analysis with Golden Model with num. bins: " + str(binLenGolden),pdf=False, golden_mode_index=0)
         golden_file.close()
 
         sampling_file=open(benchmarks_path + file_name + "/sampling.txt","a+")
@@ -766,7 +777,7 @@ class TreeModel:
         #vals, edges, patches = plt.hist(abs_err_samples, bins='auto', alpha=0.5, density=True, color="blue", label="Sampling model")
         vals, edges = self.plotCDF(not_norm_edges, not_norm_vals, normalize = True, alpha=0.5, linewidth=3, color="blue", label="Sampling model" )
         binLenSamp = len(vals)
-        self.collectInfoAboutSampling(sampling_file, vals, edges, "CDF Error Analysis with Sampling model with num. bins: " + str(binLenSamp), golden_mode_index=0)
+        self.collectInfoAboutSampling(sampling_file, vals, edges, "CDF Error Analysis with Sampling model with num. bins: " + str(binLenSamp), pdf=False, golden_mode_index=0)
         sampling_file.close()
 
 
@@ -775,7 +786,7 @@ class TreeModel:
         vals_PM, edges_PM= self.plotCDF(notnorm_edges_PM, notnorm_vals_PM, normalize=True, alpha=0.0)
         #self.plotCDF(edges_PM, vals_PM, normalize=True, alpha=0.0, color="red")
         binLenPM = len(vals_PM)
-        pm_mode, pm_ind = self.collectInfoAboutSampling(pm_file, vals_PM, edges_PM, "CDF Error Analysis with PM model with num. bins: " + str(binLenPM), golden_mode_index=0)
+        pm_mode, pm_ind = self.collectInfoAboutSampling(pm_file, vals_PM, edges_PM, "CDF Error Analysis with PM model with num. bins: " + str(binLenPM), pdf=False, golden_mode_index=0)
         pm_file.close()
 
         self.measureDistances(abs_err, summary_file, vals_PM, vals_golden, vals, edges_PM, edges_golden, edges,

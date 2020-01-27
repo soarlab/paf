@@ -9,7 +9,10 @@ class NodeManager:
         self.nodeDict={}
 
     def createNode(self, value, children=None):
-        if value.name in self.nodeDict:
+        if isinstance(value, Number):
+            idtmp = self.id
+            self.id = self.id + 1
+        elif value.name in self.nodeDict:
             idtmp = self.nodeDict[value.name]
         else:
             idtmp = self.id
