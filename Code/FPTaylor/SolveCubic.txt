@@ -4,4 +4,4 @@ Variables
 	float64 c in [0, 5.0];
 
 Expressions
-	solvecubic rnd32 = (((((2 * a) * a) * a) - ((((9 * a) * b) + (27 * c)) / 54)) + (((a * a) - (3 * b)) / 9));
+	solvecubic rnd32 = (((((2 * a) * a) * a) - (((9 * a) * b) + (27 * c))) / 54) + (((a * a) - (3 * b)) / 9);

@@ -451,12 +451,12 @@ class TreeModel:
             data_auto = np.load("./storage/"+file_name+"/"+file_name+"_range_auto.npz")
             data_tt = np.load("./storage/"+file_name+"/"+file_name+"_range_10000.npz")
             vals_golden, edges_golden = data_auto["vals_golden"], data_auto["edges_golden"]
-            plt.fill_between(edges_golden, np.concatenate(([0], vals_golden)), step="pre", color="black", label="Golden model")
+            plt.fill_between(edges_golden, np.concatenate(([0], vals_golden)), step="pre", color="darkgoldenrod", label="Golden distribution")
             data_auto.close()
             data_tt.close()
         else:
             vals_golden_tt, edges_golden_tt, patches_golden_tt = plt.hist(golden_samples, bins=10000, alpha=0.0, density=True, color="black")
-            vals_golden, edges_golden, patches_golden = plt.hist(golden_samples, bins='auto', density=True, color="black", label="Golden model")
+            vals_golden, edges_golden, patches_golden = plt.hist(golden_samples, bins='auto', density=True, color="darkgoldenrod", label="Golden distribution")
             if not os.path.exists("./storage/"+file_name+"/"):
                 os.makedirs("./storage/"+file_name+"/")
             np.savez("./storage/"+file_name+"/"+file_name+"_range_10000.npz", vals_golden=vals_golden_tt, edges_golden=edges_golden_tt)
@@ -481,8 +481,8 @@ class TreeModel:
         #self.outputEdgesVals(pm_file,"BinLen: "+str(binLen)+", FP_or_real: "+str(fp_or_real)+"\n\n",edges_PM,vals_PM)
         pm_file.close()
 
-        sampling_file=open(path + file_name + "/sampling.txt","a+")
-        vals, edges, patches =plt.hist(r, bins='auto', alpha=0.5, density=True, color="blue", label="Sampling model")
+        sampling_file=open(path + file_name + "/sampling.txt","a+") #alpha=0.5
+        vals, edges, patches =plt.hist(r, bins='auto', alpha=1, density=True, color="blue", label="Sampled distribution")
         #vals, edges, patches =plt.hist(r, edges_golden, alpha=0.5, density=True, color="blue", label="Sampling model")
         binLenSamp=len(vals)
         self.collectInfoAboutSampling(sampling_file,vals,edges,"PDF Range Analysis with Sampling Model with num. bins: "+str(binLenSamp),pdf=True)#, golden_mode=golden_mode, golden_ind=golden_ind)
@@ -506,6 +506,7 @@ class TreeModel:
         plotBoundsDistr(tmp_filename, self.tree.root_value[2].distribution)
         #plotTicks(file_name, "|", "g", 6, 600, ticks=[9.0, 15.0], label="99.99% prob. dist.\nin [9.0, 15.0]")
         plt.xlabel('Distribution Range')
+        plt.ticklabel_format(axis='both', style='sci', scilimits=(0, 0))
         plt.ylabel('PDF')
         plt.title(file_name+" - Range Analysis"+"\nprec="+str(self.precision)+", exp="+str(self.exp)+"\n")
         plt.legend(fontsize=25)

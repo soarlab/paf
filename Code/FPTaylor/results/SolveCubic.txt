@@ -79,9 +79,9 @@ The absolute error model (exact): 5.499566e-04 (suboptimality = 0.1%)
 The relative error model (exact): 4.191936e-07 (suboptimality = 1.0%)
 
 Bounds (without rounding): [2.434028e+02, 2.011111e+03]
-Bounds (floating-point): [2.43402227423791799765e+02, 2.01111166146509731334e+03]
+Bounds (floating-point): [-9.34079981944043069575e-01, 4.81481641833329447877e+01]
 
-Absolute error (exact): 5.503540e-04
+Absolute error (exact): 1.603518e-05
 Relative error (exact): 4.233511e-07
 
 Elapsed time: 1.85

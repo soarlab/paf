@@ -40,20 +40,20 @@ def plotTicks(figureName, mark, col, lw, s, ticks, label=""):
         values_ticks=eval(ticks)
         minVal = values_ticks[0]
         maxVal = values_ticks[1]
-        labelMinVal = str("%.7f" % float(minVal))
-        labelMaxVal = str("%.7f" % float(maxVal))
+        labelMinVal = str("%.1f" % float(minVal))
+        labelMaxVal = str("%.1f" % float(maxVal))
         plt.figure(figureName)
-        plt.scatter(x=[minVal, maxVal], y=[0, 0], c=col, marker=mark, label="FPT: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=lw, s=s)
+        plt.scatter(x=[minVal, maxVal], y=[0, 0], c=col, marker=mark, label="FPTaylor: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=lw, s=s)
 
 
 def plotBoundsDistr(figureName, distribution):
     minVal = distribution.range_()[0]
     maxVal = distribution.range_()[-1]
-    labelMinVal = str("%.7f" % distribution.range_()[0])
-    labelMaxVal = str("%.7f" % distribution.range_()[-1])
+    labelMinVal = str("%.1f" % distribution.range_()[0])
+    labelMaxVal = str("%.1f" % distribution.range_()[-1])
     plt.figure(figureName)
     plt.scatter(x=[minVal, maxVal], y=[0, 0], c='r', marker="|",
-                label="PM: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=6, s=600)
+                label="PAF: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=6, s=600)
 
 def printMPFRExactly(a):
     return "{0:.50f}".format(a)
