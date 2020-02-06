@@ -1,36 +1,18 @@
+import setup_utils #It has to be first line
+from setup_utils import MyPool
 import os
-# disable openblas threading
-# This must be done before importing numpy
-
-par=1
-os.environ["OPENBLAS_NUM_THREADS"] = str(par)
-
-import utils
-utils.init_pacal()
-
-
-import matplotlib.pyplot
-from fpryacc import *
-from tree_model import TreeModel
+import shutil
 import multiprocessing.pool
 import time
-from FPTaylor import *
 import traceback
 import logging
 import gc
 
-class NoDaemonProcess(multiprocessing.Process):
-     # make 'daemon' attribute always return False
-     def _get_daemon(self):
-         return False
-     def _set_daemon(self, value):
-        pass
-     daemon = property(_get_daemon, _set_daemon)
+from fpryacc import FPRyacc
+from tree_model import TreeModel
+from FPTaylor import getFPTaylorResults
 
-class MyPool(multiprocessing.pool.Pool):
-    Process = NoDaemonProcess
-
-def process_file(benchmarks_path, file, mantissa, exp, range_my_dict, abs_my_dict):
+def process_file(benchmarks_path, file, output_folder, storage_path, mantissa, exp, range_my_dict, abs_my_dict, goldenModelTime, loadIfExists):
     try:
         print(file)
         f = open(benchmarks_path+file,"r")
@@ -44,27 +26,27 @@ def process_file(benchmarks_path, file, mantissa, exp, range_my_dict, abs_my_dic
         end_time = time.time()
         print("Exe time --- %s seconds ---" % (end_time - start_time))
         finalTime=end_time-start_time
-        if os.path.exists(benchmarks_path+file_name):
-            shutil.rmtree(benchmarks_path+file_name)
-        os.makedirs(benchmarks_path+file_name)
 
-        f = open(benchmarks_path + file_name + "/" + file_name + "_CDF_summary.out", "w+")
+        if os.path.exists(output_folder+file_name):
+            shutil.rmtree(output_folder+file_name)
+        os.makedirs(output_folder+file_name)
+
+        f = open(output_folder + file_name + "/" + file_name + "_CDF_summary.out", "w+")
         f.write("Execution Time:"+str(finalTime)+"s \n\n")
 
-        loadedSamples, values_samples, abs_err_samples, rel_err_samples = T.generate_error_samples(finalTime, file_name)
-        loadedGolden, values_golden, abs_err_golden, rel_err_golden = T.generate_error_samples(7200, file_name, True)
+        loadedSamples, values_samples, abs_err_samples, rel_err_samples = T.generate_error_samples(finalTime, file_name, storage_path)
+        loadedGolden, values_golden, abs_err_golden, rel_err_golden = T.generate_error_samples(goldenModelTime, file_name, storage_path, loadIfExists)
 
-        T.plot_range_analysis_CDF(loadedGolden, values_samples, values_golden, f, benchmarks_path,file_name, range_my_dict.get(file_name))
-        T.plot_empirical_error_distribution_CDF(loadedGolden, abs_err_samples, abs_err_golden, f, benchmarks_path,file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
-
+        T.plot_range_analysis_CDF(loadedGolden, values_samples, values_golden, f, output_folder, file_name, storage_path, range_my_dict.get(file_name))
+        T.plot_empirical_error_distribution_CDF(loadedGolden, abs_err_samples, abs_err_golden, f, output_folder, file_name, storage_path, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
         f.flush()
         f.close()
 
-        f = open(benchmarks_path + file_name + "/" + file_name + "_PDF_summary.out", "w+")
+        f = open(output_folder + file_name + "/" + file_name + "_PDF_summary.out", "w+")
         f.write("Execution Time:"+str(finalTime)+"s \n\n")
 
-        T.plot_range_analysis_PDF(loadedGolden, values_samples, values_golden, f, benchmarks_path,file_name, range_my_dict.get(file_name))
-        T.plot_empirical_error_distribution_PDF(loadedGolden, abs_err_samples, abs_err_golden, f, benchmarks_path,file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
+        T.plot_range_analysis_PDF(loadedGolden, values_samples, values_golden, f, output_folder,file_name, storage_path, range_my_dict.get(file_name))
+        T.plot_empirical_error_distribution_PDF(loadedGolden, abs_err_samples, abs_err_golden, f, output_folder, file_name, storage_path, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
 
         f.flush()
         f.close()
@@ -77,30 +59,34 @@ def process_file(benchmarks_path, file, mantissa, exp, range_my_dict, abs_my_dic
         del values_golden, abs_err_golden, rel_err_golden
         gc.collect()
 
-
-matplotlib.pyplot.close("all")
-mantissa=24
-exp=8
-
 #mantissa with implicit bit of sign
 #gmpy2 set precision=p includes also sign bit.
 #print(computeLargestPositiveNumber(mantissa, exp))
 
-benchmarks_path="./benchmarks/"
-executeOnBenchmarks("/home/roki/GIT/FPTaylor/./fptaylor", "./FPTaylor/")
-abs_my_dict=getAbsoluteError("./FPTaylor/results")
-rel_my_dict=getRelativeError("./FPTaylor/results")
-range_my_dict=getBounds("./FPTaylor/results")
+num_processes=1
+setup_utils.init_pacal(8)
+mantissa=24
+exp=8
+
+home_directory_project=os.getcwd()+"/../"
+benchmarks_path=home_directory_project+"benchmark/"
+storage_path=home_directory_project+"storage/"
+fptaylor_path=home_directory_project+"FPTaylor/"
+output_path=home_directory_project+"results/"
+fptaylor_exe="/home/roki/GIT/FPTaylor/./fptaylor"
+golden_model_time=10
+loadIfExists=False
+range_my_dict, abs_my_dict, rel_my_dict = getFPTaylorResults(fptaylor_exe, fptaylor_path)
 
 if not len(abs_my_dict) == len(rel_my_dict) and not len(range_my_dict) == len(rel_my_dict):
-    print("WARNING!!! Mismatch ")
+    print("WARNING!!! Mismatch in FPTaylor")
 
-pool = MyPool(processes=1)#int(os.cpu_count() / par))
+pool = MyPool(processes=num_processes)
 
 for file in os.listdir(benchmarks_path):
     if file.endswith(".txt"):
-        pool.apply_async(process_file, [benchmarks_path, file, mantissa, exp, range_my_dict, abs_my_dict])
+        pool.apply_async(process_file, [benchmarks_path, file, output_path, storage_path, mantissa, exp, range_my_dict, abs_my_dict, golden_model_time, loadIfExists])
 
 pool.close()
 pool.join()
-print("all samples done")
+print("\nAll samples done\n")

@@ -1,10 +1,9 @@
-import sys
 #from __builtin__ import str
 
 import ply.yacc as yacc
+
 from fprlex import *
 from model import *
-import fprlex
 
 uniqueLexer=FPRlex()
 			

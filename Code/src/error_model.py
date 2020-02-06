@@ -1,23 +1,20 @@
-from pacal import *
+from time import time
+import math
+import time
+import gmpy2
 import matplotlib.pyplot as plt
 import numpy as np
-import gmpy2
-import numpy as np;
-from time import time
-from pychebfun import *
-from utils import *
 from gmpy2 import mpfr
+from numpy import isscalar, zeros_like, asfarray
 from pacal.distr import Distr
 from pacal.segments import PiecewiseDistribution, Segment
 from pacal.utils import wrap_pdf
-from numpy import isscalar, zeros_like, asfarray
+from pychebfun import *
 from scipy import integrate
 from scipy.stats import kstest
-import dill
-import pickle
 
-import scipy
-import random
+from project_utils import *
+
 
 ##################################
 #### How to use FunDistr #########
@@ -29,12 +26,6 @@ import random
 # def example_f2(x):
 #    return 1.5*x*x
 # f = FunDistr(example_f1 , [-Inf, -1, 0, 1, Inf])
-
-import gmpy2
-import math
-import pacal
-import matplotlib.pyplot as plt
-import numpy as np
 
 
 def setCurrentContextPrecision(mantissa, exponent):
@@ -223,7 +214,7 @@ class HighPrecisionErrorModel(Distr):
         resetContextDefault()
         for index, ti in enumerate(empirical):
             x = (ti - rounded[index]) / (ti * self.eps)
-            if is_finite(x) and ~is_nan(x):
+            if gmpy2.is_finite(x) and ~gmpy2.is_nan(x):
                 empirical[index] = x
             else:
                 empirical[index] = 0
@@ -302,7 +293,7 @@ class HighPrecisionErrorModel(Distr):
         inf_val = mpfr(str(self.input_distribution.range_()[0]))
         self.min_sign = gmpy2.sign(inf_val)
         # For some reason the exponent returned by get_exp() is 1 too high and 0 for infinities
-        if is_finite(inf_val):
+        if gmpy2.is_finite(inf_val):
             e = gmpy2.get_exp(inf_val) - 1
         else:
             e = 2 ** (self.exp - 1)
@@ -320,7 +311,7 @@ class HighPrecisionErrorModel(Distr):
         sup_val = mpfr(str(self.input_distribution.range_()[1]))
         self.max_sign = gmpy2.sign(sup_val)
         # For some reason the exponent returned by get_exp() is 1 too high and 0 if sup_val is infinite
-        if is_finite(sup_val):
+        if gmpy2.is_finite(sup_val):
             e = gmpy2.get_exp(sup_val) - 1
         else:
             e = 2 ** (self.exp - 1)
@@ -641,7 +632,7 @@ class PiecewiseTypicalError(Distr):
         return y
 
     def _alpha(self, x):
-        return floor(2 ** self.p * (1 / x - 1) - 0.5)
+        return np.floor(2 ** self.p * (1 / x - 1) - 0.5)
 
     def init_piecewise_pdf(self):
         self.piecewise_pdf = PiecewiseDistribution([])

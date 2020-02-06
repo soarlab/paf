@@ -1,7 +1,8 @@
-from utils import *
-from regularizer import *
 import math
 from pychebfun import *
+from regularizer import *
+from project_utils import *
+from gmpy2 import *
 
 
 class quantizedPointMass:

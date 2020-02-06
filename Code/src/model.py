@@ -1,7 +1,8 @@
+from scipy.stats import truncnorm
+
 from error_model import *
 from regularizer import *
-import matplotlib.pyplot as plt
-from scipy.stats import truncnorm
+
 
 class NodeManager:
     def __init__(self):
@@ -187,6 +188,12 @@ class Operation:
         self.rightoperand=rightoperand
         self.indipendent=True
 
+class UnaryOperation:
+    def __init__(self, operand, operator):
+        self.name = operator+"(" + operand.name + ")"
+        self.operand=operand
+        self.operator=operator
+        self.indipendent=True
 '''
 class NaiveQuantizedOperation:
     def __init__(self, name, dist, error, precision, exp):
@@ -229,13 +236,6 @@ class NaiveQuantizedOperation:
         bin_nb = int(math.ceil(math.sqrt(len(res))))
         n, bins, patches = plt.hist(res, bins=bin_nb, density=1)
         plt.show()
-
-class UnaryOperation:
-    def __init__(self, operand, operator):
-        self.name = operator+"(" + operand.name + ")"
-        self.operand=operand
-        self.operator=operator
-        self.indipendent=True
 
 class Operation:
     def __init__(self, leftoperand, operator, rightoperand):

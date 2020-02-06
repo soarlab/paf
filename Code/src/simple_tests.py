@@ -1,7 +1,8 @@
-from pacal import UniformDistr
 import gmpy2
-from gmpy2 import mpfr
 import matplotlib.pyplot as plt
+from gmpy2 import mpfr
+from pacal import UniformDistr
+
 
 # A class for simple test programs
 class Test:

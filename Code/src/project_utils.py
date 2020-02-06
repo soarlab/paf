@@ -1,10 +1,10 @@
-import gmpy2
 import warnings
+
+import gmpy2
 import matplotlib.pyplot as plt
+import numpy
 import pacal
 from pacal import *
-import numpy
-from gmpy2 import *
 
 
 def setCurrentContextPrecision(mantissa, exponent):
@@ -17,10 +17,7 @@ def setCurrentContextPrecision(mantissa, exponent):
 def resetContextDefault():
     gmpy2.set_context(gmpy2.context())
 
-def init_pacal():
-    '''Limit pacal threads'''
-    pacal.params.general.nprocs = 8
-    pacal.params.general.parallel = True
+
 
 class MyFunDistr(pacal.FunDistr):
     """General distribution defined as function with
@@ -40,8 +37,8 @@ def plotTicks(figureName, mark, col, lw, s, ticks, label=""):
         values_ticks=eval(ticks)
         minVal = values_ticks[0]
         maxVal = values_ticks[1]
-        labelMinVal = str("%.1f" % float(minVal))
-        labelMaxVal = str("%.1f" % float(maxVal))
+        labelMinVal = str('%.1e' % float(minVal))
+        labelMaxVal = str("%.1e" % float(maxVal))
         plt.figure(figureName)
         plt.scatter(x=[minVal, maxVal], y=[0, 0], c=col, marker=mark, label="FPTaylor: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=lw, s=s)
 
@@ -49,8 +46,8 @@ def plotTicks(figureName, mark, col, lw, s, ticks, label=""):
 def plotBoundsDistr(figureName, distribution):
     minVal = distribution.range_()[0]
     maxVal = distribution.range_()[-1]
-    labelMinVal = str("%.1f" % distribution.range_()[0])
-    labelMaxVal = str("%.1f" % distribution.range_()[-1])
+    labelMinVal = str("%.1e" % distribution.range_()[0])
+    labelMaxVal = str("%.1e" % distribution.range_()[-1])
     plt.figure(figureName)
     plt.scatter(x=[minVal, maxVal], y=[0, 0], c='r', marker="|",
                 label="PAF: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=6, s=600)

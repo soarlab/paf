@@ -1,15 +1,15 @@
 # Classes which re-implement or customize PaCal classes
 
 import warnings
-import numpy
 
+import numpy
+from numpy import ceil, log, arccos, arcsin, float_power
+from numpy import finfo, float32
+from numpy import isposinf, isneginf, isfinite
 from pacal.distr import FuncNoninjectiveDistr
+from pacal.integration import _integrate_with_vartransform, integrate_fejer2
 from pacal.standard_distr import *
 from pacal.vartransforms import VarTransform
-from pacal.integration import _integrate_with_vartransform, integrate_fejer2
-from numpy import ceil, log, arccos, arcsin, float_power
-from numpy import isinf, isposinf, isneginf, isfinite
-from numpy import finfo, float32
 
 
 def _shifted_arccos(x, shift):

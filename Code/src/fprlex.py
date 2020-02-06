@@ -1,4 +1,5 @@
 import sys
+
 import ply.lex as lex
 
 if sys.version_info[0] >= 3:

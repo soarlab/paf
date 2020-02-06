@@ -1,8 +1,8 @@
-import gmpy2
 import math
-import pacal
+
+import gmpy2
 import matplotlib.pyplot as plt
-import numpy as np
+
 
 def plot_error(distribution, precision, samplesize):
     x=distribution.rand(samplesize)

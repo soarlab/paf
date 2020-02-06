@@ -1,20 +1,19 @@
 import os
 import shlex
-import shutil
 import subprocess
 
-def executeOnBenchmarks(fptaylorpath, folder_path):
-    if os.path.exists(folder_path+"results"):
+def executeOnBenchmarks(fptaylorpath, folder_path, results_folder):
+    if os.path.exists(folder_path+results_folder):
         print("WARNING!!! FPTaylor results already computed!")
         return
     else:
-        os.makedirs(folder_path+"results")
+        os.makedirs(folder_path+results_folder)
     for file in os.listdir(folder_path):
         if file.endswith(".txt"):
             print("FpTaylor on: " + str(file))
             exe_line=fptaylorpath+" --rel-error true "+folder_path+file
             exe = shlex.split(exe_line)
-            trace = open(folder_path+"results/"+file, "w+")
+            trace = open(folder_path+results_folder+"/"+file, "w+")
             pUNI = subprocess.Popen(exe, shell=False, stdout=trace,stderr=trace)
             pUNI.wait()
     print("Done")
@@ -71,3 +70,11 @@ def getBounds(folder_path):
             f.close()
     return my_dict
     print("Done")
+
+def getFPTaylorResults(fptaylor_command, benchmarks_path):
+    results_folder="results"
+    executeOnBenchmarks(fptaylor_command, benchmarks_path, results_folder)
+    abs_my_dict = getAbsoluteError(benchmarks_path+results_folder)
+    rel_my_dict = getRelativeError(benchmarks_path+results_folder)
+    range_my_dict = getBounds(benchmarks_path+results_folder)
+    return range_my_dict, abs_my_dict, rel_my_dict
