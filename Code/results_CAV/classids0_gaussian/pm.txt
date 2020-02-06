@@ -1,0 +1,96 @@
+###### Info about  CDF Range Analysis with PM with num. bins: 202#######:
+
+Starting from value -15.989040338565651
+
+
+Range: [-15.989040338565651,-7.296858966542251] contains 25.0% of the distribution.
+
+Range: [-15.989040338565651,-5.460482620340123] contains 50.0% of the distribution.
+
+Range: [-15.989040338565651,-3.501681184391188] contains 75.0% of the distribution.
+
+Range: [-15.989040338565651,-2.3998553766699118] contains 85.0% of the distribution.
+
+Range: [-15.989040338565651,-0.5634790304677857] contains 95.0% of the distribution.
+
+Range: [-15.989040338565651,1.640172584974767] contains 99.0% of the distribution.
+
+Range: [-15.989040338565651,5.925050726113064] contains 99.99% of the distribution.
+
+Range: [-15.989040338565651,8.740827790289657] contains 100% of the distribution.
+
+###########################################
+
+
+###### Info about CDF Error Analysis with PM model with num. bins: 204#######:
+
+Starting from value 5.329070518200751e-15
+
+
+Range: [5.329070518200751e-15,9.972827217636143e-08] contains 25.0% of the distribution.
+
+Range: [5.329070518200751e-15,2.1607791683153417e-07] contains 50.0% of the distribution.
+
+Range: [5.329070518200751e-15,3.656703171024705e-07] contains 75.0% of the distribution.
+
+Range: [5.329070518200751e-15,4.570878950458205e-07] contains 85.0% of the distribution.
+
+Range: [5.329070518200751e-15,6.316123620285796e-07] contains 95.0% of the distribution.
+
+Range: [5.329070518200751e-15,8.560009624349842e-07] contains 99.0% of the distribution.
+
+Range: [5.329070518200751e-15,1.3463316077674977e-06] contains 99.99% of the distribution.
+
+Range: [5.329070518200751e-15,1.6953805417330159e-06] contains 100% of the distribution.
+
+###########################################
+
+
+###### Info about PDF Range Analysis with PM Model with num. bins: 202#######:
+
+Starting from value -5.705332799833741
+
+
+Range: [-6.5623084280613995,-4.725932081859273] contains 25.0% of the distribution.
+
+Range: [-7.664134235782676,-3.624106274137997] contains 50.0% of the distribution.
+
+Range: [-9.01081022299757,-2.277430286923103] contains 75.0% of the distribution.
+
+Range: [-9.74536076147842,-1.5428797484422532] contains 85.0% of the distribution.
+
+Range: [-11.214461838440121,-0.07377867148055017] contains 95.0% of the distribution.
+
+Range: [-12.92841309489544,1.640172584974767] contains 99.0% of the distribution.
+
+Range: [-15.989040338565651,5.925050726113064] contains 99.99% of the distribution.
+
+Range: [-15.989040338565651,8.740827790289657] contains 100% of the distribution.
+
+###########################################
+
+
+###### Info about PDF Error Analysis with PM with num. bins: 204#######:
+
+Starting from value 1.6621383136952337e-08
+
+
+Range: [5.329070518200751e-15,9.972827217636143e-08] contains 25.0% of the distribution.
+
+Range: [5.329070518200751e-15,2.1607791683153417e-07] contains 50.0% of the distribution.
+
+Range: [5.329070518200751e-15,3.656703171024705e-07] contains 75.0% of the distribution.
+
+Range: [5.329070518200751e-15,4.570878950458205e-07] contains 85.0% of the distribution.
+
+Range: [5.329070518200751e-15,6.316123620285796e-07] contains 95.0% of the distribution.
+
+Range: [5.329070518200751e-15,8.560009624349842e-07] contains 99.0% of the distribution.
+
+Range: [5.329070518200751e-15,1.3463316077674977e-06] contains 99.99% of the distribution.
+
+Range: [5.329070518200751e-15,1.6953805417330159e-06] contains 100% of the distribution.
+
+###########################################
+
+

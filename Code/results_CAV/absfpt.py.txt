@@ -1,0 +1,103 @@
+traincars4_gaussian  1.814067e-01
+
+bsplines2  2.100581e-07
+
+classids0  6.850891e-06
+
+turbine2_gaussian  1.074246e-05
+
+classids1_gaussian  3.618862e-06
+
+sineorder3_gaussian  3.320152e-07
+
+turbine3  5.140054e-06
+
+rigidbody1  1.583099e-04
+
+doppler_gaussian  6.101980e-05
+
+bsplines3_gaussian  4.221996e-08
+
+bsplines2_gaussian  2.100581e-07
+
+classids2  5.154284e-06
+
+neuron  4.452271e-03
+
+sineorder3  3.320152e-07
+
+turbine2  1.074246e-05
+
+rigidbody1_gaussian  1.583099e-04
+
+filters2_gaussian  7.930026e-07
+
+bsplines0_gaussian  5.723754e-08
+
+bsplines1_gaussian  1.926176e-07
+
+filters3  2.227247e-06
+
+filters2  7.930026e-07
+
+traincars4  1.814067e-01
+
+traincars2_gaussian  9.459025e-04
+
+bsplines1  1.926176e-07
+
+neuron_gaussian  4.452271e-03
+
+sine  2.378573e-07
+
+filters3_gaussian  2.227247e-06
+
+doppler  6.101980e-05
+
+turbine1_gaussian  8.963162e-06
+
+rigidbody2_gaussian  1.936293e-02
+
+classids2_gaussian  5.154284e-06
+
+bsplines3  4.221996e-08
+
+solvecubic  1.785159e-05
+
+sqrt  1.511672e-04
+
+bsplines0  5.723754e-08
+
+traincars3_gaussian  1.795588e-02
+
+traincars1  1.741275e-03
+
+rigidbody2  1.936293e-02
+
+solvecubic_gaussian  1.785159e-05
+
+turbine3_gaussian  5.140054e-06
+
+sine_gaussian  2.378573e-07
+
+filters4_gaussian  3.812784e-06
+
+filters4  3.812784e-06
+
+sqrt_gaussian  1.511672e-04
+
+turbine1  8.963162e-06
+
+traincars3  1.795588e-02
+
+traincars2  9.459025e-04
+
+traincars1_gaussian  1.741275e-03
+
+filters1  1.251698e-07
+
+classids0_gaussian  6.850891e-06
+
+filters1_gaussian  1.251698e-07
+
+classids1  3.618862e-06

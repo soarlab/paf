@@ -1,0 +1,83 @@
+Execution Time:316.46214628219604s 
+
+###### Info about PDF Range Analysis with FPPM with gaps: 1000#######:
+
+Starting range analysis from: 0.240356052848592
+
+
+Range: [-0.11410632840106448,0.594818434098249] contains 25.0% of the distribution.
+
+Range: [-0.4778966670520282,0.9586087727492127] contains 50.0% of the distribution.
+
+Range: [-0.9069827075121393,1.3876948132093145] contains 75.0% of the distribution.
+
+Range: [-1.1355176638441518,1.6162297695413248] contains 85.0% of the distribution.
+
+Range: [-1.5039719811957601,1.9846840868929332] contains 95.0% of the distribution.
+
+Range: [-1.8584343624454087,2.334282100346162] contains 99.0% of the distribution.
+
+Range: [-2.2642005094022433,2.334282100346162] contains 99.99% of the distribution.
+
+Range: [-2.329696600307212,2.334282100346162] contains 100% of the distribution.
+
+###########################################
+
+##### DISTANCE MEASURES ######
+
+PDF Measure Distances Range Analysis
+Variational Distance - Golden -> DistrPM : 0.020557807614809215
+Variational Distance - Golden -> PM : 0.02235968960542778
+Variational Distance - Golden -> Sampling : 0.012283395437042821
+AVG Variational Distance - Golden -> DistrPM : 0.0035958803949491776
+AVG Variational Distance - Golden -> PM : 0.0038970875540300562
+AVG Variational Distance - Golden -> Sampling : 0.0033892509039397454
+KL Distance - Golden -> DistrPM : inf
+KL Distance - Golden -> PM : inf
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> DistrPM : 0.002301490875263688
+WSS Distance - Golden -> PM : 0.0024099201168747593
+WSS Distance - Golden -> Sampling : 0.002015069229266196
+##################################
+
+###### Info about PDF Error Analysis with FPPM#######:
+
+Starting range analysis from: 0.0
+
+
+Range: [0.0,4.423808660902752e-08] contains 25.0% of the distribution.
+
+Range: [0.0,9.651946169242352e-08] contains 50.0% of the distribution.
+
+Range: [0.0,1.7494152431751737e-07] contains 75.0% of the distribution.
+
+Range: [0.0,2.2923372151950542e-07] contains 85.0% of the distribution.
+
+Range: [0.0,3.2876941638981684e-07] contains 95.0% of the distribution.
+
+Range: [0.0,4.675161425726752e-07] contains 99.0% of the distribution.
+
+Range: [0.0,7.822098041323628e-07] contains 99.99% of the distribution.
+
+Range: [0.0,1.0054110592960797e-06] contains 100% of the distribution.
+
+###########################################
+
+##### DISTANCE MEASURES ######
+
+PDF Measure Distances Abs Error
+
+Variational Distance - Golden -> DistrPM : 339413.9995345101
+Variational Distance - Golden -> PM : 5810201.037515063
+Variational Distance - Golden -> Sampling : 5810201.037515063
+AVG Variational Distance - Golden -> DistrPM : 29509.512768813445
+AVG Variational Distance - Golden -> PM : 35713.60595394403
+AVG Variational Distance - Golden -> Sampling : 21175.35986927261
+KL Distance - Golden -> DistrPM : inf
+KL Distance - Golden -> PM : inf
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> DistrPM : 29207.84465816187
+WSS Distance - Golden -> PM : 28166.073376163244
+WSS Distance - Golden -> Sampling : 11821.055196127914
+##################################
+

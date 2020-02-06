@@ -1,0 +1,75 @@
+Loading configuration file: /home/roki/GIT/FPTaylor/./default.cfg
+FPTaylor, version 0.9.3+dev
+
+Loading: ./FPTaylor/bsplines1.txt
+Processing: bspline1
+
+*************************************
+Taylor form for: rnd32((rnd32((rnd32((rnd32((rnd32((rnd32((rnd32(3) * rnd32(u))) * rnd32(u))) * rnd32(u))) - rnd32((rnd32((rnd32(6) * rnd32(u))) * rnd32(u))))) + rnd32(4))) / rnd32(6)))
+
+Conservative bound: [-0.333334, 1.166667]
+
+Simplified rounding: rnd32((rnd[float32,ne,1.00,-24,0]((rnd[float32,ne,1.00,-24,0]((rnd32((rnd32((rnd32((3 * rnd32(u))) * rnd32(u))) * rnd32(u))) - rnd32((rnd32((6 * rnd32(u))) * rnd32(u))))) + 4)) / 6))
+Building Taylor forms...
+Simplifying Taylor forms...
+success
+v0 = ((((((3 * u) * u) * u) - ((6 * u) * u)) + 4) * (1 / 6))
+-1 (42): exp = -24: (410484343483051/4722366482869645213696)
+1 (9): exp = -24: ((((((1 / 6) * (((3 * u) * u) * floor_power2(u))) + ((1 / 6) * (u * ((3 * u) * floor_power2(u))))) + ((1 / 6) * (u * (u * (3 * floor_power2(u)))))) + ((1 / 6) * (-(((6 * u) * floor_power2(u)))))) + ((1 / 6) * (-((u * (6 * floor_power2(u)))))))
+2 (3): exp = -24: ((1 / 6) * (u * (u * floor_power2(((3 * u) + interval(-8.94069671630859375000e-08, 8.94069671630859375000e-08))))))
+3 (7): exp = -24: ((1 / 6) * (u * floor_power2((((3 * u) * u) + interval(-2.98023230094202115840e-07, 2.98023230094202115840e-07)))))
+4 (11): exp = -24: ((1 / 6) * floor_power2(((((3 * u) * u) * u) + interval(-5.06639499242567337961e-07, 5.06639499242567337961e-07))))
+5 (15): exp = -24: ((1 / 6) * (-((u * floor_power2(((6 * u) + interval(-1.78813934326171875000e-07, 1.78813934326171875000e-07)))))))
+6 (19): exp = -24: ((1 / 6) * (-(floor_power2((((6 * u) * u) + interval(-5.96046460188404231681e-07, 5.96046460188404231681e-07))))))
+7 (21): exp = -24: ((1 / 6) * floor_power2((((((3 * u) * u) * u) - ((6 * u) * u)) + interval(-1.46031382808331584904e-06, 1.46031382808331584904e-06))))
+8 (23): exp = -24: ((1 / 6) * floor_power2(((((((3 * u) * u) * u) - ((6 * u) * u)) + 4) + interval(-1.69873240718487834904e-06, 1.69873240718487834904e-06))))
+9 (27): exp = -24: floor_power2((((((((3 * u) * u) * u) - ((6 * u) * u)) + 4) * (1 / 6)) + interval(-3.22858497714406984638e-07, 3.22858497714406984638e-07)))
+
+Corresponding original subexpressions:
+1: rnd32(u)
+2: rnd32((3 * rnd32(u)))
+3: rnd32((rnd32((3 * rnd32(u))) * rnd32(u)))
+4: rnd32((rnd32((rnd32((3 * rnd32(u))) * rnd32(u))) * rnd32(u)))
+5: rnd32((6 * rnd32(u)))
+6: rnd32((rnd32((6 * rnd32(u))) * rnd32(u)))
+7: rnd[float32,ne,1.00,-24,0]((rnd32((rnd32((rnd32((3 * rnd32(u))) * rnd32(u))) * rnd32(u))) - rnd32((rnd32((6 * rnd32(u))) * rnd32(u)))))
+8: rnd[float32,ne,1.00,-24,0]((rnd[float32,ne,1.00,-24,0]((rnd32((rnd32((rnd32((3 * rnd32(u))) * rnd32(u))) * rnd32(u))) - rnd32((rnd32((6 * rnd32(u))) * rnd32(u))))) + 4))
+9: rnd32((rnd[float32,ne,1.00,-24,0]((rnd[float32,ne,1.00,-24,0]((rnd32((rnd32((rnd32((3 * rnd32(u))) * rnd32(u))) * rnd32(u))) - rnd32((rnd32((6 * rnd32(u))) * rnd32(u))))) + 4)) / 6))
+
+bounds: [1.550392e-01, 6.744792e-01]
+
+Computing absolute errors
+-1: exp = -24: 8.692344e-08 (low = 8.692344e-08, subopt = 0.0%)
+
+Solving the exact optimization problem
+exact bound (exp = -24): 3.231588e+00 (low = 3.199193e+00, subopt = 1.0%)
+total2: 5.181041e-15 (low = 5.181041e-15, subopt = 0.0%)
+exact total: 1.926176e-07 (low = 1.906868e-07, subopt = 1.0%)
+
+Computing relative errors
+-1: exp = -24: 8.692344e-08 (low = 8.692344e-08, subopt = 0.0%)
+
+Solving the exact optimization problem
+exact bound-rel (exp = -24): 2.076898e+01 (low = 1.899911e+01, subopt = 8.5%)
+total2: 3.341761e-14 (low = 7.681543e-15, subopt = 77.0%)
+exact total-rel: 1.237928e-06 (low = 1.132435e-06, subopt = 8.5%)
+
+Elapsed time: 0.63950
+*************************************
+
+-------------------------------------------------------------------------------
+Problem: bspline1
+
+Optimization lower bounds for error models:
+The absolute error model (exact): 1.906868e-07 (suboptimality = 1.0%)
+The relative error model (exact): 1.132435e-06 (suboptimality = 8.5%)
+
+Bounds (without rounding): [1.550392e-01, 6.744792e-01]
+Bounds (floating-point): [1.55039038364818776428e-01, 6.74479359284310686640e-01]
+
+Absolute error (exact): 1.926176e-07
+Relative error (exact): 1.237928e-06
+
+Elapsed time: 0.64
+
+

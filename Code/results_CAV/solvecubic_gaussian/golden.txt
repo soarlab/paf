@@ -1,0 +1,96 @@
+###### Info about  CDF Range Analysis with Golden Model with num. bins: 858#######:
+
+Starting from value 0.673492638669509
+
+
+Range: [0.673492638669509,6.159400288990245] contains 25.0% of the distribution.
+
+Range: [0.673492638669509,6.814434038282273] contains 50.0% of the distribution.
+
+Range: [0.673492638669509,7.42852817824355] contains 75.0% of the distribution.
+
+Range: [0.673492638669509,7.817454466885692] contains 85.0% of the distribution.
+
+Range: [0.673492638669509,8.677186262831478] contains 95.0% of the distribution.
+
+Range: [0.673492638669509,9.987253761415536] contains 99.0% of the distribution.
+
+Range: [0.673492638669509,14.060744889825335] contains 99.99% of the distribution.
+
+Range: [0.673492638669509,18.236585041562012] contains 100% of the distribution.
+
+###########################################
+
+
+###### Info about CDF Error Analysis with Golden Model with num. bins: 446#######:
+
+Starting from value 2.4868995751603507e-13
+
+
+Range: [2.4868995751603507e-13,2.487881287131657e-07] contains 25.0% of the distribution.
+
+Range: [2.4868995751603507e-13,4.975760087363739e-07] contains 50.0% of the distribution.
+
+Range: [2.4868995751603507e-13,7.907902959065837e-07] contains 75.0% of the distribution.
+
+Range: [2.4868995751603507e-13,9.507253616357889e-07] contains 85.0% of the distribution.
+
+Range: [2.4868995751603507e-13,1.2172838045177977e-06] contains 95.0% of the distribution.
+
+Range: [2.4868995751603507e-13,1.5193833731174078e-06] contains 99.0% of the distribution.
+
+Range: [2.4868995751603507e-13,2.2924028574752333e-06] contains 99.99% of the distribution.
+
+Range: [2.4868995751603507e-13,3.962835766202488e-06] contains 100% of the distribution.
+
+###########################################
+
+
+###### Info about PDF Range Analysis with Golden Model with num. bins: 858#######:
+
+Starting from value 6.793964233616897
+
+
+Range: [6.507386968301635,7.101011303597535] contains 25.0% of the distribution.
+
+Range: [6.159400288990245,7.448997982908925] contains 50.0% of the distribution.
+
+Range: [5.647655172355848,7.960743099543322] contains 75.0% of the distribution.
+
+Range: [5.299668493044458,8.308729778854712] contains 85.0% of the distribution.
+
+Range: [4.562755525090926,9.045642746808245] contains 95.0% of the distribution.
+
+Range: [3.49832568249138,10.11007258940779] contains 99.0% of the distribution.
+
+Range: [0.673492638669509,14.060744889825335] contains 99.99% of the distribution.
+
+Range: [0.673492638669509,18.236585041562012] contains 100% of the distribution.
+
+###########################################
+
+
+###### Info about PDF Error Analysis with Golden Model with num. bins: 446#######:
+
+Starting from value 7.996778155456016e-08
+
+
+Range: [2.4868995751603507e-13,2.487881287131657e-07] contains 25.0% of the distribution.
+
+Range: [2.4868995751603507e-13,4.975760087363739e-07] contains 50.0% of the distribution.
+
+Range: [2.4868995751603507e-13,7.907902959065837e-07] contains 75.0% of the distribution.
+
+Range: [2.4868995751603507e-13,9.507253616357889e-07] contains 85.0% of the distribution.
+
+Range: [2.4868995751603507e-13,1.2172838045177977e-06] contains 95.0% of the distribution.
+
+Range: [2.4868995751603507e-13,1.5193833731174078e-06] contains 99.0% of the distribution.
+
+Range: [2.4868995751603507e-13,2.2924028574752333e-06] contains 99.99% of the distribution.
+
+Range: [2.4868995751603507e-13,3.962835766202488e-06] contains 100% of the distribution.
+
+###########################################
+
+
