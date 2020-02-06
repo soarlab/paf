@@ -69,7 +69,7 @@ mantissa=24
 exp=8
 
 home_directory_project=os.getcwd()+"/../"
-benchmarks_path=home_directory_project+"benchmark/"
+benchmarks_path=home_directory_project+"benchmarks/"
 storage_path=home_directory_project+"storage/"
 fptaylor_path=home_directory_project+"FPTaylor/"
 output_path=home_directory_project+"results/"
