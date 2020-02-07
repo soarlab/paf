@@ -1,0 +1,77 @@
+Loading configuration file: /home/roki/GIT/FPTaylor/./default.cfg
+FPTaylor, version 0.9.3+dev
+
+Loading: ./FPTaylor/bsplines2.txt
+Processing: bspline2
+
+*************************************
+Taylor form for: rnd32((rnd32((rnd32((rnd32((rnd32((rnd32((rnd32((rnd32((-(rnd32(3)))) * rnd32(t))) * rnd32(t))) * rnd32(t))) + rnd32((rnd32((rnd32(3) * rnd32(t))) * rnd32(t))))) + rnd32((rnd32(3) * rnd32(t))))) + rnd32(1))) / rnd32(6)))
+
+Conservative bound: [-0.333334, 1.166667]
+
+Simplified rounding: rnd32((rnd[float32,ne,1.00,-24,0]((rnd[float32,ne,1.00,-24,0]((rnd[float32,ne,1.00,-24,0]((rnd32((rnd32((rnd32(((-(3)) * rnd32(t))) * rnd32(t))) * rnd32(t))) + rnd32((rnd32((3 * rnd32(t))) * rnd32(t))))) + rnd32((3 * rnd32(t))))) + 1)) / 6))
+Building Taylor forms...
+Simplifying Taylor forms...
+success
+v0 = ((((((((-(3)) * t) * t) * t) + ((3 * t) * t)) + (3 * t)) + 1) * (1 / 6))
+-1 (51): exp = -24: (2627099802206211/37778931862957161709568)
+1 (9): exp = -24: (((((((1 / 6) * ((((-(3)) * t) * t) * floor_power2(t))) + ((1 / 6) * (t * (((-(3)) * t) * floor_power2(t))))) + ((1 / 6) * (t * (t * ((-(3)) * floor_power2(t)))))) + ((1 / 6) * ((3 * t) * floor_power2(t)))) + ((1 / 6) * (t * (3 * floor_power2(t))))) + ((1 / 6) * (3 * floor_power2(t))))
+2 (3): exp = -24: ((1 / 6) * (t * (t * floor_power2((((-(3)) * t) + interval(-8.94069671630859375000e-08, 8.94069671630859375000e-08))))))
+3 (7): exp = -24: ((1 / 6) * (t * floor_power2(((((-(3)) * t) * t) + interval(-2.98023230094202115840e-07, 2.98023230094202115840e-07)))))
+4 (11): exp = -24: ((1 / 6) * floor_power2((((((-(3)) * t) * t) * t) + interval(-5.06639499242567337961e-07, 5.06639499242567337961e-07))))
+5 (15): exp = -24: (((1 / 6) * (t * floor_power2(((3 * t) + interval(-8.94069671630859375000e-08, 8.94069671630859375000e-08))))) + ((1 / 6) * floor_power2(((3 * t) + interval(-8.94069671630859375000e-08, 8.94069671630859375000e-08)))))
+6 (19): exp = -24: ((1 / 6) * floor_power2((((3 * t) * t) + interval(-2.98023230094202115840e-07, 2.98023230094202115840e-07))))
+7 (21): exp = -24: ((1 / 6) * floor_power2(((((((-(3)) * t) * t) * t) + ((3 * t) * t)) + interval(-1.04308130843833232438e-06, 1.04308130843833232438e-06))))
+8 (27): exp = -24: ((1 / 6) * floor_power2((((((((-(3)) * t) * t) * t) + ((3 * t) * t)) + (3 * t)) + interval(-1.37090685470298097364e-06, 1.37090685470298097364e-06))))
+9 (29): exp = -24: ((1 / 6) * floor_power2(((((((((-(3)) * t) * t) * t) + ((3 * t) * t)) + (3 * t)) + 1) + interval(-1.60932543380454347364e-06, 1.60932543380454347364e-06))))
+10 (33): exp = -24: floor_power2((((((((((-(3)) * t) * t) * t) + ((3 * t) * t)) + (3 * t)) + 1) * (1 / 6)) + interval(-3.07957335484351154425e-07, 3.07957335484351154425e-07)))
+
+Corresponding original subexpressions:
+1: rnd32(t)
+2: rnd32(((-(3)) * rnd32(t)))
+3: rnd32((rnd32(((-(3)) * rnd32(t))) * rnd32(t)))
+4: rnd32((rnd32((rnd32(((-(3)) * rnd32(t))) * rnd32(t))) * rnd32(t)))
+5: rnd32((3 * rnd32(t)))
+6: rnd32((rnd32((3 * rnd32(t))) * rnd32(t)))
+7: rnd[float32,ne,1.00,-24,0]((rnd32((rnd32((rnd32(((-(3)) * rnd32(t))) * rnd32(t))) * rnd32(t))) + rnd32((rnd32((3 * rnd32(t))) * rnd32(t)))))
+8: rnd[float32,ne,1.00,-24,0]((rnd[float32,ne,1.00,-24,0]((rnd32((rnd32((rnd32(((-(3)) * rnd32(t))) * rnd32(t))) * rnd32(t))) + rnd32((rnd32((3 * rnd32(t))) * rnd32(t))))) + rnd32((3 * rnd32(t)))))
+9: rnd[float32,ne,1.00,-24,0]((rnd[float32,ne,1.00,-24,0]((rnd[float32,ne,1.00,-24,0]((rnd32((rnd32((rnd32(((-(3)) * rnd32(t))) * rnd32(t))) * rnd32(t))) + rnd32((rnd32((3 * rnd32(t))) * rnd32(t))))) + rnd32((3 * rnd32(t))))) + 1))
+10: rnd32((rnd[float32,ne,1.00,-24,0]((rnd[float32,ne,1.00,-24,0]((rnd[float32,ne,1.00,-24,0]((rnd32((rnd32((rnd32(((-(3)) * rnd32(t))) * rnd32(t))) * rnd32(t))) + rnd32((rnd32((3 * rnd32(t))) * rnd32(t))))) + rnd32((3 * rnd32(t))))) + 1)) / 6))
+
+bounds: [1.588542e-01, 6.782941e-01]
+
+Computing absolute errors
+-1: exp = -24: 6.953875e-08 (low = 6.953875e-08, subopt = 0.0%)
+
+Solving the exact optimization problem
+exact bound (exp = -24): 3.524190e+00 (low = 3.170959e+00, subopt = 10.0%)
+total2: 4.144833e-15 (low = 4.144833e-15, subopt = 0.0%)
+exact total: 2.100581e-07 (low = 1.890039e-07, subopt = 10.0%)
+
+Computing relative errors
+-1: exp = -24: 6.953875e-08 (low = 6.953875e-08, subopt = 0.0%)
+
+Solving the exact optimization problem
+exact bound-rel (exp = -24): 5.433563e+00 (low = 4.846730e+00, subopt = 10.8%)
+total2: 2.609206e-14 (low = 6.110672e-15, subopt = 76.6%)
+exact total-rel: 3.238656e-07 (low = 2.888876e-07, subopt = 10.8%)
+
+Elapsed time: 0.64908
+*************************************
+
+-------------------------------------------------------------------------------
+Problem: bspline2
+
+Optimization lower bounds for error models:
+The absolute error model (exact): 1.890039e-07 (suboptimality = 10.0%)
+The relative error model (exact): 2.888876e-07 (suboptimality = 10.8%)
+
+Bounds (without rounding): [1.588542e-01, 6.782941e-01]
+Bounds (floating-point): [1.58853956608553503749e-01, 6.78294312408984190199e-01]
+
+Absolute error (exact): 2.100581e-07
+Relative error (exact): 3.238656e-07
+
+Elapsed time: 0.65
+
+
