@@ -1,0 +1,8 @@
+numpy==1.14.0
+scipy
+sympy
+matplotlib==3.0.3
+pacal==1.6
+ply==3.11
+gmpy2==2.0.8
+pychebfun

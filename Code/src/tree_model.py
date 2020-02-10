@@ -545,7 +545,7 @@ class TreeModel:
             data_tt = np.load(storage_path+file_name+"/"+file_name+"_range_10000.npz")
             notnorm_vals_golden, notnorm_edges_golden = data_auto["vals_golden"], data_auto["edges_golden"]
             #plt.fill_between(edges_golden, np.concatenate(([0], vals_golden)), step="pre", color="black", label="Golden model")
-            vals_golden, edges_golden = self.plotCDF(notnorm_edges_golden, notnorm_vals_golden, normalize=True, color="black", linewidth=3, label="Golden model")
+            vals_golden, edges_golden = self.plotCDF(notnorm_edges_golden, notnorm_vals_golden, normalize=True, color="darkgoldenrod", linewidth=3, label="Golden model")
             #plt.plot(edges_golden[:-1], np.cumsum(vals_golden), color="black", label="Golden model")
             data_auto.close()
             data_tt.close()
@@ -553,7 +553,7 @@ class TreeModel:
             vals_golden_tt, edges_golden_tt = np.histogram(golden_samples, bins=10000, density=True)
             not_norm_vals_golden, not_norm_edges_golden = np.histogram(golden_samples, bins='auto', density=True)
 
-            vals_golden, edges_golden = self.plotCDF(not_norm_edges_golden,not_norm_vals_golden,normalize=True,color="black", linewidth=3, label="Golden model")
+            vals_golden, edges_golden = self.plotCDF(not_norm_edges_golden,not_norm_vals_golden,normalize=True,color="darkgoldenrod", linewidth=3, label="Golden model")
 
             if not os.path.exists(storage_path+file_name+"/"):
                 os.makedirs(storage_path+file_name+"/")
@@ -741,14 +741,14 @@ class TreeModel:
             data_auto = np.load(storage_path+file_name+"/"+file_name+"_error_auto.npz")
             data_tt = np.load(storage_path+file_name+"/"+file_name+"_error_10000.npz")
             not_norm_vals_golden, not_norm_edges_golden = data_auto["vals_golden"], data_auto["edges_golden"]
-            vals_golden, edges_golden = self.plotCDF(not_norm_edges_golden, not_norm_vals_golden, normalize=True, color="black", linewidth=3, label="Golden model")
+            vals_golden, edges_golden = self.plotCDF(not_norm_edges_golden, not_norm_vals_golden, normalize=True, color="darkgoldenrod", linewidth=3, label="Golden model")
             #plt.fill_between(edges_golden, np.concatenate(([0], vals_golden)), step="pre", color="black", label="Golden model")
             data_auto.close()
             data_tt.close()
         else:
             vals_golden_tt, edges_golden_tt = np.histogram(abs_err_golden, bins=10000, density=True)
             not_norm_vals_golden, not_norm_edges_golden = np.histogram(abs_err_golden, bins='auto', density=True)
-            vals_golden, edges_golden = self.plotCDF(not_norm_edges_golden, not_norm_vals_golden, normalize=True, color="black", label="Golden model", linewidth=3)
+            vals_golden, edges_golden = self.plotCDF(not_norm_edges_golden, not_norm_vals_golden, normalize=True, color="darkgoldenrod", label="Golden model", linewidth=3)
             #vals_golden_tt, edges_golden_tt, patches_golden_tt = plt.hist(abs_err_golden, bins=10000, cumulative=True, alpha=0.0, density=True, color="black")
             #vals_golden, edges_golden, patches_golden = plt.hist(abs_err_golden, bins='auto', density=True, cumulative=True, color="black", label="Golden model")
             if not os.path.exists(storage_path+file_name+"/"):

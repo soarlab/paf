@@ -68,14 +68,15 @@ setup_utils.init_pacal(8)
 mantissa=24
 exp=8
 
-home_directory_project=os.getcwd()+"/../"
-benchmarks_path=home_directory_project+"benchmarks/"
+#home_directory_project=os.getcwd()+"/../"
+home_directory_project=os.getcwd()+"/"
+benchmarks_path=home_directory_project+"benchmarksTest/"
 storage_path=home_directory_project+"storage/"
 fptaylor_path=home_directory_project+"FPTaylor/"
 output_path=home_directory_project+"results/"
 fptaylor_exe="/home/roki/GIT/FPTaylor/./fptaylor"
 golden_model_time=10
-loadIfExists=False
+loadIfExists=True
 range_my_dict, abs_my_dict, rel_my_dict = getFPTaylorResults(fptaylor_exe, fptaylor_path)
 
 if not len(abs_my_dict) == len(rel_my_dict) and not len(range_my_dict) == len(rel_my_dict):
