@@ -48,7 +48,7 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
         f.write("Execution Time:"+str(finalTime)+"s \n\n")
         plot_range_analysis_CDF(loadedGolden, values_samples, values_golden, f, file_name, range_my_dict.get(file_name))
 
-        abs_err = UnOpDist(BinOpDist(T.tree.root_value[2], "-", T.tree.root_value[0], 100, 250000, regularize=True,
+        abs_err = UnOpDist(BinOpDist(T.tree.root_value[2], "-", T.tree.root_value[0], 500, 250000, regularize=True,
                                                    convolution=False), "abs_err", "abs")
 
         plot_error_analysis_CDF(abs_err, loadedGolden, abs_err_samples, abs_err_golden, f, file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))

@@ -35,7 +35,8 @@ class quantizedPointMass:
             self.sampleInit = False
         return self.sampleSet
 
-
+    def getName(self):
+        return self.name
 
 class DependentOperationExecutor(object):
     def __init__(self, bins, n, interp_points):
@@ -212,6 +213,8 @@ class BinOpDist:
     def resetSampleInit(self):
         self.sampleInit = True
 
+    def getName(self):
+        return self.name
 
 class UnOpDist:
     """
@@ -250,3 +253,6 @@ class UnOpDist:
 
     def getSampleSet(self, n=100000):
         return self.operand.getSampleSet(n)
+
+    def getName(self):
+        return self.name
