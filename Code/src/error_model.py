@@ -1,5 +1,5 @@
 import math
-import time
+from time import time
 import matplotlib.pyplot as plt
 import gmpy2
 from gmpy2 import mpfr
@@ -50,7 +50,7 @@ class ErrorModel(Distr):
         """
         super(ErrorModel, self).__init__()
         self.input_distribution = input_distribution
-        self.name = "Error(" + input_distribution.name + ")"
+        self.name = "Error(" + input_distribution.getName() + ")"
         if self.input_distribution.piecewise_pdf is None:
             self.input_distribution.init_piecewise_pdf()
         self.precision = precision
@@ -98,11 +98,11 @@ class ErrorModel(Distr):
             y = zeros_like(asfarray(x))
             for index, ti in enumerate(x):
                 if -1 <= ti < -0.5:
-                    return self._left_segment(x)
+                    y[index] = self._left_segment(ti)
                 elif -0.5 <= ti <= 0.5:
-                    return self._middle_segment(x)
+                    y[index] = self._middle_segment(ti)
                 elif 0.5 < ti <= 1:
-                    return self._right_segment(x)
+                    y[index] = self._right_segment(ti)
             return y
 
     def __call__(self, x):
@@ -132,25 +132,24 @@ class ErrorModel(Distr):
         pdf = self.get_piecewise_pdf()
         cdf = self.get_piecewise_cdf()
         rounded = np.zeros_like(empirical)
-        set_context_precision(self.precision, self.exp)
+        set_context_precision(self.precision, self.exponent)
         for index, ti in enumerate(empirical):
             rounded[index] = mpfr(str(empirical[index]))
         reset_default_precision()
         empirical = (empirical - rounded) / (empirical * self.eps)
         ks_test = kstest(empirical, cdf)
         x = np.linspace(-1, 1, 201)
-        plt.close()
+        matplotlib.pyplot.close("all")
         matplotlib.rcParams.update({'font.size': 12})
         plt.hist(empirical, bins=2 * math.floor(n ** (1 / 3)), range=[-1, 1], density=True)
         y = pdf(x)
         h = plt.plot(x, y)
         plt.title(
-            self.input_distribution.getName() + ", KS-test=" + str(round(KS[0], 4)) + ", p-val=" + str(round(KS[1], 4)))
+            self.input_distribution.getName() + ", KS-test=" + str(round(ks_test[0], 4)) + ", p-val=" + str(round(ks_test[1], 4)))
         if file_name is None:
             plt.show()
         else:
             plt.savefig("file_name" + self.getName() + ".png")
-        matplotlib.pyplot.close("all")
         return ks_test
 
 
@@ -168,8 +167,8 @@ class HighPrecisionErrorModel(ErrorModel):
                             the rounding error distribution
             precision, exponent: gmpy2 precision environment
         """
-        super(HighPrecisionErrorModel, input_distribution, precision, exponent, self).__init__()
-        self.name = "HPError(" + input_distribution.name + ")"
+        super(HighPrecisionErrorModel, self).__init__(input_distribution, precision, exponent)
+        self.name = "HPError(" + input_distribution.getName() + ")"
         self.central_constant = None
         self._get_min_exponent()
         self._get_max_exponent()
@@ -218,7 +217,7 @@ class HighPrecisionErrorModel(ErrorModel):
         Compute the quantity \sum_e \int_{2^e}^{2^{next(e)}} f(t) t/(\alpha*2^{e}) dt
         where f is the pdf of input_distribution
         """
-        emax = 2 ** (self.exp - 1)
+        emax = 2 ** (self.exponent - 1)
         emin = 1 - emax
         S = 0.0
         I = 0.0
@@ -258,14 +257,14 @@ class HighPrecisionErrorModel(ErrorModel):
         return S
 
     def _get_min_exponent(self):
-        set_context_precision(self.precision, self.exp)
+        set_context_precision(self.precision, self.exponent)
         inf_val = mpfr(str(self.input_distribution.range_()[0]))
         self.min_sign = gmpy2.sign(inf_val)
         # For some reason the exponent returned by get_exp() is 1 too high and 0 for infinities
         if gmpy2.is_finite(inf_val):
             e = gmpy2.get_exp(inf_val) - 1
         else:
-            e = 2 ** (self.exp - 1)
+            e = 2 ** (self.exponent - 1)
         if self.min_sign > 0:
             self.min_exp = e
         else:
@@ -276,14 +275,14 @@ class HighPrecisionErrorModel(ErrorModel):
         reset_default_precision()
 
     def _get_max_exponent(self):
-        set_context_precision(self.precision, self.exp)
+        set_context_precision(self.precision, self.exponent)
         sup_val = mpfr(str(self.input_distribution.range_()[1]))
         self.max_sign = gmpy2.sign(sup_val)
         # For some reason the exponent returned by get_exp() is 1 too high and 0 if sup_val is infinite
         if gmpy2.is_finite(sup_val):
             e = gmpy2.get_exp(sup_val) - 1
         else:
-            e = 2 ** (self.exp - 1)
+            e = 2 ** (self.exponent - 1)
         if self.max_sign < 0:
             self.max_exp = e
         else:
@@ -313,8 +312,8 @@ class LowPrecisionErrorModel(ErrorModel):
                         build the interpolating polynomial representing it
         """
 
-        super(LowPrecisionErrorModel, input_distribution, precision, exponent, polynomial_precision, self).__init__()
-        self.name = "LPError(" + input_distribution.name + ")"
+        super(LowPrecisionErrorModel, self).__init__(input_distribution, precision, exponent, polynomial_precision)
+        self.name = "LPError(" + input_distribution.getName() + ")"
         set_context_precision(self.precision, self.exponent)
         self.inf_val = mpfr(str(self.input_distribution.range_()[0]))
         self.sup_val = mpfr(str(self.input_distribution.range_()[1]))
@@ -325,13 +324,7 @@ class LowPrecisionErrorModel(ErrorModel):
         reset_default_precision()
 
     def _left_segment(self, x):
-        sum = 0.0
-        err = x * self.eps
-        set_context_precision(self.precision, self.exponent)
-        z = mpfr(printMPFRExactly(self.inf_val))
-        reset_default_precision()
-        return sum
-
+        return self._right_segment(self, x)
 
     def _middle_segment(self, x):
         sum = 0.0
@@ -349,11 +342,20 @@ class LowPrecisionErrorModel(ErrorModel):
     def _right_segment(self, x):
         sum = 0.0
         err = x * self.eps
-        set_context_precision(self.precision, self.exponent)
-        z = mpfr(printMPFRExactly(self.inf_val))
+        exp_min = math.floor(math.log(self.inf_val, 2))
+        exp_max = math.floor(math.log(self.sup_val, 2))
         # Loop through all floating point numbers in reduced precision whose mantissa satisfies 1+k/2^p <= 1/t - u
-        exp_min = z.as_mantissa_exp()
-        reset_default_precision()
+        # Loop through exponents
+        for i in range(exp_min, exp_max):
+            # Loop through mantissas
+            for j in range(0, 2 ** self.precision):
+                m = 1 + j / (2 ** self.precision)
+                z = ((2 ** i) * m) / (1.0 - err)
+                if m <= 1 / x - self.eps:
+                    sum += self.inputdistribution.get_piecewise_pdf()(-z) * z * self.eps / (1.0 - err)
+                    sum += self.inputdistribution.get_piecewise_pdf()(z) * z * self.eps / (1.0 - err)
+                else:
+                    break
         return sum
 
     # infVal is finite value
@@ -365,7 +367,7 @@ class LowPrecisionErrorModel(ErrorModel):
 
         i = 0
         while not gmpy2.is_finite(gmpy2.next_below(infVal)):
-            set_context_precision(self.precision + i, self.exp + i)
+            set_context_precision(self.precision + i, self.exponent + i)
             i = i + 1
 
         prec = printMPFRExactly(gmpy2.next_below(infVal))
@@ -381,7 +383,7 @@ class LowPrecisionErrorModel(ErrorModel):
 
         i = 0
         while not gmpy2.is_finite(gmpy2.next_above(supVal)):
-            set_context_precision(self.precision + i, self.exp + i)
+            set_context_precision(self.precision + i, self.exponent + i)
             i = i + 1
 
         prec = printMPFRExactly(gmpy2.next_above(supVal))
@@ -395,7 +397,7 @@ class LowPrecisionErrorModel(ErrorModel):
     Exact values are used to build the interpolating polynomial
         '''
 
-        set_context_precision(self.precision, self.exp)
+        set_context_precision(self.precision, self.exponent)
         eps = 2 ** -self.precision
 
         infVal = mpfr(str(self.wrapperInputDistribution.a))
@@ -467,14 +469,13 @@ class LowPrecisionErrorModel(ErrorModel):
 # Approximate Error Model given by the "Typical Distribution"
 ###
 
-class TypicalError(ErrorModel):
+class TypicalErrorModel(ErrorModel):
     """
     An implementation of the typical error distribution with three segments
     """
-
     def __init__(self, input_distribution, precision=None, **kwargs):
-        super(TypicalError, input_distribution, precision, None, self).__init__(**kwargs)
-        self.name = "TypicalError(" + input_distribution.name + ")"
+        super(TypicalErrorModel, input_distribution, precision, None, self).__init__(**kwargs)
+        self.name = "TypicalError(" + input_distribution.getName() + ")"
         self.p = precision
 
     def _left_segment(self, x):
@@ -487,7 +488,7 @@ class TypicalError(ErrorModel):
                     2 / 3 + 0.5 * alpha + 2 ** (-self.p - 2) * alpha * (alpha - 1))
         return y
 
-    def _middle_segment(self, t):
+    def _middle_segment(self, x):
         if self.p is None:
             y = 0.75
         else:
@@ -503,6 +504,7 @@ class TypicalError(ErrorModel):
             alpha = np.floor(2 ** self.p * (1 / x - 1) - 0.5)
             y = 1 / (2 ** self.p * (1 - u * x) ** 2) * (
                     2 / 3 + 0.5 * alpha + 2 ** (-self.p - 2) * alpha * (alpha - 1))
+        return y
 
     def init_piecewise_pdf(self):
         self.piecewise_pdf = PiecewiseDistribution([])
@@ -548,14 +550,14 @@ class ErrorModelWrapper:
 
 
 class ErrorModelPointMass:
-    def __init__(self, wrapperInputDistribution, precision, exp):
+    def __init__(self, wrapperInputDistribution, precision, exponent):
         self.wrapperInputDistribution = wrapperInputDistribution
         self.inputdistribution = self.wrapperInputDistribution.execute()
         self.inputdistribution.get_piecewise_pdf()
         self.precision = precision
-        self.exp = exp
+        self.exponent = exponent
         self.eps = 2 ** -self.precision
-        set_context_precision(self.precision, self.exp)
+        set_context_precision(self.precision, self.exponent)
         qValue = printMPFRExactly(mpfr(str(self.inputdistribution.rand(1)[0])))
         reset_default_precision()
         error = float(str(self.inputdistribution.rand(1)[0])) - float(qValue)
@@ -613,19 +615,19 @@ def test_LP_error_model():
     poly_precision = 200
     t = time()
     D = model.U("U", 2, 4)
-    E = ErrorModel(D, mantissa, exponent, poly_precision)
+    E = LowPrecisionErrorModel(D, mantissa, exponent, poly_precision)
     print(E.distribution.int_error())
     print(E.compare())
     print(time() - t)
     t = time()
     D = model.N("N", 0, 1)
-    E = ErrorModel(D, mantissa, exponent, poly_precision)
+    E = LowPrecisionErrorModel(D, mantissa, exponent, poly_precision)
     print(E.distribution.int_error())
     print(E.compare())
     print(time() - t)
     t = time()
     D = model.B("Beta", 2, 2)
-    E = ErrorModel(D, mantissa, exponent, poly_precision)
+    E = LowPrecisionErrorModel(D, mantissa, exponent, poly_precision)
     print(E.distribution.int_error())
     print(E.compare())
     print(time() - t)
@@ -634,19 +636,19 @@ def test_LP_error_model():
     poly_precision = 50
     t = time()
     D = model.U("U", 2, 4)
-    E = ErrorModel(D, mantissa, exponent, poly_precision)
+    E = LowPrecisionErrorModel(D, mantissa, exponent, poly_precision)
     print(E.distribution.int_error())
     print(E.compare())
     print(time() - t)
     t = time()
     D = model.N("N", 0, 1)
-    E = ErrorModel(D, mantissa, exponent, poly_precision)
+    E = LowPrecisionErrorModel(D, mantissa, exponent, poly_precision)
     print(E.distribution.int_error())
     print(E.compare())
     print(time() - t)
     t = time()
     D = model.B("Beta", 2, 2)
-    E = ErrorModel(D, mantissa, exponent, poly_precision)
+    E = LowPrecisionErrorModel(D, mantissa, exponent, poly_precision)
     print(E.distribution.int_error())
     print(E.compare())
     print(time() - t)
@@ -657,93 +659,93 @@ def test_LP_error_model():
 # OLD CODE
 ###
 
-my_pdf = None
+# my_pdf = None
+#
+#
+# def genericPdf(x):
+#     if isinstance(x, float) or isinstance(x, int) or len(x) == 1:
+#         if x < -1 or x > 1:
+#             return 0
+#         else:
+#             return my_pdf(x)
+#     else:
+#         res = np.zeros(len(x))
+#         for index, ti in enumerate(x):
+#             if ti < -1 or ti > 1:
+#                 res[index] = 0
+#             else:
+#                 res[index] = my_pdf(ti)
+#         return res
+#     exit(-1)
+#
+# def getTypical(x):
+#     if isinstance(x, float) or isinstance(x, int) or len(x) == 1:
+#         if abs(x) <= 0.5:
+#             return 0.75
+#         else:
+#             return 0.5 * ((1.0 / x) - 1.0) + 0.25 * (((1.0 / x) - 1.0) ** 2)
+#     else:
+#         res = np.zeros(len(x))
+#         for index, ti in enumerate(x):
+#             if abs(ti) <= 0.5:
+#                 res[index] = 0.75
+#             else:
+#                 res[index] = 0.5 * ((1.0 / ti) - 1.0) + 0.25 * (((1.0 / ti) - 1.0) ** 2)
+#         return res
+#     exit(-1)
+#
+#
+# typVariable = None
+#
+#
+# def createTypical(x):
+#     return typVariable(x)
 
 
-def genericPdf(x):
-    if isinstance(x, float) or isinstance(x, int) or len(x) == 1:
-        if x < -1 or x > 1:
-            return 0
-        else:
-            return my_pdf(x)
-    else:
-        res = np.zeros(len(x))
-        for index, ti in enumerate(x):
-            if ti < -1 or ti > 1:
-                res[index] = 0
-            else:
-                res[index] = my_pdf(ti)
-        return res
-    exit(-1)
-
-def getTypical(x):
-    if isinstance(x, float) or isinstance(x, int) or len(x) == 1:
-        if abs(x) <= 0.5:
-            return 0.75
-        else:
-            return 0.5 * ((1.0 / x) - 1.0) + 0.25 * (((1.0 / x) - 1.0) ** 2)
-    else:
-        res = np.zeros(len(x))
-        for index, ti in enumerate(x):
-            if abs(ti) <= 0.5:
-                res[index] = 0.75
-            else:
-                res[index] = 0.5 * ((1.0 / ti) - 1.0) + 0.25 * (((1.0 / ti) - 1.0) ** 2)
-        return res
-    exit(-1)
+# class WrappedPiecewiseTypicalError():
+#
+#     def __init__(self, p=None):
+#         self.sampleInit = True
+#         self.distribution = PiecewiseTypicalError(p)
+#         self.distribution.init_piecewise_pdf()
+#
+#     def execute(self):
+#         return self.distribution
+#
+#     def getSampleSet(self, n=100000):
+#         # it remembers values for future operations
+#         if self.sampleInit:
+#             self.sampleSet = self.distribution.rand(n)
+#             self.sampleInit = False
+#         return self.sampleSet
 
 
-typVariable = None
-
-
-def createTypical(x):
-    return typVariable(x)
-
-
-class WrappedPiecewiseTypicalError():
-
-    def __init__(self, p=None):
-        self.sampleInit = True
-        self.distribution = PiecewiseTypicalError(p)
-        self.distribution.init_piecewise_pdf()
-
-    def execute(self):
-        return self.distribution
-
-    def getSampleSet(self, n=100000):
-        # it remembers values for future operations
-        if self.sampleInit:
-            self.sampleSet = self.distribution.rand(n)
-            self.sampleInit = False
-        return self.sampleSet
-
-
-class TypicalErrorModel:
-    def __init__(self, precision, exp, poly_precision):
-        self.poly_precision = poly_precision
-        self.name = "E"
-        self.precision = precision
-        self.exp = exp
-        self.sampleInit = True
-        self.eps = 2 ** (-self.precision)
-        self.distribution = self.createTypicalErrorDistr()
-
-    def createTypicalErrorDistr(self):
-        global typVariable
-        typVariable = chebfun(getTypical, domain=[-1.0, 1.0], N=self.poly_precision)
-        self.distribution = FunDistr(createTypical, breakPoints=[-1.0, 1.0], interpolated=True)
-        self.distribution.get_piecewise_pdf()
-        return self.distribution
-
-    def execute(self):
-        return self.distribution
-
-    def getSampleSet(self, n=100000):
-        # it remembers values for future operations
-        if self.sampleInit:
-            self.sampleSet = self.distribution.rand(n)
-            self.sampleInit = False
-        return self.sampleSet
-
-
-
+# class TypicalErrorModel:
+#     def __init__(self, precision, exp, poly_precision):
+#         self.poly_precision = poly_precision
+#         self.name = "E"
+#         self.precision = precision
+#         self.exp = exp
+#         self.sampleInit = True
+#         self.eps = 2 ** (-self.precision)
+#         self.distribution = self.createTypicalErrorDistr()
+#
+#     def createTypicalErrorDistr(self):
+#         global typVariable
+#         typVariable = chebfun(getTypical, domain=[-1.0, 1.0], N=self.poly_precision)
+#         self.distribution = FunDistr(createTypical, breakPoints=[-1.0, 1.0], interpolated=True)
+#         self.distribution.get_piecewise_pdf()
+#         return self.distribution
+#
+#     def execute(self):
+#         return self.distribution
+#
+#     def getSampleSet(self, n=100000):
+#         # it remembers values for future operations
+#         if self.sampleInit:
+#             self.sampleSet = self.distribution.rand(n)
+#             self.sampleInit = False
+#         return self.sampleSet
+#
+#
+#
