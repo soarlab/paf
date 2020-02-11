@@ -20,6 +20,8 @@ from fpryacc import FPRyacc
 from tree_model import TreeModel
 from FPTaylor import getFPTaylorResults
 
+import error_model
+
 def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
     try:
         print(file)
@@ -69,6 +71,8 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
         del values_golden, abs_err_golden, rel_err_golden
         gc.collect()
 
+
+error_model.test_HP_error_model()
 
 warnings.warn("Mantissa with implicit bit of sign. In gmpy2 set precision=p includes also sign bit. (e.g. Float32 is mantissa=24 and exp=8)\n")
 
