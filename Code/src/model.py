@@ -84,9 +84,10 @@ class TruncNormal(object):
         # by __getstate__
 
     def __setstate__(self, dict):
-        self.lower=dict["lower"]
-        self.upper=dict["upper"]
-        self.interp_points=dict["interp_points"]
+        self.lower = dict["lower"]
+        self.upper = dict["upper"]
+        self.name = dict["name"]
+        self.interp_points = dict["interp_points"]
         if 'interp_trunc_norm' not in dict:
             dict['interp_trunc_norm'] = chebfun(self.truncatedNormal, domain=[self.lower, self.upper], N=self.interp_points)
         self.__dict__ = dict  # make dict our attribute dictionary
@@ -98,11 +99,12 @@ class N:
     def __init__(self,name,a,b):
         self.name = name
         self.sampleInit = True
+        self.isScalar = False
         self.sampleSet=[]
         self.indipendent=True
         self.a = float(a)
         self.b = float(b)
-        self.distribution = MyFunDistr(TruncNormal(self.a,self.b,50), breakPoints =[self.a, self.b], interpolated=True)
+        self.distribution = MyFunDistr(TruncNormal(self.a,self.b,50), breakPoints =[self.a, self.b])
         self.distribution.get_piecewise_pdf()
         self.distribution=normalizeDistribution(self.distribution, init=True)
 
@@ -128,6 +130,7 @@ class B:
         self.b=self.distribution.range_()[-1]
         self.indipendent=True
         self.sampleInit = True
+        self.isScalar = False
         self.sampleSet=[]
 
     def execute(self):
@@ -149,8 +152,9 @@ class U:
         self.distribution = pacal.UniformDistr(float(a),float(b))
         self.a=self.distribution.range_()[0]
         self.b=self.distribution.range_()[-1]
-        self.indipendent=True
+        self.indipendent = True
         self.sampleInit = True
+        self.isScalar = False
         self.sampleSet=[]
 
     def execute(self):
