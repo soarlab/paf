@@ -322,22 +322,39 @@ class LowPrecisionErrorModel(ErrorModel):
             self.inf_val = gmpy2.next_above( self.inf_val)
         if not gmpy2.is_finite(self.sup_val):
             self.sup_val = gmpy2.next_below(self.sup_val)
+        reset_default_precision()
 
     def _left_segment(self, x):
-        if x<
-            return 0.0
+        sum = 0.0
+        err = x * self.eps
+        set_context_precision(self.precision, self.exponent)
+        z = mpfr(printMPFRExactly(self.inf_val))
+        reset_default_precision()
+        return sum
+
 
     def _middle_segment(self, x):
         sum = 0.0
         err = x * self.eps
-        # loop through all floating point numbers in reduced precision
-        x = mpfr(printMPFRExactly(self.inf_val))
-        y = gmpy2.next_above(x)
-        z = gmpy2.next_above(y)
+        set_context_precision(self.precision, self.exponent)
+        z = mpfr(printMPFRExactly(self.inf_val))
+        # Loop through all floating point numbers in reduced precision
+        while z <= self.sup_val:
+            xp = float(printMPFRExactly(z)) / (1.0 - err)
+            sum += self.inputdistribution.get_piecewise_pdf()(xp) * abs(xp) * self.eps / (1.0 - err)
+            z = gmpy2.next_above(z)
+        reset_default_precision()
+        return sum
 
     def _right_segment(self, x):
-        if x>
-            return 0.0
+        sum = 0.0
+        err = x * self.eps
+        set_context_precision(self.precision, self.exponent)
+        z = mpfr(printMPFRExactly(self.inf_val))
+        # Loop through all floating point numbers in reduced precision whose mantissa satisfies 1+k/2^p <= 1/t - u
+        exp_min = z.as_mantissa_exp()
+        reset_default_precision()
+        return sum
 
     # infVal is finite value
     def getInitialMinValue(self, infVal):
