@@ -1,8 +1,12 @@
 import setup_utils #It has to be first line, do not remove
+from operations import BinOpDist, UnOpDist
 
 from setup_utils import home_directory_project, benchmarks_path,\
     storage_path,fptaylor_path,output_path,fptaylor_exe,pran_exe,\
     golden_model_time, loadIfExists, storeIfDoesnExist, MyPool
+
+from plotting import plot_range_analysis_CDF, plot_range_analysis_PDF, \
+    plot_error_analysis_PDF, plot_error_analysis_CDF
 
 import warnings
 import os
@@ -16,10 +20,10 @@ from fpryacc import FPRyacc
 from tree_model import TreeModel
 from FPTaylor import getFPTaylorResults
 
-def process_file(benchmarks_path, file, output_folder, storage_path, mantissa, exp, range_my_dict, abs_my_dict, goldenModelTime, loadIfExists):
+def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
     try:
         print(file)
-        f = open(benchmarks_path+file,"r")
+        f = open(file,"r")
         file_name = (file.split(".")[0]).lower()
         text = f.read()
         text = text[:-1]
@@ -31,27 +35,29 @@ def process_file(benchmarks_path, file, output_folder, storage_path, mantissa, e
         print("Exe time --- %s seconds ---" % (end_time - start_time))
         finalTime=end_time-start_time
 
-        if os.path.exists(output_folder+file_name):
-            shutil.rmtree(output_folder+file_name)
-        os.makedirs(output_folder+file_name)
+        if os.path.exists(output_path+file_name):
+            shutil.rmtree(output_path+file_name)
+        os.makedirs(output_path+file_name)
 
-        f = open(output_folder + file_name + "/" + file_name + "_CDF_summary.out", "w+")
+        loadedSamples, values_samples, abs_err_samples, rel_err_samples = T.generate_error_samples(finalTime, file_name)
+        loadedGolden, values_golden, abs_err_golden, rel_err_golden = T.generate_error_samples(golden_model_time, file_name)
+
+        f = open(output_path + file_name + "/" + file_name + "_CDF_summary.out", "w+")
         f.write("Execution Time:"+str(finalTime)+"s \n\n")
+        plot_range_analysis_CDF(loadedGolden, values_samples, values_golden, f, file_name, range_my_dict.get(file_name))
 
-        loadedSamples, values_samples, abs_err_samples, rel_err_samples = T.generate_error_samples(finalTime, file_name, storage_path)
-        loadedGolden, values_golden, abs_err_golden, rel_err_golden = T.generate_error_samples(goldenModelTime, file_name, storage_path, loadIfExists)
+        abs_err = UnOpDist(BinOpDist(T.tree.root_value[2], "-", T.tree.root_value[0], 100, 250000, regularize=True,
+                                                   convolution=False), "abs_err", "abs")
 
-        T.plot_range_analysis_CDF(loadedGolden, values_samples, values_golden, f, output_folder, file_name, storage_path, range_my_dict.get(file_name))
-        T.plot_empirical_error_distribution_CDF(loadedGolden, abs_err_samples, abs_err_golden, f, output_folder, file_name, storage_path, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
+        plot_error_analysis_CDF(abs_err, loadedGolden, abs_err_samples, abs_err_golden, f, file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
         f.flush()
         f.close()
 
-        f = open(output_folder + file_name + "/" + file_name + "_PDF_summary.out", "w+")
+        f = open(output_path + file_name + "/" + file_name + "_PDF_summary.out", "w+")
         f.write("Execution Time:"+str(finalTime)+"s \n\n")
 
-        T.plot_range_analysis_PDF(loadedGolden, values_samples, values_golden, f, output_folder,file_name, storage_path, range_my_dict.get(file_name))
-        T.plot_empirical_error_distribution_PDF(loadedGolden, abs_err_samples, abs_err_golden, f, output_folder, file_name, storage_path, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
-
+        plot_range_analysis_PDF(T.tree.root_value[2], loadedGolden, values_samples, values_golden, f, file_name, range_my_dict.get(file_name))
+        plot_error_analysis_PDF(abs_err, loadedGolden, abs_err_samples, abs_err_golden, f, file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
         f.flush()
         f.close()
 
@@ -63,19 +69,15 @@ def process_file(benchmarks_path, file, output_folder, storage_path, mantissa, e
         del values_golden, abs_err_golden, rel_err_golden
         gc.collect()
 
-warnings.warn("Mantissa with implicit bit of sign. In gmpy2 set precision=p includes also sign bit.\n")
+
+warnings.warn("Mantissa with implicit bit of sign. In gmpy2 set precision=p includes also sign bit. (e.g. Float32 is mantissa=24 and exp=8)\n")
 
 mantissa=24
 exp=8
 
+file="/home/roki/GIT/Accuracy/Code/test.txt"
+
 range_my_dict, abs_my_dict, rel_my_dict = getFPTaylorResults(fptaylor_exe, fptaylor_path)
+process_file(file, mantissa, exp, range_my_dict, abs_my_dict)
 
-pool = MyPool(processes=setup_utils.num_processes)
-
-for file in os.listdir(benchmarks_path):
-    if file.endswith(".txt"):
-        pool.apply_async(process_file, [benchmarks_path, file, output_path, storage_path, mantissa, exp, range_my_dict, abs_my_dict, golden_model_time, loadIfExists])
-
-pool.close()
-pool.join()
-print("\nAll samples done\n")
+print("\nDone with sample\n")

@@ -6,7 +6,6 @@ import numpy
 import pacal
 from pacal import *
 
-
 def setCurrentContextPrecision(mantissa, exponent):
     ctx = gmpy2.get_context()
     ctx.precision = mantissa
@@ -16,7 +15,6 @@ def setCurrentContextPrecision(mantissa, exponent):
 
 def resetContextDefault():
     gmpy2.set_context(gmpy2.context())
-
 
 
 class MyFunDistr(pacal.FunDistr):
@@ -31,26 +29,6 @@ class MyFunDistr(pacal.FunDistr):
             for index, val in enumerate(y):
                 tmp[index]=invFun(val)
         return tmp
-
-def plotTicks(figureName, mark, col, lw, s, ticks, label=""):
-    if not ticks is None and not None in eval(ticks):
-        values_ticks=eval(ticks)
-        minVal = values_ticks[0]
-        maxVal = values_ticks[1]
-        labelMinVal = str('%.1e' % float(minVal))
-        labelMaxVal = str("%.1e" % float(maxVal))
-        plt.figure(figureName)
-        plt.scatter(x=[minVal, maxVal], y=[0, 0], c=col, marker=mark, label="FPTaylor: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=lw, s=s)
-
-
-def plotBoundsDistr(figureName, distribution):
-    minVal = distribution.range_()[0]
-    maxVal = distribution.range_()[-1]
-    labelMinVal = str("%.1e" % distribution.range_()[0])
-    labelMaxVal = str("%.1e" % distribution.range_()[-1])
-    plt.figure(figureName)
-    plt.scatter(x=[minVal, maxVal], y=[0, 0], c='r', marker="|",
-                label="PAF: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=6, s=600)
 
 def printMPFRExactly(a):
     return "{0:.50f}".format(a)

@@ -1,8 +1,8 @@
+import pacal
+from pychebfun import chebfun
 from scipy.stats import truncnorm
-
-from error_model import *
-from regularizer import *
-
+import numpy as np
+from project_utils import MyFunDistr, normalizeDistribution
 
 class NodeManager:
     def __init__(self):
@@ -10,7 +10,8 @@ class NodeManager:
         self.nodeDict={}
 
     def createNode(self, value, children=None):
-        if isinstance(value, Number):
+        '''If the value is a scalar generate new id (no dependent operation never)'''
+        if value.isScalar:
             idtmp = self.id
             self.id = self.id + 1
         elif value.name in self.nodeDict:
@@ -21,6 +22,7 @@ class NodeManager:
             self.id=self.id+1
 
         newNode=Node(idtmp, value, children)
+        '''If there are multiple occurences of the same id it means the operation is DEPENDENT'''
         if len(newNode.id) != len(set(newNode.id)):
             newNode.value.indipendent = False
             newNode.id=list(set(newNode.id))
@@ -31,6 +33,7 @@ class Node:
         self.value = value
         self.father = None
         self.id = []
+        ''' The node has the id's of all his children (if any)'''
         if children:
             self.leaf = False
             self.children = children
@@ -42,29 +45,54 @@ class Node:
             self.children = []
             self.id = [id]
 
-lower=None
-upper=None
-def truncatedNormal(x):
-    tmp = pacal.NormalDistr(0, 1)
-    if isinstance(x, float) or isinstance(x, int) or len(x) == 1:
-        if x < lower or x > upper:
-            return 0
-        else:
-            return tmp.get_piecewise_pdf()(x)
-    else:
-        res = np.zeros(len(x))
-        for index, ti in enumerate(x):
-            if ti < lower or ti > upper:
-                res[index] = 0
-            else:
-                res[index] = tmp.get_piecewise_pdf()(ti)
-        return res
-    print("Really Bad!!!!!!")
-    exit(-1)
+''' 
+Class used to implement the Chebfun interpolation of the truncated normal
+Note the setState and getState methods. Pacal performs convolution using multiprocessing
+library, so the interpolation has to be pickable.
+'''
+class TruncNormal(object):
+    def __init__(self, lower, upper, interp_points):
+        self.lower=lower
+        self.upper=upper
+        self.interp_points=interp_points
+        self.name="Stand. Norm["+str(lower)+","+str(upper)+"]"
+        self.interp_trunc_norm=chebfun(self.truncatedNormal, domain=[self.lower, self.upper], N=self.interp_points)
 
-my_trunc_norm=None
-def build_trunc_norm(t):
-    return my_trunc_norm(t)
+    def truncatedNormal(self,x):
+        tmp = pacal.NormalDistr(0, 1)
+        if isinstance(x, float) or isinstance(x, int) or len(x) == 1:
+            if x < self.lower or x > self.upper:
+                return 0
+            else:
+                return tmp.get_piecewise_pdf()(x)
+        else:
+            res = np.zeros(len(x))
+            for index, ti in enumerate(x):
+                if ti < self.lower or ti > self.upper:
+                    res[index] = 0
+                else:
+                    res[index] = tmp.get_piecewise_pdf()(ti)
+            return res
+        # return data representation for pickled object
+
+    def __getstate__(self):
+        tmp_dict = self.__dict__  # get attribute dictionary
+        if 'interp_trunc_norm' in tmp_dict:
+            del tmp_dict['interp_trunc_norm']  # remove interp_trunc_norm entry
+        return tmp_dict
+        # restore object state from data representation generated
+        # by __getstate__
+
+    def __setstate__(self, dict):
+        self.lower=dict["lower"]
+        self.upper=dict["upper"]
+        self.interp_points=dict["interp_points"]
+        if 'interp_trunc_norm' not in dict:
+            dict['interp_trunc_norm'] = chebfun(self.truncatedNormal, domain=[self.lower, self.upper], N=self.interp_points)
+        self.__dict__ = dict  # make dict our attribute dictionary
+
+    def __call__(self, t, *args, **kwargs):
+        return self.interp_trunc_norm(t)
 
 class N:
     def __init__(self,name,a,b):
@@ -74,34 +102,21 @@ class N:
         self.indipendent=True
         self.a = float(a)
         self.b = float(b)
-        global lower
-        lower=float(a)
-        global upper
-        upper=float(b)
-        global my_trunc_norm
-        my_trunc_norm=chebfun(truncatedNormal, domain=[lower, upper], N=50)
-        self.distribution = MyFunDistr(build_trunc_norm, breakPoints =[lower, upper], interpolated=True)
+        self.distribution = MyFunDistr(TruncNormal(self.a,self.b,50), breakPoints =[self.a, self.b], interpolated=True)
         self.distribution.get_piecewise_pdf()
         self.distribution=normalizeDistribution(self.distribution, init=True)
-
 
     def execute(self):
         return self.distribution
 
     def getRepresentation(self):
-        return "Standard Gaussian in range ["+str(self.a)+","+str(self.b)+"]"
+        return "Standard Normal Truncated in range ["+str(self.a)+","+str(self.b)+"]"
 
     def getSampleSet(self,n=100000):
         #it remembers values for future operations
         if self.sampleInit:
             tmp_dist = truncnorm(self.a, self.b)
-            if n<=2:
-                self.sampleSet = tmp_dist.rvs(size=n)
-            else:
-                self.sampleSet = tmp_dist.rvs(size=n)
-                #self.sampleSet  = tmp_dist.rvs(size=n-2)
-                #self.sampleSet  = np.append(self.sampleSet, [self.a, self.b])
-                #self.sampleSet  = sorted(self.sampleSet)
+            self.sampleSet = tmp_dist.rvs(size=n)
             self.sampleInit = False
         return self.sampleSet
 
@@ -124,12 +139,7 @@ class B:
     def getSampleSet(self,n=100000):
         #it remembers values for future operations
         if self.sampleInit:
-            if n<=2:
-                self.sampleSet = self.distribution.rand(n)
-            else:
-                self.sampleSet = self.distribution.rand(n)
-                #self.sampleSet  = self.distribution.rand(n-2)
-                #self.sampleSet  = np.append(self.sampleSet, [self.a, self.b])
+            self.sampleSet = self.distribution.rand(n)
             self.sampleInit = False
         return self.sampleSet
 
@@ -152,13 +162,7 @@ class U:
     def getSampleSet(self,n=100000):
         #it remembers values for future operations
         if self.sampleInit:
-            if n<=2:
-                self.sampleSet = self.distribution.rand(n)
-            else:
-                self.sampleSet = self.distribution.rand(n)
-                #self.sampleSet = self.distribution.rand(n-2)
-                #self.sampleSet = np.append(self.sampleSet, [self.a, self.b])
-                #self.sampleSet  = sorted(self.sampleSet)
+            self.sampleSet = self.distribution.rand(n)
             self.sampleInit = False
         return self.sampleSet
 
@@ -167,6 +171,7 @@ class Number:
         self.name = label
         self.value = float(label)
         self.distribution = pacal.ConstDistr(c = self.value)
+        self.isScalar=True
         self.a=self.distribution.range_()[0]
         self.b=self.distribution.range_()[-1]
 
@@ -187,6 +192,9 @@ class Operation:
         self.operator=operator
         self.rightoperand=rightoperand
         self.indipendent=True
+        self.isScalar=False
+        if leftoperand.isScalar and rightoperand.isScalar:
+            self.isScalar = True
 
 class UnaryOperation:
     def __init__(self, operand, operator):
@@ -194,102 +202,6 @@ class UnaryOperation:
         self.operand=operand
         self.operator=operator
         self.indipendent=True
-'''
-class NaiveQuantizedOperation:
-    def __init__(self, name, dist, error, precision, exp):
-        self.name=name
-        self.dist=dist
-        self.error=error
-        self.precision=precision
-        self.exp=exp
-        self.eps = 2 ** (-self.precision)
-
-    def execute(self):
-        self.distribution=self.dependentQuantizationExecute()
-        self.a = self.distribution.range_()[0]
-        self.b = self.distribution.range_()[-1]
-        return self.distribution
-
-    def dependentQuantizationExecute(self):
-    
-        X = pacal.UniformDistr(1, 2)
-        Y = pacal.UniformDistr(1, 2)
-        Z = pacal.UniformDistr(1, 2)
-
-        valX = X.rand(100000)
-        valY = Y.rand(100000)
-        valZ = Z.rand(100000)
-
-        setCurrentContextPrecision(self.precision, self.exp)
-        errors=[]
-        for index, val in enumerate(valX):
-            x = mpfr(str(val))
-            y = mpfr(str(valY[index]))
-            z = mpfr(str(valZ[index]))
-            resq = gmpy2.mul(gmpy2.add(x,y),z)
-            res = (x+y)*z
-            e = (res - float(printMPFRExactly(resq))) / res #exact error of quantization
-            errors.append(e)
-
-        resetContextDefault()
-
-        bin_nb = int(math.ceil(math.sqrt(len(res))))
-        n, bins, patches = plt.hist(res, bins=bin_nb, density=1)
-        plt.show()
-
-class Operation:
-    def __init__(self, leftoperand, operator, rightoperand):
-        self.name = leftoperand.name + str(operator) + rightoperand.name
-        self.leftoperand=leftoperand
-        self.operator=operator
-        self.rightoperand=rightoperand
-        self.indipendent=True
-
-    def execute(self):
-        if self.indipendent:
-            indipendentExecute()
-            dependentExecute()
-            return self.distribution
-        else:
-            self.dependentExecute()
-            return self.approx_distribution
-
-def executeOperation(leftOperand, operatorString, rightOperand):
-    if operatorString == "+":
-        distribution = leftOperand.distribution + rightOperand.distribution
-    elif operatorString == "-":
-        distribution = leftOperand.distribution - rightOperand.distribution
-    elif operatorString == "*":
-        distribution = leftOperand.distribution * rightOperand.distribution
-    elif operatorString == "/":
-        distribution = leftOperand.distribution / rightOperand.distribution
-    else:
-        print("Operation not supported!")
-        exit(-1)
-    return distribution
-
-def dependentExecute(leftoperand, operator, rightoperand):
-    leftOp = leftoperand.getSampleSet()
-    rightOp = rightoperand.getSampleSet()
-    res = eval("np.array(leftOp)"+operator+"np.array(rightOp)")
-    bin_nb = int(math.ceil(math.sqrt(len(res))))
-    n, bins, patches = plt.hist(res, bins=bin_nb, density=1)
-
-    bins, n = (list(t) for t in zip(*sorted(zip(bins, n))))
-    enumBins=enumerate(bins)
-    pdf = chebfun(lambda t: op(t,bins,enumBins), domain= [min(bins), max(bins)], N=100)
-    approx_distribution = FunDistr(pdf)
-    approx_distribution.init_piecewise_pdf()
-    return approx_distribution
-
-def op(t,bins,n):
-    if t<min(bins) or t>min(bins):
-        return 0
-    else:
-        idx = (np.abs(bins - t)).argmin()
-        return n[idx]
-
-def indipendentExecute(leftoperand, operator, rightoperand):
-    distribution = executeOperation(leftoperand, operator, rightoperand)
-    return distribution
-'''
+        self.isScalar=False
+        if operand.isScalar:
+            self.isScalar = True

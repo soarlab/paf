@@ -99,14 +99,14 @@ class FPRyacc:
 		self.addVariable(str(p[1]),distr)
 		self.myPrint("Normal", p)
 
+
 	def p_Beta(self, p):
 		''' Distribution : WORD COLON B LPAREN POSNUMBER COMMA POSNUMBER RPAREN
-						 | WORD COLON B LPAREN MINUS POSNUMBER COMMA POSNUMBER RPAREN
-						 | WORD COLON B LPAREN MINUS POSNUMBER COMMA MINUS POSNUMBER RPAREN
 		'''
+
 		distr = B(str(p[1]), str(p[5]), str(p[7]))
 		self.addVariable(str(p[1]),distr)
-		self.myPrint("Beta", p)
+		self.myPrint("Normal", p)
 
 	def p_Expression(self, p):
 		'''Expression : AnnidateArithExpr
