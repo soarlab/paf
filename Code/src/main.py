@@ -63,19 +63,19 @@ def process_file(benchmarks_path, file, output_folder, storage_path, mantissa, e
 #gmpy2 set precision=p includes also sign bit.
 #print(computeLargestPositiveNumber(mantissa, exp))
 
-num_processes=1
-setup_utils.init_pacal(8)
+num_processes=2
+setup_utils.init_pacal(4)
 mantissa=24
 exp=8
 
 #home_directory_project=os.getcwd()+"/../"
 home_directory_project=os.getcwd()+"/"
-benchmarks_path=home_directory_project+"benchmarksTest/"
+benchmarks_path=home_directory_project+"benchmarks/"
 storage_path=home_directory_project+"storage/"
 fptaylor_path=home_directory_project+"FPTaylor/"
-output_path=home_directory_project+"results/"
+
 fptaylor_exe="/home/roki/GIT/FPTaylor/./fptaylor"
-golden_model_time=10
+golden_model_time=7200
 loadIfExists=True
 range_my_dict, abs_my_dict, rel_my_dict = getFPTaylorResults(fptaylor_exe, fptaylor_path)
 
@@ -84,9 +84,14 @@ if not len(abs_my_dict) == len(rel_my_dict) and not len(range_my_dict) == len(re
 
 pool = MyPool(processes=num_processes)
 
-for file in os.listdir(benchmarks_path):
-    if file.endswith(".txt"):
-        pool.apply_async(process_file, [benchmarks_path, file, output_path, storage_path, mantissa, exp, range_my_dict, abs_my_dict, golden_model_time, loadIfExists])
+for i in range(0,100):
+	output_path=home_directory_project+"results"+str(i)+"/"
+	if os.path.exists(output_path):
+		shutil.rmtree(output_path)
+	os.makedirs(output_path)
+	for file in os.listdir(benchmarks_path):
+		if file.endswith(".txt"):
+			pool.apply_async(process_file, [benchmarks_path, file, output_path, storage_path, mantissa, exp, range_my_dict, abs_my_dict, golden_model_time, loadIfExists])
 
 pool.close()
 pool.join()
