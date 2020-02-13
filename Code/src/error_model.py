@@ -19,7 +19,7 @@ import numpy as np
 
 
 ###
-# Functions switching between low and double precision
+# Functions switching between low and double precision. Beware mantissa = gmpy2 precision (includes sign bit)
 ###
 
 def set_context_precision(mantissa, exponent):
@@ -53,10 +53,12 @@ class ErrorModel(Distr):
         self.name = "Error(" + input_distribution.getName() + ")"
         if self.input_distribution.piecewise_pdf is None:
             self.input_distribution.init_piecewise_pdf()
+        # gmpy2 precision:
         self.precision = precision
         self.polynomial_precision = polynomial_precision
         self.exponent = exponent
-        self.eps = 2 ** (-self.precision)
+        # In gmpy2 precision includes a sign bit, so 2 ** precision = unit roundoff
+        self.unit_roundoff = 2 ** (-self.precision)
 
     def init_piecewise_pdf(self):
         """Initialize the pdf represented as a piecewise function.
@@ -128,7 +130,7 @@ class ErrorModel(Distr):
         else:
             return "Error(p={0})#{1}".format(self.p, self.id())
 
-    def compare(self, n=100000, file_name=None):
+    def compare(self, n=10000, file_name=None):
         """
         A function to compare the ErrorModel density function with an empirical distribution of relative errors
         and return a K-S test
@@ -144,7 +146,7 @@ class ErrorModel(Distr):
         for index, ti in enumerate(empirical):
             rounded[index] = mpfr(str(empirical[index]))
         reset_default_precision()
-        empirical = (empirical - rounded) / (empirical * self.eps)
+        empirical = (empirical - rounded) / (empirical * self.unit_roundoff)
         ks_test = kstest(empirical, cdf)
         x = np.linspace(-1, 1, 201)
         matplotlib.pyplot.close("all")
@@ -192,21 +194,21 @@ class HighPrecisionErrorModel(ErrorModel):
         :param x: SCALAR real such that -1.0 < x <= -0.5. Arrays are dealt with in self.pdf.
         :return: pdf evaluated at (x)
         """
-        return self._compute_integral(x) / ((1 - self.eps * x) ** 2)
+        return self._compute_integral(x) / ((1 - self.unit_roundoff * x) ** 2)
 
     def _middle_segment(self, x):
         """
         :param x: SCALAR real such that abs(x) <= 0.5. Arrays are dealt with in self.pdf.
         :return: pdf evaluated at (x)
         """
-        return self.central_constant / ((1 - self.eps * x) ** 2)
+        return self.central_constant / ((1 - self.unit_roundoff * x) ** 2)
 
     def _right_segment(self, x):
         """
         :param x: SCALAR real such that 0.5 < x <= 1. Arrays are dealt with in self.pdf.
         :return: pdf evaluated at (x)
         """
-        return self._compute_integral(x) / ((1 - self.eps * x) ** 2)
+        return self._compute_integral(x) / ((1 - self.unit_roundoff * x) ** 2)
 
     def _compute_central_constant(self):
         self.central_constant = self._compute_integral()
@@ -223,7 +225,7 @@ class HighPrecisionErrorModel(ErrorModel):
         if t is None:
             alpha = 2
         else:
-            alpha = (1 / abs(t) - self.eps)
+            alpha = (1 / abs(t) - self.unit_roundoff)
         f = self.input_distribution.get_piecewise_pdf()
         # test if the range of input_distribution covers 0
         if self.min_sign < self.max_sign:
@@ -317,14 +319,8 @@ class LowPrecisionErrorModel(ErrorModel):
         self.inf_val = mpfr(str(self.input_distribution.range_()[0]))
         self.sup_val = mpfr(str(self.input_distribution.range_()[1]))
         self.max_exp = 2 ** (exponent - 1)
-        if self.inf_val < 0:
-            self.exp_inf_val = math.ceil(math.log(-self.inf_val, 2))
-        else:
-            self.exp_inf_val = math.floor(math.log(self.inf_val, 2))
-        if self.sup_val < 0:
-            self.exp_sup_val = math.ceil(math.log(-self.sup_val, 2))
-        else:
-            self.exp_sup_val = math.floor(math.log(self.sup_val, 2))
+        self.exp_inf_val = math.floor(math.log(abs(self.inf_val), 2))
+        self.exp_sup_val = math.floor(math.log(abs(self.sup_val), 2))
         if not gmpy2.is_finite(self.inf_val):
             self.inf_val = gmpy2.next_above( self.inf_val)
         if not gmpy2.is_finite(self.sup_val):
@@ -336,24 +332,29 @@ class LowPrecisionErrorModel(ErrorModel):
 
     def _middle_segment(self, x):
         sum = 0.0
-        err = x * self.eps
+        err = x * self.unit_roundoff
         set_context_precision(self.precision, self.exponent)
         z = mpfr(printMPFRExactly(self.inf_val))
         # Loop through all floating point numbers in reduced precision
         while z <= self.sup_val:
             xp = float(printMPFRExactly(z)) / (1.0 - err)
-            sum += self.input_distribution.get_piecewise_pdf()(xp) * abs(xp) * self.eps / (1.0 - err)
+            sum += self.input_distribution.get_piecewise_pdf()(xp) * abs(xp) * self.unit_roundoff / (1.0 - err)
             z = gmpy2.next_above(z)
         reset_default_precision()
         return sum
 
     def _right_segment(self, x):
         sum = 0.0
-        err = x * self.eps
+        err = x * self.unit_roundoff
+        # self.precision - 1 is the usual (i.e. not gmpy2) precision
         if x >= 0:
-            max_mantissa = max(0, math.floor(2 ** self.precision * (1 / x - 1) - 0.5))
+            max_mantissa = max(0, math.floor(2 ** (self.precision - 1) * (1 / x - 1) - 0.5))
         else:
-            max_mantissa = max(0, math.floor(2 ** self.precision * (-1 / x - 1) + 0.5))
+            max_mantissa = max(0, math.floor(2 ** (self.precision - 1) * (-1 / x - 1) + 0.5))
+        # If max_mantissa = 0 we should not enter any of the mantissa loops
+        # Else we will enter a loop and we need to add one because range(i,j) stops at j-1
+        if max_mantissa > 0:
+            max_mantissa += 1
         # Loop through all floating point numbers in reduced precision such that:
         # 1) they lie in the range of the input distribution
         # 2) mantissa satisfies 1+k/2^p <= 1/t - u
@@ -365,7 +366,7 @@ class LowPrecisionErrorModel(ErrorModel):
                 for j in range(0,  max_mantissa):
                     m = -(1 + j / (2 ** self.precision))
                     z = ((2 ** i) * m) / (1.0 - err)
-                    sum += self.input_distribution.get_piecewise_pdf()(z) * -z * self.eps / (1.0 - err)
+                    sum += self.input_distribution.get_piecewise_pdf()(z) * -z * self.unit_roundoff / (1.0 - err)
         # Case 2: negative and positive representable numbers
         elif self.inf_val < 0:
             # Loop through exponents to 0
@@ -374,14 +375,14 @@ class LowPrecisionErrorModel(ErrorModel):
                 for j in range(0, max_mantissa):
                     m = -(1 + j / (2 ** self.precision))
                     z = ((2 ** i) * m) / (1.0 - err)
-                    sum += self.input_distribution.get_piecewise_pdf()(z) * -z * self.eps / (1.0 - err)
+                    sum += self.input_distribution.get_piecewise_pdf()(z) * -z * self.unit_roundoff / (1.0 - err)
             # Loop through exponents from 0
             for i in range(-self.max_exp, self.exp_sup_val + 1):
                 # Loop through mantissas
                 for j in range(0, max_mantissa):
                     m = 1 + j / (2 ** self.precision)
                     z = ((2 ** i) * m) / (1.0 - err)
-                    sum += self.input_distribution.get_piecewise_pdf()(z) * z * self.eps / (1.0 - err)
+                    sum += self.input_distribution.get_piecewise_pdf()(z) * z * self.unit_roundoff / (1.0 - err)
         # Case 2: only positive representable numbers
         else:
             # Loop through exponents
@@ -390,7 +391,7 @@ class LowPrecisionErrorModel(ErrorModel):
                 for j in range(0, max_mantissa):
                     m = 1 + j / (2 ** self.precision)
                     z = ((2 ** i) * m) / (1.0 - err)
-                    sum += self.input_distribution.get_piecewise_pdf()(z) * z * self.eps / (1.0 - err)
+                    sum += self.input_distribution.get_piecewise_pdf()(z) * z * self.unit_roundoff / (1.0 - err)
         return sum
 
     # infVal is finite value
@@ -565,7 +566,7 @@ class ErrorModelWrapper:
     def __init__(self, error_model):
         self.error_model = error_model
         self.sampleInit = True
-        self.eps = 2 ** (-self.precision)
+        self.unit_roundoff = 2 ** (-self.precision)
         self.distribution = error_model
 
     def createErrorDistr(self):
@@ -591,7 +592,7 @@ class ErrorModelPointMass:
         self.inputdistribution.get_piecewise_pdf()
         self.precision = precision
         self.exponent = exponent
-        self.eps = 2 ** -self.precision
+        self.unit_roundoff = 2 ** -self.precision
         set_context_precision(self.precision, self.exponent)
         qValue = printMPFRExactly(mpfr(str(self.inputdistribution.rand(1)[0])))
         reset_default_precision()
@@ -618,30 +619,30 @@ def test_HP_error_model():
     print(E.int_error())
     print(E.compare())
     print(time() - t)
-    t = time()
-    U = UniformDistr(4, 5)
-    E = HighPrecisionErrorModel(U, mantissa, exponent)
-    E.init_piecewise_pdf()
-    print(E.getName())
-    print(E.int_error())
-    print(E.compare())
-    print(time() - t)
-    t = time()
-    U = UniformDistr(7, 8)
-    E = HighPrecisionErrorModel(U, mantissa, exponent)
-    E.init_piecewise_pdf()
-    print(E.getName())
-    print(E.int_error())
-    print(E.compare())
-    print(time() - t)
-    t = time()
-    U = NormalDistr()
-    E = HighPrecisionErrorModel(U, mantissa, exponent)
-    E.init_piecewise_pdf()
-    print(E.getName())
-    print(E.int_error())
-    print(E.compare())
-    print(time() - t)
+    # t = time()
+    # U = UniformDistr(4, 5)
+    # E = HighPrecisionErrorModel(U, mantissa, exponent)
+    # E.init_piecewise_pdf()
+    # print(E.getName())
+    # print(E.int_error())
+    # print(E.compare())
+    # print(time() - t)
+    # t = time()
+    # U = UniformDistr(7, 8)
+    # E = HighPrecisionErrorModel(U, mantissa, exponent)
+    # E.init_piecewise_pdf()
+    # print(E.getName())
+    # print(E.int_error())
+    # print(E.compare())
+    # print(time() - t)
+    # t = time()
+    # U = NormalDistr()
+    # E = HighPrecisionErrorModel(U, mantissa, exponent)
+    # E.init_piecewise_pdf()
+    # print(E.getName())
+    # print(E.int_error())
+    # print(E.compare())
+    # print(time() - t)
 
 
 def test_LP_error_model():
@@ -649,7 +650,7 @@ def test_LP_error_model():
     mantissa = 4
     poly_precision = 200
     t = time()
-    D = UniformDistr(-2, 4)
+    D = UniformDistr(2, 8)
     E = LowPrecisionErrorModel(D, mantissa, exponent, poly_precision)
     print(E.int_error())
     print(E.compare())
@@ -762,7 +763,7 @@ def test_LP_error_model():
 #         self.precision = precision
 #         self.exp = exp
 #         self.sampleInit = True
-#         self.eps = 2 ** (-self.precision)
+#         self.unit_roundoff = 2 ** (-self.precision)
 #         self.distribution = self.createTypicalErrorDistr()
 #
 #     def createTypicalErrorDistr(self):
