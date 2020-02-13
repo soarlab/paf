@@ -1,5 +1,4 @@
 import math
-from abc import ABC
 from time import time
 import matplotlib.pyplot as plt
 import gmpy2
@@ -10,8 +9,6 @@ from pacal.distr import Distr
 from pacal.segments import PiecewiseDistribution, Segment
 from pacal.utils import wrap_pdf
 from pychebfun import chebfun
-
-import model
 import matplotlib
 from scipy import integrate
 from scipy.stats import kstest
@@ -447,7 +444,7 @@ class LowPrecisionErrorModel(ErrorModel):
 # Approximate Error Model given by the "Typical Distribution"
 ###
 
-class TypicalErrorModel(ErrorModel, ABC):
+class TypicalErrorModel(ErrorModel):
     """
     An implementation of the typical error distribution with three segments
     """
@@ -670,7 +667,6 @@ def test_typical_error_model():
     print(wrapper.getName())
     s = wrapper.getSampleSet()
     plt.hist(s, range=[-1, 1], density=True)
-
 
 
 ###
