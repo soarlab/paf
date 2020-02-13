@@ -1,4 +1,5 @@
 import math
+from abc import ABC
 from time import time
 import matplotlib.pyplot as plt
 import gmpy2
@@ -24,8 +25,14 @@ import numpy as np
 
 def set_context_precision(mantissa, exponent):
     ctx = gmpy2.get_context()
-    ctx.precision = mantissa
-    ctx.emax = 2 ** (exponent - 1)
+    if mantissa is None:
+        ctx.precision = 24
+    else:
+        ctx.precision = mantissa
+    if exponent is None:
+        ctx.emax = 2 ** 7
+    else:
+        ctx.emax = 2 ** (exponent - 1)
     ctx.emin = 1 - ctx.emax
 
 
@@ -50,15 +57,21 @@ class ErrorModel(Distr):
         """
         super(ErrorModel, self).__init__()
         self.input_distribution = input_distribution
-        self.name = "Error(" + input_distribution.getName() + ")"
-        if self.input_distribution.piecewise_pdf is None:
-            self.input_distribution.init_piecewise_pdf()
-        # gmpy2 precision:
+        if input_distribution is None:
+            self.name = "ErrorModel"
+        else:
+            self.name = "Error(" + input_distribution.getName() + ")"
+            if self.input_distribution.piecewise_pdf is None:
+                self.input_distribution.init_piecewise_pdf()
+        # gmpy2 precision (or None):
         self.precision = precision
         self.polynomial_precision = polynomial_precision
         self.exponent = exponent
         # In gmpy2 precision includes a sign bit, so 2 ** precision = unit roundoff
-        self.unit_roundoff = 2 ** (-self.precision)
+        if self.precision is None:
+            self.unit_roundoff = 2 ** (-24)
+        else:
+            self.unit_roundoff = 2 ** (-self.precision)
 
     def init_piecewise_pdf(self):
         """Initialize the pdf represented as a piecewise function.
@@ -115,6 +128,11 @@ class ErrorModel(Distr):
                     y[index] = self._right_segment(ti)
             return y
 
+    def rand_raw(self, n=None):  # None means return scalar
+        inv_cdf = self.get_piecewise_invcdf()
+        u = np.random.uniform(size=n)
+        return inv_cdf(u)
+
     def __call__(self, x):
         return self.pdf(self, x)
 
@@ -138,6 +156,8 @@ class ErrorModel(Distr):
         :param file_name: optional, if not None the graph will be saved using the file_name + name of the distribution.
         :return: the Kolmogorov-Smirnov (K-S) statistic and p-value
         """
+        if self.input_distribution is None:
+            return "Nothing to compare against!"
         empirical = self.input_distribution.rand(n)
         pdf = self.get_piecewise_pdf()
         cdf = self.get_piecewise_cdf()
@@ -183,11 +203,6 @@ class HighPrecisionErrorModel(ErrorModel):
         self._get_min_exponent()
         self._get_max_exponent()
         self._compute_central_constant()
-
-    def rand_raw(self, n=None):  # None means return scalar
-        inv_cdf = self.get_piecewise_invcdf()
-        u = np.random.uniform(size=n)
-        return inv_cdf(u)
 
     def _left_segment(self, x):
         """
@@ -319,6 +334,7 @@ class LowPrecisionErrorModel(ErrorModel):
         self.inf_val = mpfr(str(self.input_distribution.range_()[0]))
         self.sup_val = mpfr(str(self.input_distribution.range_()[1]))
         self.max_exp = 2 ** (exponent - 1)
+        # TODO: deal with infinities
         self.exp_inf_val = math.floor(math.log(abs(self.inf_val), 2))
         self.exp_sup_val = math.floor(math.log(abs(self.sup_val), 2))
         if not gmpy2.is_finite(self.inf_val):
@@ -426,93 +442,22 @@ class LowPrecisionErrorModel(ErrorModel):
         gmpy2.set_context(bkpCtx)
         return prec
 
-    # Compute the exact density
-    def getpdf(self, t):
-        '''
-    Constructs the EXACT probability density function at point t in [-1,1]
-    Exact values are used to build the interpolating polynomial
-        '''
-
-        set_context_precision(self.precision, self.exponent)
-        eps = 2 ** -self.precision
-
-        infVal = mpfr(str(self.wrapperInputDistribution.a))
-        supVal = mpfr(str(self.wrapperInputDistribution.b))
-
-        if not gmpy2.is_finite(infVal):
-            infVal = gmpy2.next_above(infVal)
-
-        if not gmpy2.is_finite(supVal):
-            supVal = gmpy2.next_below(supVal)
-
-        sums = []
-        # test if  the input is scalar or an array
-        if np.isscalar(t):
-            tt = []
-            tt.append(t)
-        else:
-            tt = t
-        # main loop through all floating point numbers in reduced precision
-        countInitial = 0
-        countFinal = 0
-        for ti in tt:
-            sum = 0.0
-            err = float(ti) * eps
-
-            x = mpfr(printMPFRExactly(infVal))
-            y = gmpy2.next_above(x)
-            z = gmpy2.next_above(y)
-
-            xmin = (float(self.getInitialMinValue(infVal)) + float(printMPFRExactly(x))) / 2
-            xmax = (float(printMPFRExactly(x)) + float(printMPFRExactly(y))) / 2.0
-            xp = float(printMPFRExactly(x)) / (1.0 - err)
-            if xmin < xp < xmax:
-                sum += self.inputdistribution.get_piecewise_pdf()(xp) * abs(xp) * eps / (1.0 - err)
-            # Deal with all standard intervals
-            if y < supVal:
-                while y < supVal:
-                    xmin = xmax
-                    xmax = (float(printMPFRExactly(y)) + float(printMPFRExactly(z))) / 2.0
-                    xp = float(printMPFRExactly(y)) / (1.0 - err)
-
-                    if xmin < xp < xmax:
-                        sum += self.inputdistribution.get_piecewise_pdf()(xp) * abs(xp) * eps / (1.0 - err)
-
-                    y = z
-                    z = gmpy2.next_above(z)
-                # Deal with the very last interval [x,(x+y)/2]
-                # Z now should be equal to SUPVAL
-                xmin = xmax
-                xmax = (float(printMPFRExactly(y)) + float(self.getFinalMaxValue(supVal))) / 2.0
-                xp = float(printMPFRExactly(y)) / (1.0 - err)
-
-                # xp=mpfr(str(y))/(1.0-err)
-                # xmax = mpfr(str(y))
-                if xmin < xp < xmax:
-                    sum += self.inputdistribution.get_piecewise_pdf()(xp) * abs(xp) * eps / (1.0 - err)
-
-            sums.append(sum)
-
-        reset_default_precision()
-
-        if np.isscalar(t):
-            return sum
-        else:
-            return sums
-
 
 ###
 # Approximate Error Model given by the "Typical Distribution"
 ###
 
-class TypicalErrorModel(ErrorModel):
+class TypicalErrorModel(ErrorModel, ABC):
     """
     An implementation of the typical error distribution with three segments
     """
-    def __init__(self, input_distribution, precision=None, **kwargs):
-        super(TypicalErrorModel, input_distribution, precision, None, self).__init__(**kwargs)
-        self.name = "TypicalError(" + input_distribution.getName() + ")"
-        self.p = precision
+    def __init__(self, input_distribution=None, precision=None, **kwargs):
+        super(TypicalErrorModel, self).__init__(input_distribution, precision, None)
+        self.name = "TypicalErrorDistribution"
+        if precision is not None:
+            self.p = precision-1
+        else:
+            self.p = None
 
     def _left_segment(self, x):
         if self.p is None:
@@ -542,49 +487,6 @@ class TypicalErrorModel(ErrorModel):
                     2 / 3 + 0.5 * alpha + 2 ** (-self.p - 2) * alpha * (alpha - 1))
         return y
 
-    def init_piecewise_pdf(self):
-        self.piecewise_pdf = PiecewiseDistribution([])
-        wrapped_pdf = wrap_pdf(self.pdf)
-        self.piecewise_pdf.addSegment(Segment(-1, -0.5, wrapped_pdf))
-        self.piecewise_pdf.addSegment(Segment(-0.5, 0.5, wrapped_pdf))
-        self.piecewise_pdf.addSegment(Segment(0.5, 1, wrapped_pdf))
-
-    def rand_raw(self, n=None):  # None means return scalar
-        inv_cdf = self.get_piecewise_invcdf()
-        u = np.random.uniform(size=n)
-        return inv_cdf(u)
-
-
-###
-# Wrapper class for all Error Models
-###
-
-class ErrorModelWrapper:
-    """
-    Wrapper class. ErrorModel is a PaCal object, ErrorModelWrapper is not.
-    """
-    def __init__(self, error_model):
-        self.error_model = error_model
-        self.sampleInit = True
-        self.unit_roundoff = 2 ** (-self.precision)
-        self.distribution = error_model
-
-    def createErrorDistr(self):
-        self.distribution.get_piecewise_pdf()
-        return self.distribution
-
-    def execute(self):
-        return self.distribution
-
-    def getSampleSet(self, n=100000):
-        # it remembers values for future operations
-        if self.sampleInit:
-            self.sampleSet = self.distribution.rand(n)
-            self.sampleInit = False
-        return self.sampleSet
-
-
-
 class ErrorModelPointMass:
     def __init__(self, wrapperInputDistribution, precision, exponent):
         self.wrapperInputDistribution = wrapperInputDistribution
@@ -605,6 +507,36 @@ class ErrorModelPointMass:
 
 
 ###
+# Wrapper class for all Error Models
+###
+
+class ErrorModelWrapper:
+    """
+    Wrapper class implementing only the methods which are required from tree_model
+    Input: an ErrorModel object
+    """
+    def __init__(self, error_model):
+        self.error_model = error_model
+        self.sampleInit = True
+
+    def __str__(self):
+        return self.error_model.getName()
+
+    def getName(self):
+        return self.error_model.getName()
+
+    def execute(self):
+        return self.self.error_model
+
+    def getSampleSet(self, n=100000):
+        # it remembers values for future operations
+        if self.sampleInit:
+            self.sampleSet = self.error_model.rand(n)
+            self.sampleInit = False
+        return self.sampleSet
+
+
+###
 # TESTS
 ###
 
@@ -619,30 +551,35 @@ def test_HP_error_model():
     print(E.int_error())
     print(E.compare())
     print(time() - t)
-    # t = time()
-    # U = UniformDistr(4, 5)
-    # E = HighPrecisionErrorModel(U, mantissa, exponent)
-    # E.init_piecewise_pdf()
-    # print(E.getName())
-    # print(E.int_error())
-    # print(E.compare())
-    # print(time() - t)
-    # t = time()
-    # U = UniformDistr(7, 8)
-    # E = HighPrecisionErrorModel(U, mantissa, exponent)
-    # E.init_piecewise_pdf()
-    # print(E.getName())
-    # print(E.int_error())
-    # print(E.compare())
-    # print(time() - t)
-    # t = time()
-    # U = NormalDistr()
-    # E = HighPrecisionErrorModel(U, mantissa, exponent)
-    # E.init_piecewise_pdf()
-    # print(E.getName())
-    # print(E.int_error())
-    # print(E.compare())
-    # print(time() - t)
+    t = time()
+    U = UniformDistr(4, 5)
+    E = HighPrecisionErrorModel(U, mantissa, exponent)
+    E.init_piecewise_pdf()
+    print(E.getName())
+    print(E.int_error())
+    print(E.compare())
+    print(time() - t)
+    t = time()
+    U = UniformDistr(7, 8)
+    E = HighPrecisionErrorModel(U, mantissa, exponent)
+    E.init_piecewise_pdf()
+    print(E.getName())
+    print(E.int_error())
+    print(E.compare())
+    print(time() - t)
+    t = time()
+    U = NormalDistr()
+    E = HighPrecisionErrorModel(U, mantissa, exponent)
+    E.init_piecewise_pdf()
+    print(E.getName())
+    print(E.int_error())
+    print(E.compare())
+    print(time() - t)
+    # test wrapper
+    wrapper = ErrorModelWrapper(E)
+    print(wrapper.getName())
+    s = wrapper.getSampleSet()
+    plt.hist(s, range=[-1, 1], density=True)
 
 
 def test_LP_error_model():
@@ -688,6 +625,51 @@ def test_LP_error_model():
     print(E.int_error())
     print(E.compare())
     print(time() - t)
+    # test wrapper
+    wrapper = ErrorModelWrapper(E)
+    print(wrapper.getName())
+    s = wrapper.getSampleSet()
+    plt.hist(s, range=[-1, 1], density=True)
+
+
+def test_typical_error_model():
+    t = time()
+    E = TypicalErrorModel()
+    E.init_piecewise_pdf()
+    print(E.getName())
+    print(E.int_error())
+    # Test comparing with nothing. Should return the string N/A
+    print(E.compare())
+    print(time() - t)
+    U = UniformDistr(4, 32)
+    E = TypicalErrorModel(U)
+    E.init_piecewise_pdf()
+    print(E.getName())
+    print(E.int_error())
+    # Test comparing with U, precision unspecified
+    print(E.compare())
+    print(time() - t)
+    E = TypicalErrorModel(U, 9)
+    E.init_piecewise_pdf()
+    print(E.getName())
+    print(E.int_error())
+    # Test comparing with U, precision specified
+    print(E.compare())
+    print(time() - t)
+    # A distribution badly approximated by the TypicalErrorModel
+    U = UniformDistr(4, 6)
+    E = TypicalErrorModel(U)
+    E.init_piecewise_pdf()
+    print(E.getName())
+    print(E.int_error())
+    # Comparison should show poor KS-statistics
+    print(E.compare())
+    print(time() - t)
+    # test wrapper
+    wrapper = ErrorModelWrapper(E)
+    print(wrapper.getName())
+    s = wrapper.getSampleSet()
+    plt.hist(s, range=[-1, 1], density=True)
 
 
 

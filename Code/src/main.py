@@ -72,7 +72,8 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
         gc.collect()
 
 #error_model.test_HP_error_model()
-error_model.test_LP_error_model()
+#error_model.test_LP_error_model()
+error_model.test_typical_error_model()
 
 warnings.warn("Mantissa with implicit bit of sign. In gmpy2 set precision=p includes also sign bit. (e.g. Float32 is mantissa=24 and exp=8)\n")
 

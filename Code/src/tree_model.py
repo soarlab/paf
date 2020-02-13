@@ -4,7 +4,7 @@ from gmpy2 import mpfr
 import time
 import os
 
-from error_model import TypicalErrorModel, ErrorModel, ErrorModelPointMass, HighPrecisionErrorModel
+from error_model import TypicalErrorModel, ErrorModel, ErrorModelPointMass, HighPrecisionErrorModel, LowPrecisionErrorModel
 from model import UnaryOperation
 from operations import quantizedPointMass, BinOpDist, UnOpDist
 from setup_utils import loadIfExists, storage_path
