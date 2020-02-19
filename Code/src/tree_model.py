@@ -4,7 +4,10 @@ from gmpy2 import mpfr
 import time
 import os
 
-from error_model import TypicalErrorModel, ErrorModelWrapper, ErrorModel, ErrorModelPointMass, HighPrecisionErrorModel, LowPrecisionErrorModel
+from abstract_error_model import AbstractErrorModel
+from point_mass_error_model import ErrorModelPointMass
+from typical_error_model import TypicalErrorModel
+from wrapper_error_model import ErrorModelWrapper
 from model import UnaryOperation
 from operations import quantizedPointMass, BinOpDist, UnOpDist
 from setup_utils import loadIfExists, storage_path
@@ -64,7 +67,7 @@ class DistributionsManager:
             if wrapDist.name in self.errordictionary:
                 return self.errordictionary[wrapDist.name]
             else:
-                tmp=ErrorModel(wrapDist, precision, exp, pol_prec)
+                tmp=AbstractErrorModel(wrapDist, precision, exp, pol_prec)
                 self.errordictionary[wrapDist.name]=tmp
                 return tmp
 
