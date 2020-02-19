@@ -4,7 +4,7 @@ from gmpy2 import mpfr
 import time
 import os
 
-from error_model import TypicalErrorModel, ErrorModel, ErrorModelPointMass, HighPrecisionErrorModel, LowPrecisionErrorModel
+from error_model import TypicalErrorModel, ErrorModelWrapper, ErrorModel, ErrorModelPointMass, HighPrecisionErrorModel, LowPrecisionErrorModel
 from model import UnaryOperation
 from operations import quantizedPointMass, BinOpDist, UnOpDist
 from setup_utils import loadIfExists, storage_path
@@ -55,7 +55,7 @@ class DistributionsManager:
             if wrapDist.name in self.errordictionary:
                 return self.errordictionary[wrapDist.name]
             else:
-                tmp=TypicalErrorModel(wrapDist,precision)
+                tmp=ErrorModelWrapper(TypicalErrorModel(wrapDist), precision, exp)
                 #tmp=WrappedHighPrecisionError(wrapDist, precision, exp)
                 #tmp=HighPrecisionErrorModel(wrapDist,precision,exp)
                 self.errordictionary[wrapDist.name] = tmp
@@ -103,6 +103,10 @@ class TreeModel:
         self.samples_dep_op=samples_dep_op
         self.manager=DistributionsManager(self.samples_dep_op)
         self.evaluate(self.tree)
+        self.final_quantized_distr=self.tree.root_value[2]
+        self.final_exact_distr=self.tree.root_value[0]
+        self.abs_err_distr= UnOpDist(BinOpDist(self.final_quantized_distr, "-", self.final_exact_distr, 1000, self.samples_dep_op,
+                                               regularize=True, convolution=False), "abs_err", "abs")
 
     def evaluate(self, tree):
         """ Recursively populate the Tree with the triples
@@ -171,14 +175,15 @@ class TreeModel:
         else:
             tree.root_value[0].resetSampleInit()
 
-    def generate_error_samples(self, sample_time, name):
+    def generate_error_samples(self, sample_time, name, golden=False):
         """ Generate sample_nb samples of tree evaluation in the tree's working precision
                     :return an array of samples, absolute errors and relative errors """
 
-        print("Generating Samples...")
-        if loadIfExists and os.path.exists(storage_path + name):
+        if golden and loadIfExists and os.path.exists(storage_path + name):
             print("Golden distribution is going to be loaded from disk!")
             return True, [], [], []
+
+        print("Generating Samples...")
 
         rel_err = []
         abs_err = []
@@ -194,6 +199,7 @@ class TreeModel:
             abs_err.append(tmp_abs)
             rel_err.append(tmp_abs / sample)
             end_time = time.time() - start_time
+        self.resetInit(self.tree)
         resetContextDefault()
         print("... Done with generation")
         return False, np.asarray(values), np.asarray(abs_err), np.asarray(rel_err)

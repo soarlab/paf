@@ -13,7 +13,7 @@ def init_pacal(num_threads):
     pacal.params.general.parallel = True
     pacal.params.general.nprocs = num_threads
 
-num_threads=4
+num_threads=8
 init_pacal(num_threads)
 num_processes=int(multiprocessing.cpu_count()/num_threads)
 

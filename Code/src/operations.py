@@ -174,7 +174,7 @@ class BinOpDist:
 
         breaks = [min(bins), max(bins)]
 
-        self.distributionSamp = MyFunDistr(DependentOperationExecutor(bins,n,200), breakPoints=breaks)
+        self.distributionSamp = MyFunDistr(DependentOperationExecutor(bins,n,self.poly_precision), breakPoints=breaks)
         self.distributionSamp.get_piecewise_pdf()
 
         if self.regularize:

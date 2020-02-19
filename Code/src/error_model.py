@@ -58,8 +58,8 @@ class ErrorModel(Distr):
             self.name = "ErrorModel"
         else:
             self.name = "Error(" + input_distribution.getName() + ")"
-            if self.input_distribution.piecewise_pdf is None:
-                self.input_distribution.init_piecewise_pdf()
+            if self.input_distribution.execute() is None:
+                self.input_distribution.execute().get_piecewise_pdf()
         # gmpy2 precision (or None):
         self.precision = precision
         self.polynomial_precision = polynomial_precision
@@ -70,10 +70,10 @@ class ErrorModel(Distr):
         else:
             self.unit_roundoff = 2 ** (-self.precision)
 
-    def init_piecewise_pdf(self):
-        """Initialize the pdf represented as a piecewise function.
-        This method should be overridden by subclasses."""
-        raise NotImplementedError()
+    #def init_piecewise_pdf(self):
+    #    """Initialize the pdf represented as a piecewise function.
+    #    This method should be overridden by subclasses."""
+    #    raise NotImplementedError()
 
     def _left_segment(self, x):
         """
@@ -124,6 +124,10 @@ class ErrorModel(Distr):
                 elif 0.5 < ti <= 1:
                     y[index] = self._right_segment(ti)
             return y
+
+    def execute(self):
+        self.init_piecewise_pdf()
+        return self
 
     def rand_raw(self, n=None):  # None means return scalar
         inv_cdf = self.get_piecewise_invcdf()
@@ -471,6 +475,8 @@ class TypicalErrorModel(ErrorModel):
             y = 0.75
         else:
             u = 2 ** (-self.p - 1)
+            #2/3 is an integer operation in python2. I know in python3 this is not the
+            # case, but it is really dangerous to do such thing. Please use 2.0/3.0.
             y = 1 / (2 ** self.p * (1 - u * x) ** 2) * (2 / 3 + 3 * (2 ** self.p - 1) / 4)
         return y
 
@@ -479,6 +485,7 @@ class TypicalErrorModel(ErrorModel):
             y = 0.5 * ((1.0 / x) - 1.0) + 0.25 * (((1.0 / x) - 1.0) ** 2)
         else:
             u = 2 ** (-self.p - 1)
+            #This is really dangerous, please use parenthesis.
             alpha = np.floor(2 ** self.p * (1 / x - 1) - 0.5)
             y = 1 / (2 ** self.p * (1 - u * x) ** 2) * (
                     2 / 3 + 0.5 * alpha + 2 ** (-self.p - 2) * alpha * (alpha - 1))
@@ -512,9 +519,13 @@ class ErrorModelWrapper:
     Wrapper class implementing only the methods which are required from tree_model
     Input: an ErrorModel object
     """
-    def __init__(self, error_model):
+    def __init__(self, error_model, precision, exp):
+        self.precision=precision
+        self.exp=exp
+        self.eps = 2 ** (-self.precision)
         self.error_model = error_model
         self.sampleInit = True
+        self.name=self.getName()
 
     def __str__(self):
         return self.error_model.getName()
@@ -523,7 +534,7 @@ class ErrorModelWrapper:
         return self.error_model.getName()
 
     def execute(self):
-        return self.self.error_model
+        return self.error_model.execute()
 
     def getSampleSet(self, n=100000):
         # it remembers values for future operations
