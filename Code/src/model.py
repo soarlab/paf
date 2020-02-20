@@ -1,3 +1,5 @@
+import copy
+
 import pacal
 from pychebfun import chebfun
 from scipy.stats import truncnorm
@@ -58,7 +60,7 @@ class TruncNormal(object):
         self.name="Stand. Norm["+str(lower)+","+str(upper)+"]"
         self.interp_trunc_norm=chebfun(self.truncatedNormal, domain=[self.lower, self.upper], N=self.interp_points)
 
-    def truncatedNormal(self,x):
+    def truncatedNormal(self, x):
         tmp = pacal.NormalDistr(0, 1)
         if isinstance(x, float) or isinstance(x, int) or len(x) == 1:
             if x < self.lower or x > self.upper:
@@ -76,7 +78,7 @@ class TruncNormal(object):
         # return data representation for pickled object
 
     def __getstate__(self):
-        tmp_dict = self.__dict__  # get attribute dictionary
+        tmp_dict = copy.deepcopy(self.__dict__)  # get attribute dictionary
         if 'interp_trunc_norm' in tmp_dict:
             del tmp_dict['interp_trunc_norm']  # remove interp_trunc_norm entry
         return tmp_dict
