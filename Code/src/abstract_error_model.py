@@ -97,7 +97,7 @@ class AbstractErrorModel(Distr):
             return y
 
     def execute(self):
-        self.init_piecewise_pdf()
+        self.get_piecewise_pdf()
         return self
 
     def rand_raw(self, n=None):  # None means return scalar

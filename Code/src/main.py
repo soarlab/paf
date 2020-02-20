@@ -74,7 +74,8 @@ warnings.warn("Mantissa with implicit bit of sign. In gmpy2 set precision=p incl
 mantissa=24
 exp=8
 
-file="/home/roki/GIT/Accuracy/Code/test.txt"
+
+file="/home/roki/GIT/Accuracy/Code/benchmarks/Doppler_gaussian.txt"
 
 range_my_dict, abs_my_dict, rel_my_dict = getFPTaylorResults(fptaylor_exe, fptaylor_path)
 process_file(file, mantissa, exp, range_my_dict, abs_my_dict)

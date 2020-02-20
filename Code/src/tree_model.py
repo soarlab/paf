@@ -5,6 +5,7 @@ import time
 import os
 
 from abstract_error_model import AbstractErrorModel
+from fast_typical_error_model import FastTypicalErrorModel
 from point_mass_error_model import ErrorModelPointMass
 from typical_error_model import TypicalErrorModel
 from wrapper_error_model import ErrorModelWrapper
@@ -58,7 +59,7 @@ class DistributionsManager:
             if wrapDist.name in self.errordictionary:
                 return self.errordictionary[wrapDist.name]
             else:
-                tmp=ErrorModelWrapper(TypicalErrorModel(wrapDist), precision, exp)
+                tmp=ErrorModelWrapper(FastTypicalErrorModel(wrapDist), precision, exp)
                 #tmp=WrappedHighPrecisionError(wrapDist, precision, exp)
                 #tmp=HighPrecisionErrorModel(wrapDist,precision,exp)
                 self.errordictionary[wrapDist.name] = tmp

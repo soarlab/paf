@@ -28,7 +28,6 @@ class ErrorModelWrapper:
             self.sampleInit = False
         return self.sampleSet
 
-
 ###
 # Functions switching between low and double precision. Beware mantissa = gmpy2 precision (includes sign bit)
 ###
