@@ -17,16 +17,18 @@ num_threads=8
 init_pacal(num_threads)
 num_processes=int(multiprocessing.cpu_count()/num_threads)
 
-home_directory_project=os.getcwd()+"/../"
+home_directory_project=os.getcwd()+"/"
 benchmarks_path=home_directory_project+"benchmarks/"
 storage_path=home_directory_project+"storage/"
 fptaylor_path=home_directory_project+"FPTaylor/"
 output_path=home_directory_project+"results/"
 fptaylor_exe="/home/roki/GIT/FPTaylor/./fptaylor"
 pran_exe=""
-golden_model_time=10
+golden_model_time=7200
+global_interpolate=True
 loadIfExists=True
 storeIfDoesnExist=False
+
 
 class NoDaemonProcess(multiprocessing.Process):
     # make 'daemon' attribute always return False

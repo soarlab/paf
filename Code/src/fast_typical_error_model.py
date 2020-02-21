@@ -4,9 +4,7 @@ from pychebfun import chebfun
 
 from project_utils import MyFunDistr
 from typical_error_model import TypicalErrorModel
-
-from pacal.segments import PiecewiseDistribution, Segment
-from pacal.utils import wrap_pdf
+from setup_utils import global_interpolate
 
 import numpy as np
 
@@ -66,7 +64,7 @@ class FastTypicalErrorModel(TypicalErrorModel):
     def __init__(self, input_distribution=None, precision=None, **kwargs):
         super(FastTypicalErrorModel, self).__init__(input_distribution, precision)
         self.name = "FastTypicalErrorDistribution"
-        self.hidden_err_model = MyFunDistr(TypErrInterp(-1.0, 1.0, 50), breakPoints =[-1.0, 1.0])
+        self.hidden_err_model = MyFunDistr(TypErrInterp(-1.0, 1.0, 50), breakPoints =[-1.0, 1.0], interpolated=global_interpolate)
 
     def init_piecewise_pdf(self):
         self.piecewise_pdf=self.hidden_err_model.get_piecewise_pdf()

@@ -5,6 +5,7 @@ from pychebfun import chebfun
 from scipy.stats import truncnorm
 import numpy as np
 from project_utils import MyFunDistr, normalizeDistribution
+from setup_utils import global_interpolate
 
 class NodeManager:
     def __init__(self):
@@ -106,7 +107,7 @@ class N:
         self.indipendent=True
         self.a = float(a)
         self.b = float(b)
-        self.distribution = MyFunDistr(TruncNormal(self.a,self.b,50), breakPoints =[self.a, self.b])
+        self.distribution = MyFunDistr(TruncNormal(self.a,self.b,50), breakPoints =[self.a, self.b], interpolated=global_interpolate)
         self.distribution.get_piecewise_pdf()
         self.distribution=normalizeDistribution(self.distribution, init=True)
 
