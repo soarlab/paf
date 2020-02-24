@@ -1,3 +1,6 @@
+import copy
+import sys
+
 import numpy as np
 import gmpy2
 from gmpy2 import mpfr
@@ -14,6 +17,10 @@ from operations import quantizedPointMass, BinOpDist, UnOpDist
 from setup_utils import loadIfExists, storage_path
 from project_utils import printMPFRExactly, resetContextDefault, setCurrentContextPrecision
 
+# define Python user-defined exceptions
+class MyCustomException(Exception):
+    def __init__(self, num):
+        self.num=num
 
 def copy_tree(my_tree):
     if my_tree.leaf:
@@ -95,7 +102,7 @@ class DistributionsManager:
 
 class TreeModel:
 
-    def __init__(self, my_yacc, precision, exp, poly_precision, samples_dep_op, initialize=True):
+    def __init__(self, xs, my_yacc, precision, exp, poly_precision, samples_dep_op, initialize=True):
         self.initialize = initialize
         self.precision = precision
         self.exp = exp
@@ -103,19 +110,39 @@ class TreeModel:
         # Copy structure of the tree from my_yacc
         self.tree = copy_tree(my_yacc.expression)
         # Evaluate tree
+
+        self.counter=0
+
+        self.i=0
+
+        self.vectorX=xs
+
+        self.currentX=self.vectorX[0]
+
         self.eps = 2 ** (-self.precision)
         self.samples_dep_op=samples_dep_op
         self.manager=DistributionsManager(self.samples_dep_op)
-        self.evaluate(self.tree)
-        self.final_quantized_distr=self.tree.root_value[2]
-        self.final_exact_distr=self.tree.root_value[0]
-        self.abs_err_distr= UnOpDist(BinOpDist(self.final_quantized_distr, "-", self.final_exact_distr, 1000, self.samples_dep_op,
+
+        try:
+            self.evaluate(self.tree)
+            self.final_quantized_distr=self.tree.root_value[2]
+            self.final_exact_distr=self.tree.root_value[0]
+            self.abs_err_distr= UnOpDist(BinOpDist(self.final_quantized_distr, "-",
+                                                    self.final_exact_distr, 1000, self.samples_dep_op,
                                                regularize=True, convolution=False), "abs_err", "abs")
+        except MyCustomException as t:
+            print("Child exit for n="+str(t.num))
+            self.final_quantized_distr = self.partial_tree.root_value[2]
+            self.final_exact_distr = self.partial_tree.root_value[0]
+            self.abs_err_distr = UnOpDist(
+                BinOpDist(self.final_quantized_distr, "-", self.final_exact_distr, 1000, self.samples_dep_op,
+                          regularize=True, convolution=False), "abs_err", "abs")
 
     def evaluate(self, tree):
         """ Recursively populate the Tree with the triples
         (distribution, error distribution, quantized distribution) """
         # Test if we're at a leaf
+
         if tree.root_value is not None:
             # Non-quantized distribution
             dist = self.manager.createUnaryOperation(tree.root_value, tree.root_name)
@@ -154,6 +181,9 @@ class TreeModel:
             else:
                 error = self.manager.createErrorModel(qdist, self.precision, self.exp, self.poly_precision)
                 quantized_distribution = self.manager.createBinOperation(qdist, "*+", error, self.poly_precision)
+
+            if tree.root_name=='+':
+                self.counter=self.counter+1
         else:
             self.evaluate(tree.left)
             dist = self.manager.createUnaryOperation(tree.left.root_value[0], tree.root_name, tree.root_name)
@@ -168,6 +198,22 @@ class TreeModel:
 
         # We now populate the triple with distribution, error model, quantized distribution '''
         tree.root_value = [dist, error, quantized_distribution]
+        if self.counter >= self.currentX-1:
+            self.i=self.i+1
+            if self.i<len(self.vectorX):
+                self.currentX=self.vectorX[self.i]
+                self.partial_tree = tree
+                tmp=os.fork()
+                if tmp<=0:
+                    #it is a child
+                    raise MyCustomException(self.vectorX[self.i-1])
+            else:
+                self.currentX=sys.maxsize
+                self.partial_tree = tree
+                tmp=os.fork()
+                if tmp<=0:
+                    #it is a child
+                    raise MyCustomException(self.vectorX[self.i-1])
 
     def resetInit(self, tree):
         if tree.left is not None or tree.right is not None:
@@ -196,14 +242,14 @@ class TreeModel:
         start_time = time.time()
         end_time = 0
         while end_time <= sample_time:
-            self.resetInit(self.tree)
-            sample, lp_sample = self.evaluate_error_at_sample(self.tree)
+            self.resetInit(self.partial_tree)
+            sample, lp_sample = self.evaluate_error_at_sample(self.partial_tree)
             values.append(sample)
             tmp_abs = abs(float(printMPFRExactly(lp_sample)) - sample)
             abs_err.append(tmp_abs)
             rel_err.append(tmp_abs / sample)
             end_time = time.time() - start_time
-        self.resetInit(self.tree)
+        self.resetInit(self.partial_tree)
         resetContextDefault()
         print("... Done with generation")
         return False, np.asarray(values), np.asarray(abs_err), np.asarray(rel_err)
