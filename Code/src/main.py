@@ -63,7 +63,7 @@ def process_file(benchmarks_path, file, output_folder, storage_path, mantissa, e
 #gmpy2 set precision=p includes also sign bit.
 #print(computeLargestPositiveNumber(mantissa, exp))
 
-num_processes=2
+num_processes=16
 setup_utils.init_pacal(4)
 mantissa=24
 exp=8
@@ -82,7 +82,7 @@ range_my_dict, abs_my_dict, rel_my_dict = getFPTaylorResults(fptaylor_exe, fptay
 if not len(abs_my_dict) == len(rel_my_dict) and not len(range_my_dict) == len(rel_my_dict):
     print("WARNING!!! Mismatch in FPTaylor")
 
-pool = MyPool(processes=num_processes)
+pool = MyPool(processes=num_processes, maxtasksperchild=3)
 
 for i in range(0,100):
 	output_path=home_directory_project+"results"+str(i)+"/"
