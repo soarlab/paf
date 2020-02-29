@@ -80,17 +80,25 @@ def collectInfoAboutDistribution(f, finalDistr_wrapper, name, distr_mode, bin_le
         val = 0
         lower = distr_mode
         upper = distr_mode
+        lower_limit=False
+        upper_limit=False
         while val<i:
             lower=lower-gap
             if lower<finalDistr_wrapper.a:
                 lower=finalDistr_wrapper.a
+                lower_limit=True
             upper = upper + gap
             if upper>finalDistr_wrapper.b:
                 upper=finalDistr_wrapper.b
+                upper_limit=True
             val=finalDistr_wrapper.execute().get_piecewise_pdf().integrate(lower,upper)
             if val>=i:
                 res=res+"Range: ["+str(lower)+","+str(upper)+"] contains "+str(i*100)+"% of the distribution.\n\n"
                 break
+            if lower_limit and upper_limit:
+                res = res + "Range: [" + str(lower) + "," + str(upper) + "] contains " + str(i * 100) + "% of the distribution.\n\n"
+                break
+
     res = res + "Range: [" + str(finalDistr_wrapper.a) + "," + str(finalDistr_wrapper.b) + "] contains 100% of the distribution.\n\n"
     res = res+"###########################################\n\n"
     f.write(res)
@@ -111,14 +119,20 @@ def collectInfoAboutSampling(f, vals, edges, name, pdf, golden_mode_index=None):
             val = vals[ind]
             lower = ind
             upper = ind+1
+            lower_limit = False
+            upper_limit = False
             while (val/tot) < i:
                 lower = lower - 1
                 if lower < 0:
                     lower = 0
+                    lower_limit=True
                 upper = upper + 1
                 if upper > len(edges)-1:
                     upper = len(edges)-1
+                    upper_limit=True
                 val = sum(vals[lower:upper])
+                if lower_limit and upper_limit:
+                    break
             res = res + "Range: [" + str(edges[lower]) + "," + str(edges[upper]) + "] contains " + str(i * 100) + "% of the distribution.\n\n"
     else:
         tot = vals[-1]
@@ -129,6 +143,8 @@ def collectInfoAboutSampling(f, vals, edges, name, pdf, golden_mode_index=None):
             while (val / tot) < i:
                 upper = upper + 1
                 val = vals[upper]
+                if upper==(len(vals)-1):
+                    break
             res = res + "Range: [" + str(edges[lower]) + "," + str(edges[upper+1]) + "] contains " + str(i * 100) + "% of the distribution.\n\n"
     res = res + "Range: [" + str(edges[0]) + "," + str(edges[-1]) + "] contains 100% of the distribution.\n\n"
     res = res+"###########################################\n\n\n"

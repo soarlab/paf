@@ -4,6 +4,7 @@ from regularizer import *
 from project_utils import *
 from gmpy2 import *
 
+from setup_utils import global_interpolate
 
 class quantizedPointMass:
 
@@ -174,7 +175,7 @@ class BinOpDist:
 
         breaks = [min(bins), max(bins)]
 
-        self.distributionSamp = MyFunDistr(DependentOperationExecutor(bins,n,200), breakPoints=breaks)
+        self.distributionSamp = MyFunDistr(DependentOperationExecutor(bins,n,self.poly_precision), breakPoints=breaks, interpolated=global_interpolate)
         self.distributionSamp.get_piecewise_pdf()
 
         if self.regularize:

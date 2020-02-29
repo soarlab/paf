@@ -65,6 +65,8 @@ def normalizeDistribution(distr, init=False):
         distr.piecewise_pdf=(distr_pdf*(1/coverage))
         new_coverage = distr.get_piecewise_pdf().integrate(float("-inf"), float("+inf"))
         print(new_coverage)
+    else:
+        warnings.warn("PDF integrates to 1. Good Accuracy", FutureWarning, stacklevel=2)
     return distr
 
 def getBoundsWhenOutOfRange(distribution, mantissa, exponent):
