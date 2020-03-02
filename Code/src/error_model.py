@@ -71,7 +71,7 @@ class ErrorModel(Distr):
         self.precision = precision
         self.polynomial_precision = polynomial_precision
         self.exponent = exponent
-        # In gmpy2 precision includes a sign bit, so 2 ** precision = unit roundoff
+        # In gmpy2, precision includes a sign bit, so 2 ** precision = unit roundoff
         if self.precision is None:
             self.unit_roundoff = 2 ** (-24)
         else:
@@ -341,10 +341,21 @@ class LowPrecisionErrorModel(ErrorModel):
         set_context_precision(self.precision, self.exponent)
         self.inf_val = mpfr(str(self.input_distribution.range_()[0]))
         self.sup_val = mpfr(str(self.input_distribution.range_()[1]))
+        if not gmpy2.is_finite(self.inf_val):
+            self.inf_val = gmpy2.next_above(self.inf_val)
+        if not gmpy2.is_finite(self.sup_val):
+            self.sup_val = gmpy2.next_below(self.sup_val)
         self.max_exp = 2 ** (exponent - 1)
-        # TODO: deal with infinities
-        self.exp_inf_val = math.floor(math.log(abs(self.inf_val), 2))
-        self.exp_sup_val = math.floor(math.log(abs(self.sup_val), 2))
+        if self.inf_val == 0:
+            # take most negative exponent
+            self.exp_inf_val = -self.max_exp
+        else:
+            self.exp_inf_val = math.floor(math.log(abs(self.inf_val), 2))
+        if self.sup_val == 0:
+            # take most negative exponent
+            self.exp_sup_val = -self.max_exp
+        else:
+            self.exp_sup_val = math.floor(math.log(abs(self.sup_val), 2))
         if not gmpy2.is_finite(self.inf_val):
             self.inf_val = gmpy2.next_above( self.inf_val)
         if not gmpy2.is_finite(self.sup_val):
@@ -421,38 +432,6 @@ class LowPrecisionErrorModel(ErrorModel):
                     sum += self.input_distribution.get_piecewise_pdf()(z) * z * self.unit_roundoff / (1.0 - err)
         return sum
 
-    # infVal is finite value
-    def getInitialMinValue(self, infVal):
-        if not gmpy2.is_finite(infVal):
-            print("Error cannot compute intervals with infinity")
-            exit(-1)
-        bkpCtx = gmpy2.get_context().copy()
-
-        i = 0
-        while not gmpy2.is_finite(gmpy2.next_below(infVal)):
-            set_context_precision(self.precision + i, self.exponent + i)
-            i = i + 1
-
-        prec = printMPFRExactly(gmpy2.next_below(infVal))
-        gmpy2.set_context(bkpCtx)
-        return prec
-
-    # infVal is finite value
-    def getFinalMaxValue(self, supVal):
-        if not gmpy2.is_finite(supVal):
-            print("Error cannot compute intervals with infinity")
-            exit(-1)
-        bkpCtx = gmpy2.get_context().copy()
-
-        i = 0
-        while not gmpy2.is_finite(gmpy2.next_above(supVal)):
-            set_context_precision(self.precision + i, self.exponent + i)
-            i = i + 1
-
-        prec = printMPFRExactly(gmpy2.next_above(supVal))
-        gmpy2.set_context(bkpCtx)
-        return prec
-
 
 ###
 # Approximate Error Model given by the "Typical Distribution"
@@ -497,6 +476,9 @@ class TypicalErrorModel(ErrorModel):
             y = 1 / (2 ** self.p * (1 - u * x) ** 2) * (
                     2 / 3 + 0.5 * alpha + 2 ** (-self.p - 2) * alpha * (alpha - 1))
         return y
+
+
+# Since it has no density function the PointMass error model does not implement the ErrorModel methods
 
 class ErrorModelPointMass:
     def __init__(self, wrapperInputDistribution, precision, exponent):
@@ -604,17 +586,17 @@ def test_LP_error_model():
     print(E.compare(100000))
     print(time() - t)
     t = time()
-    # D = NormalDistr()
-    # E = LowPrecisionErrorModel(D, mantissa, exponent, poly_precision)
-    # print(E.int_error())
-    # print(E.compare())
-    # print(time() - t)
-    # t = time()
-    # D = BetaDistr(2, 2)
-    # E = LowPrecisionErrorModel(D, mantissa, exponent, poly_precision)
-    # print(E.int_error())
-    # print(E.compare())
-    # print(time() - t)
+    D = NormalDistr()
+    E = LowPrecisionErrorModel(D, mantissa, exponent, poly_precision)
+    print(E.int_error())
+    print(E.compare())
+    print(time() - t)
+    t = time()
+    D = BetaDistr(2, 2)
+    E = LowPrecisionErrorModel(D, mantissa, exponent, poly_precision)
+    print(E.int_error())
+    print(E.compare())
+    print(time() - t)
     exponent = 5
     mantissa = 11
     poly_precision = 50
