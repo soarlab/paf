@@ -4,15 +4,12 @@ from gmpy2 import mpfr
 import time
 import os
 
-from abstract_error_model import AbstractErrorModel
-from fast_typical_error_model import FastTypicalErrorModel
-from point_mass_error_model import ErrorModelPointMass
-from typical_error_model import TypicalErrorModel
-from wrapper_error_model import ErrorModelWrapper
+from error_model import AbstractErrorModel, FastTypicalErrorModel, ErrorModelPointMass, \
+                        ErrorModelWrapper, TypicalErrorModel
 from model import UnaryOperation
 from operations import quantizedPointMass, BinOpDist, UnOpDist
 from setup_utils import loadIfExists, storage_path
-from project_utils import printMPFRExactly, resetContextDefault, setCurrentContextPrecision
+from project_utils import printMPFRExactly, reset_default_precision, set_context_precision
 
 
 def copy_tree(my_tree):
@@ -192,7 +189,7 @@ class TreeModel:
         rel_err = []
         abs_err = []
         values = []
-        setCurrentContextPrecision(self.precision, self.exp)
+        set_context_precision(self.precision, self.exp)
         start_time = time.time()
         end_time = 0
         while end_time <= sample_time:
@@ -204,7 +201,7 @@ class TreeModel:
             rel_err.append(tmp_abs / sample)
             end_time = time.time() - start_time
         self.resetInit(self.tree)
-        resetContextDefault()
+        reset_default_precision()
         print("... Done with generation")
         return False, np.asarray(values), np.asarray(abs_err), np.asarray(rel_err)
 

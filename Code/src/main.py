@@ -19,7 +19,7 @@ import ntpath
 from fpryacc import FPRyacc
 from tree_model import TreeModel
 from FPTaylor import getFPTaylorResults
-from error_model import test_LP_error_model
+from tests import test_LP_error_model
 
 def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
     try:
