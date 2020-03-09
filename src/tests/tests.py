@@ -1,7 +1,54 @@
 from error_model import HighPrecisionErrorModel, LowPrecisionErrorModel, TypicalErrorModel, ErrorModelWrapper
 import matplotlib.pyplot as plt
+import matplotlib
+import numpy as np
+import ntpath
 from time import time
 from pacal import UniformDistr, NormalDistr, BetaDistr
+from fpryacc import FPRyacc
+from tree_model import TreeModel
+
+###
+# TreeModel Tests
+###
+
+def test_TreeModel():
+    # typical model test
+    exponent = 8
+    mantissa = 24
+    file = "tests/my_expression.txt"
+    f = open(file, "r")
+    file_name = (ntpath.basename(file).split(".")[0]).lower()  # (file.split(".")[0]).lower()
+    text = f.read()
+    text = text[:-1]
+    f.close()
+    myYacc = FPRyacc(text, False)
+    start_time = time()
+    T = TreeModel(myYacc, mantissa, exponent, [40, 10], 100, 250000, error_model="high_precision")
+    end_time = time()
+    print("Exe time --- %s seconds ---" % (end_time - start_time))
+    plt.close("all")
+    matplotlib.rcParams.update({'font.size': 11})
+    fig, a = plt.subplots(2, 2)
+    dist = T.tree.root_value[0].distribution
+    t0 = dist.range_()[0]
+    tf = dist.range_()[1]
+    x = np.linspace(t0, tf, 100)
+    a[0][0].plot(x, dist.pdf(x))
+    a[0][0].set_title("Unquantized operations")
+    dist = T.tree.root_value[1].distribution
+    t0 = dist.range_()[0]
+    tf = dist.range_()[1]
+    x = np.linspace(t0, tf, 100)
+    a[0][1].plot(x, dist.pdf(x))
+    a[0][1].set_title("Last error")
+    dist = T.tree.root_value[2].distribution
+    t0 = dist.range_()[0]
+    tf = dist.range_()[1]
+    x = np.linspace(t0, tf, 100)
+    a[1][0].plot(x, dist.pdf(x))
+    a[1][0].set_title("Quantized operations")
+    plt.show()
 
 ###
 # Error Models Tests
@@ -109,7 +156,7 @@ def test_typical_error_model():
     print(E.compare())
     print(time() - t)
     U = UniformDistr(4, 32)
-    E = TypicalErrorModel(U)
+    E = TypicalErrorModel(U, precision_correction=True)
     E.init_piecewise_pdf()
     print(E.getName())
     print(E.int_error())

@@ -123,7 +123,7 @@ class BinOpDist:
         # operator to multiply by a relative error
         elif self.operator == "*+":
             self.distributionConv = self.leftoperand.execute() * (
-                        1.0 + (self.rightoperand.eps * self.rightoperand.execute()))
+                        1.0 + (self.rightoperand.unit_roundoff * self.rightoperand.execute()))
         else:
             print("Operation not supported!")
             exit(-1)
@@ -142,9 +142,9 @@ class BinOpDist:
         rightOp = self.rightoperand.getSampleSet(self.samples_dep_op)
 
         if self.operator == "*+":
-            res = np.array(leftOp) * (1 + (self.rightoperand.eps * np.array(rightOp)))
+            res = np.array(leftOp) * (1 + (self.rightoperand.unit_roundoff * np.array(rightOp)))
             if elaborateBorders:
-                res = self.elaborateBorders(leftOp, self.operator, (1 + (self.rightoperand.eps * np.array(rightOp))),
+                res = self.elaborateBorders(leftOp, self.operator, (1 + (self.rightoperand.unit_roundoff * np.array(rightOp))),
                                             res)
         else:
             res = eval("np.array(leftOp)" + self.operator + "np.array(rightOp)")

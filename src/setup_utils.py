@@ -10,7 +10,7 @@ import pacal
 
 def init_pacal(num_threads):
     '''Limit pacal threads'''
-    pacal.params.general.parallel = True
+    pacal.params.general.parallel = False
     pacal.params.general.nprocs = num_threads
 
 num_threads=8

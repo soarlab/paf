@@ -7,24 +7,24 @@ class ErrorModelWrapper:
     def __init__(self, error_model):
         self.precision = error_model.precision
         self.exp = error_model.exponent
-        self.eps = error_model.unit_roundoff
-        self.error_model = error_model
+        self.unit_roundoff = error_model.unit_roundoff
+        self.distribution = error_model
         self.sampleInit = True
         self.name = self.getName()
 
     def __str__(self):
-        return self.error_model.getName()
+        return self.distribution.getName()
 
     def getName(self):
-        return self.error_model.getName()
+        return self.distribution.getName()
 
     def execute(self):
-        return self.error_model.execute()
+        return self.distribution
 
     def getSampleSet(self, n=100000):
         # it remembers values for future operations
         if self.sampleInit:
-            self.sampleSet = self.error_model.rand(n)
+            self.sampleSet = self.distribution.rand(n)
             self.sampleInit = False
         return self.sampleSet
 
