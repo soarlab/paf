@@ -4,8 +4,8 @@ from gmpy2 import mpfr
 import time
 import os
 
-from error_model import AbstractErrorModel, FastTypicalErrorModel, ErrorModelPointMass, \
-                        ErrorModelWrapper, TypicalErrorModel
+from error_model import HighPrecisionErrorModel, LowPrecisionErrorModel, FastTypicalErrorModel, ErrorModelPointMass, \
+    ErrorModelWrapper, TypicalErrorModel
 from model import UnaryOperation
 from operations import quantizedPointMass, BinOpDist, UnOpDist
 from setup_utils import loadIfExists, storage_path
@@ -21,7 +21,7 @@ def copy_tree(my_tree):
         else:
             copied_tree = BinaryTree(my_tree.value.operator, None,
                                      copy_tree(my_tree.children[0]),
-                                     copy_tree(my_tree.children[1]), my_tree.value.indipendent)
+                                     copy_tree(my_tree.children[1]), my_tree.value.independent)
     return copied_tree
 
 
@@ -33,6 +33,7 @@ class BinaryTree(object):
         self.right = right
         self.convolution = convolution
 
+
 class UnaryTree(object):
     def __init__(self, name, value, onlychild):
         self.root_name = name
@@ -40,10 +41,12 @@ class UnaryTree(object):
         self.left = onlychild
         self.right = None
 
+
 def isPointMassDistr(dist):
     if dist.distribution.range_()[0] == dist.distribution.range_()[-1]:
         return True
     return False
+
 
 class DistributionsManager:
     def __init__(self, samples_dep_op):
@@ -51,63 +54,77 @@ class DistributionsManager:
         self.errordictionary = {}
         self.distrdictionary = {}
 
-    def createErrorModel(self, wrapDist, precision, exp, pol_prec, typical=True):
-        if typical:
+    def createErrorModel(self, wrapDist, precision, exp, pol_prec, error_model="typical"):
+        if error_model == "typical":
             if wrapDist.name in self.errordictionary:
                 return self.errordictionary[wrapDist.name]
             else:
-                tmp=ErrorModelWrapper(FastTypicalErrorModel(wrapDist))
-                #tmp=WrappedHighPrecisionError(wrapDist, precision, exp)
-                #tmp=HighPrecisionErrorModel(wrapDist,precision,exp)
+                tmp = ErrorModelWrapper(FastTypicalErrorModel(wrapDist))
+                # tmp=WrappedHighPrecisionError(wrapDist, precision, exp)
+                # tmp=HighPrecisionErrorModel(wrapDist,precision,exp)
+                self.errordictionary[wrapDist.name] = tmp
+                return tmp
+        elif error_model == "high_precision":
+            if wrapDist.name in self.errordictionary:
+                return self.errordictionary[wrapDist.name]
+            else:
+                tmp = HighPrecisionErrorModel(wrapDist, precision, exp, pol_prec)
+                self.errordictionary[wrapDist.name] = tmp
+                return tmp
+        elif error_model == "low_precision":
+            if wrapDist.name in self.errordictionary:
+                return self.errordictionary[wrapDist.name]
+            else:
+                tmp = HighPrecisionErrorModel(wrapDist, precision, exp, pol_prec)
                 self.errordictionary[wrapDist.name] = tmp
                 return tmp
         else:
-            if wrapDist.name in self.errordictionary:
-                return self.errordictionary[wrapDist.name]
-            else:
-                tmp=AbstractErrorModel(wrapDist, precision, exp, pol_prec)
-                self.errordictionary[wrapDist.name]=tmp
-                return tmp
+            raise ValueError('Invalid ErrorModel name.')
 
-    def createBinOperation(self, leftoperand, operator, rightoperand, poly_precision,  regularize=True, convolution=True):
-        name="("+leftoperand.name+str(operator)+rightoperand.name+")"
+    def createBinOperation(self, leftoperand, operator, rightoperand, poly_precision, regularize=True,
+                           convolution=True):
+        name = "(" + leftoperand.name + str(operator) + rightoperand.name + ")"
         if name in self.distrdictionary:
             return self.distrdictionary[name]
         else:
-            tmp=BinOpDist(leftoperand, operator, rightoperand, poly_precision, self.samples_dep_op, regularize, convolution)
-            self.distrdictionary[name]=tmp
+            tmp = BinOpDist(leftoperand, operator, rightoperand, poly_precision, self.samples_dep_op, regularize,
+                            convolution)
+            self.distrdictionary[name] = tmp
             return tmp
 
     def createUnaryOperation(self, operand, name, operation=None):
         if operation is not None:
-            tmp_name=name+"("+operand.name+")"
+            tmp_name = name + "(" + operand.name + ")"
         else:
-            tmp_name=name
+            tmp_name = name
         if tmp_name in self.distrdictionary:
-            return  self.distrdictionary[tmp_name]
+            return self.distrdictionary[tmp_name]
         else:
-            tmp=UnOpDist(operand, tmp_name, operation)
-            self.distrdictionary[tmp_name]=tmp
+            tmp = UnOpDist(operand, tmp_name, operation)
+            self.distrdictionary[tmp_name] = tmp
             return tmp
+
 
 class TreeModel:
 
-    def __init__(self, my_yacc, precision, exp, poly_precision, samples_dep_op, initialize=True):
+    def __init__(self, my_yacc, precision, exp, poly_precision, samples_dep_op, initialize=True, error_model="typical"):
         self.initialize = initialize
         self.precision = precision
         self.exp = exp
         self.poly_precision = poly_precision
+        self.error_model = error_model
         # Copy structure of the tree from my_yacc
         self.tree = copy_tree(my_yacc.expression)
         # Evaluate tree
         self.eps = 2 ** (-self.precision)
-        self.samples_dep_op=samples_dep_op
-        self.manager=DistributionsManager(self.samples_dep_op)
+        self.samples_dep_op = samples_dep_op
+        self.manager = DistributionsManager(self.samples_dep_op)
         self.evaluate(self.tree)
-        self.final_quantized_distr=self.tree.root_value[2]
-        self.final_exact_distr=self.tree.root_value[0]
-        self.abs_err_distr= UnOpDist(BinOpDist(self.final_quantized_distr, "-", self.final_exact_distr, 1000, self.samples_dep_op,
-                                               regularize=True, convolution=False), "abs_err", "abs")
+        self.final_quantized_distr = self.tree.root_value[2]
+        self.final_exact_distr = self.tree.root_value[0]
+        self.abs_err_distr = UnOpDist(
+            BinOpDist(self.final_quantized_distr, "-", self.final_exact_distr, 1000, self.samples_dep_op,
+                      regularize=True, convolution=False), "abs_err", "abs")
 
     def evaluate(self, tree):
         """ Recursively populate the Tree with the triples
@@ -121,9 +138,10 @@ class TreeModel:
                 # Compute error model
                 if isPointMassDistr(dist):
                     error = ErrorModelPointMass(dist, self.precision, self.exp)
-                    quantized_distribution = quantizedPointMass(dist,self.precision, self.exp)
+                    quantized_distribution = quantizedPointMass(dist, self.precision, self.exp)
                 else:
-                    error = self.manager.createErrorModel(dist, self.precision, self.exp, self.poly_precision)
+                    error = self.manager.createErrorModel(dist.distribution, self.precision, self.exp, self.poly_precision,
+                                                          self.error_model)
                     quantized_distribution = self.manager.createBinOperation(dist, "*+", error, self.poly_precision)
             # Else we leave the leaf distribution unchanged
             else:
@@ -141,15 +159,18 @@ class TreeModel:
             self.evaluate(tree.left)
             self.evaluate(tree.right)
 
-            dist  = self.manager.createBinOperation(tree.left.root_value[0], tree.root_name, tree.right.root_value[0], self.poly_precision, convolution=tree.convolution)
-            qdist = self.manager.createBinOperation(tree.left.root_value[2], tree.root_name, tree.right.root_value[2], self.poly_precision, convolution=tree.convolution)
+            dist = self.manager.createBinOperation(tree.left.root_value[0], tree.root_name, tree.right.root_value[0],
+                                                   self.poly_precision, convolution=tree.convolution)
+            qdist = self.manager.createBinOperation(tree.left.root_value[2], tree.root_name, tree.right.root_value[2],
+                                                    self.poly_precision, convolution=tree.convolution)
 
             if isPointMassDistr(dist):
                 error = ErrorModelPointMass(qdist, self.precision, self.exp)
                 quantized_distribution = quantizedPointMass(dist, self.precision, self.exp)
 
             else:
-                error = self.manager.createErrorModel(qdist, self.precision, self.exp, self.poly_precision)
+                error = self.manager.createErrorModel(qdist, self.precision, self.exp, self.poly_precision,
+                                                      self.error_model)
                 quantized_distribution = self.manager.createBinOperation(qdist, "*+", error, self.poly_precision)
         else:
             self.evaluate(tree.left)
@@ -160,7 +181,8 @@ class TreeModel:
                 error = ErrorModelPointMass(qdist, self.precision, self.exp)
                 quantized_distribution = quantizedPointMass(dist, self.precision, self.exp)
             else:
-                error = self.manager.createErrorModel(qdist, self.precision, self.exp, self.poly_precision)
+                error = self.manager.createErrorModel(qdist, self.precision, self.exp, self.poly_precision,
+                                                      self.error_model)
                 quantized_distribution = self.manager.createBinOperation(qdist, "*+", error, self.poly_precision)
 
         # We now populate the triple with distribution, error model, quantized distribution '''

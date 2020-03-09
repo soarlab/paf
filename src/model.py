@@ -7,10 +7,11 @@ import numpy as np
 from project_utils import MyFunDistr, normalizeDistribution
 from setup_utils import global_interpolate
 
+
 class NodeManager:
     def __init__(self):
         self.id = 0
-        self.nodeDict={}
+        self.nodeDict = {}
 
     def createNode(self, value, children=None):
         '''If the value is a scalar generate new id (no dependent operation never)'''
@@ -21,15 +22,16 @@ class NodeManager:
             idtmp = self.nodeDict[value.name]
         else:
             idtmp = self.id
-            self.nodeDict[value.name]=idtmp
-            self.id=self.id+1
+            self.nodeDict[value.name] = idtmp
+            self.id = self.id + 1
 
-        newNode=Node(idtmp, value, children)
+        newNode = Node(idtmp, value, children)
         '''If there are multiple occurences of the same id it means the operation is DEPENDENT'''
         if len(newNode.id) != len(set(newNode.id)):
-            newNode.value.indipendent = False
-            newNode.id=list(set(newNode.id))
+            newNode.value.independent = False
+            newNode.id = list(set(newNode.id))
         return newNode
+
 
 class Node:
     def __init__(self, id, value, children=None):
@@ -48,18 +50,21 @@ class Node:
             self.children = []
             self.id = [id]
 
+
 ''' 
 Class used to implement the Chebfun interpolation of the truncated normal
 Note the setState and getState methods. Pacal performs convolution using multiprocessing
 library, so the interpolation has to be pickable.
 '''
+
+
 class TruncNormal(object):
     def __init__(self, lower, upper, interp_points):
-        self.lower=lower
-        self.upper=upper
-        self.interp_points=interp_points
-        self.name="Stand. Norm["+str(lower)+","+str(upper)+"]"
-        self.interp_trunc_norm=chebfun(self.truncatedNormal, domain=[self.lower, self.upper], N=self.interp_points)
+        self.lower = lower
+        self.upper = upper
+        self.interp_points = interp_points
+        self.name = "Stand. Norm[" + str(lower) + "," + str(upper) + "]"
+        self.interp_trunc_norm = chebfun(self.truncatedNormal, domain=[self.lower, self.upper], N=self.interp_points)
 
     def truncatedNormal(self, x):
         tmp = pacal.NormalDistr(0, 1)
@@ -92,123 +97,131 @@ class TruncNormal(object):
         self.name = dict["name"]
         self.interp_points = dict["interp_points"]
         if 'interp_trunc_norm' not in dict:
-            dict['interp_trunc_norm'] = chebfun(self.truncatedNormal, domain=[self.lower, self.upper], N=self.interp_points)
+            dict['interp_trunc_norm'] = chebfun(self.truncatedNormal, domain=[self.lower, self.upper],
+                                                N=self.interp_points)
         self.__dict__ = dict  # make dict our attribute dictionary
 
     def __call__(self, t, *args, **kwargs):
         return self.interp_trunc_norm(t)
 
+
 class N:
-    def __init__(self,name,a,b):
+    def __init__(self, name, a, b):
         self.name = name
         self.sampleInit = True
         self.isScalar = False
-        self.sampleSet=[]
-        self.indipendent=True
+        self.sampleSet = []
+        self.independent = True
         self.a = float(a)
         self.b = float(b)
-        self.distribution = MyFunDistr(TruncNormal(self.a,self.b,50), breakPoints =[self.a, self.b], interpolated=global_interpolate)
+        self.distribution = MyFunDistr(TruncNormal(self.a, self.b, 50), breakPoints=[self.a, self.b],
+                                       interpolated=global_interpolate)
         self.distribution.get_piecewise_pdf()
-        self.distribution=normalizeDistribution(self.distribution, init=True)
+        self.distribution = normalizeDistribution(self.distribution, init=True)
 
     def execute(self):
         return self.distribution
 
     def getRepresentation(self):
-        return "Standard Normal Truncated in range ["+str(self.a)+","+str(self.b)+"]"
+        return "Standard Normal Truncated in range [" + str(self.a) + "," + str(self.b) + "]"
 
-    def getSampleSet(self,n=100000):
-        #it remembers values for future operations
+    def getSampleSet(self, n=100000):
+        # it remembers values for future operations
         if self.sampleInit:
             tmp_dist = truncnorm(self.a, self.b)
             self.sampleSet = tmp_dist.rvs(size=n)
             self.sampleInit = False
         return self.sampleSet
 
+
 class B:
-    def __init__(self,name,a,b):
+    def __init__(self, name, a, b):
         self.name = name
-        self.distribution = pacal.BetaDistr(float(a),float(b))
-        self.a=self.distribution.range_()[0]
-        self.b=self.distribution.range_()[-1]
-        self.indipendent=True
+        self.distribution = pacal.BetaDistr(float(a), float(b))
+        self.a = self.distribution.range_()[0]
+        self.b = self.distribution.range_()[-1]
+        self.independent = True
         self.sampleInit = True
         self.isScalar = False
-        self.sampleSet=[]
+        self.sampleSet = []
 
     def execute(self):
         return self.distribution
 
     def getRepresentation(self):
-        return "Beta ["+str(self.a)+","+str(self.b)+"]"
+        return "Beta [" + str(self.a) + "," + str(self.b) + "]"
 
-    def getSampleSet(self,n=100000):
-        #it remembers values for future operations
+    def getSampleSet(self, n=100000):
+        # it remembers values for future operations
         if self.sampleInit:
             self.sampleSet = self.distribution.rand(n)
             self.sampleInit = False
         return self.sampleSet
+
 
 class U:
-    def __init__(self,name,a,b):
+    def __init__(self, name, a, b):
         self.name = name
-        self.distribution = pacal.UniformDistr(float(a),float(b))
-        self.a=self.distribution.range_()[0]
-        self.b=self.distribution.range_()[-1]
-        self.indipendent = True
+        self.distribution = pacal.UniformDistr(float(a), float(b))
+        self.a = self.distribution.range_()[0]
+        self.b = self.distribution.range_()[-1]
+        self.independent = True
         self.sampleInit = True
         self.isScalar = False
-        self.sampleSet=[]
+        self.sampleSet = []
 
     def execute(self):
         return self.distribution
 
     def getRepresentation(self):
-        return "Uniform ["+str(self.a)+","+str(self.b)+"]"
+        return "Uniform [" + str(self.a) + "," + str(self.b) + "]"
 
-    def getSampleSet(self,n=100000):
-        #it remembers values for future operations
+    def getSampleSet(self, n=100000):
+        # it remembers values for future operations
         if self.sampleInit:
             self.sampleSet = self.distribution.rand(n)
             self.sampleInit = False
         return self.sampleSet
+
 
 class Number:
     def __init__(self, label):
         self.name = label
         self.value = float(label)
-        self.distribution = pacal.ConstDistr(c = self.value)
-        self.isScalar=True
-        self.a=self.distribution.range_()[0]
-        self.b=self.distribution.range_()[-1]
+        self.distribution = pacal.ConstDistr(c=self.value)
+        self.isScalar = True
+        self.a = self.distribution.range_()[0]
+        self.b = self.distribution.range_()[-1]
 
     def execute(self):
         return self.distribution
 
     def getRepresentation(self):
-        return "Scalar("+str(self.value)+")"
+        return "Scalar(" + str(self.value) + ")"
 
-    def getSampleSet(self,n=100000):
-        #it remembers values for future operations
+    def getSampleSet(self, n=100000):
+        # it remembers values for future operations
         return self.distribution.rand(n)
+
 
 class Operation:
     def __init__(self, leftoperand, operator, rightoperand):
         self.name = leftoperand.name + str(operator) + rightoperand.name
-        self.leftoperand=leftoperand
-        self.operator=operator
-        self.rightoperand=rightoperand
-        self.indipendent=True
-        self.isScalar=False
+        self.leftoperand = leftoperand
+        self.operator = operator
+        self.rightoperand = rightoperand
+        self.independent = True
+        self.isScalar = False
         if leftoperand.isScalar and rightoperand.isScalar:
             self.isScalar = True
 
+
 class UnaryOperation:
     def __init__(self, operand, operator):
-        self.name = operator+"(" + operand.name + ")"
-        self.operand=operand
-        self.operator=operator
-        self.indipendent=True
-        self.isScalar=False
+        self.name = operator + "(" + operand.name + ")"
+        self.operand = operand
+        self.operator = operator
+        self.independent = True
+        self.isScalar = False
         if operand.isScalar:
             self.isScalar = True

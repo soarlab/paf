@@ -29,9 +29,9 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
         text = f.read()
         text = text[:-1]
         f.close()
-        myYacc=FPRyacc(text, False)
+        myYacc = FPRyacc(text, False)
         start_time = time.time()
-        T = TreeModel(myYacc, mantissa, exp, 100, 250000)
+        T = TreeModel(myYacc, mantissa, exp, [100, 30], 250000, error_model="high_precision")
         end_time = time.time()
         print("Exe time --- %s seconds ---" % (end_time - start_time))
         finalTime=end_time-start_time
@@ -66,18 +66,18 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
         del values_golden, abs_err_golden, rel_err_golden
         gc.collect()
 
-test_typical_error_model()
+#test_typical_error_model()
 #test_HP_error_model()
 #test_LP_error_model()
 #error_model.test_typical_error_model()
 
 warnings.warn("Mantissa with implicit bit of sign. In gmpy2 set precision=p includes also sign bit. (e.g. Float32 is mantissa=24 and exp=8)\n")
 
-mantissa=24
-exp=8
+mantissa = 24
+exp = 8
 
 
-file="/home/roki/GIT/Accuracy/Code/benchmarks/Doppler_gaussian.txt"
+file = "../benchmarks/Doppler_gaussian.txt"
 
 range_my_dict, abs_my_dict, rel_my_dict = getFPTaylorResults(fptaylor_exe, fptaylor_path)
 process_file(file, mantissa, exp, range_my_dict, abs_my_dict)

@@ -6,6 +6,7 @@ from gmpy2 import *
 
 from setup_utils import global_interpolate
 
+
 class quantizedPointMass:
 
     def __init__(self, wrapperInputDistribution, precision, exp):
@@ -13,9 +14,9 @@ class quantizedPointMass:
         self.inputdistribution = self.wrapperInputDistribution.execute()
         self.precision = precision
         self.exp = exp
-        setCurrentContextPrecision(self.precision, self.exp)
+        set_context_precision(self.precision, self.exp)
         qValue = printMPFRExactly(mpfr(str(self.inputdistribution.rand(1)[0])))
-        resetContextDefault()
+        reset_default_precision()
         self.name = qValue
         self.sampleInit = True
         self.distribution = ConstDistr(float(qValue))
@@ -39,12 +40,13 @@ class quantizedPointMass:
     def getName(self):
         return self.name
 
+
 class DependentOperationExecutor(object):
     def __init__(self, bins, n, interp_points):
-        self.bins=bins
-        self.n=n
-        self.interp_points=interp_points
-        self.name="Dep. Operation: bins = "+str(self.bins)+", values = "+str(self.n)+"]"
+        self.bins = bins
+        self.n = n
+        self.interp_points = interp_points
+        self.name = "Dep. Operation: bins = " + str(self.bins) + ", values = " + str(self.n) + "]"
         self.interp_dep_op = chebfun(self.executeOperation, domain=[min(bins), max(bins)], N=self.interp_points)
 
     def executeOperation(self, t):
@@ -74,16 +76,18 @@ class DependentOperationExecutor(object):
         # by __getstate__
 
     def __setstate__(self, dict):
-        self.bins=dict["bins"]
-        self.n=dict["n"]
-        self.interp_points=dict["interp_points"]
+        self.bins = dict["bins"]
+        self.n = dict["n"]
+        self.interp_points = dict["interp_points"]
         self.name = dict["name"]
         if 'interp_dep_op' not in dict:
-            dict['interp_dep_op'] = chebfun(self.executeOperation, domain=[min(self.bins), max(self.bins)], N=self.interp_points)
+            dict['interp_dep_op'] = chebfun(self.executeOperation, domain=[min(self.bins), max(self.bins)],
+                                            N=self.interp_points)
         self.__dict__ = dict  # make dict our attribute dictionary
 
     def __call__(self, t, *args, **kwargs):
         return self.interp_dep_op(t)
+
 
 class BinOpDist:
     """
@@ -118,7 +122,8 @@ class BinOpDist:
             self.distributionConv = self.leftoperand.execute() / self.rightoperand.execute()
         # operator to multiply by a relative error
         elif self.operator == "*+":
-            self.distributionConv = self.leftoperand.execute() * (1.0 + (self.rightoperand.eps * self.rightoperand.execute()))
+            self.distributionConv = self.leftoperand.execute() * (
+                        1.0 + (self.rightoperand.eps * self.rightoperand.execute()))
         else:
             print("Operation not supported!")
             exit(-1)
@@ -175,7 +180,8 @@ class BinOpDist:
 
         breaks = [min(bins), max(bins)]
 
-        self.distributionSamp = MyFunDistr(DependentOperationExecutor(bins,n,self.poly_precision), breakPoints=breaks, interpolated=global_interpolate)
+        self.distributionSamp = MyFunDistr(DependentOperationExecutor(bins, n, self.poly_precision), breakPoints=breaks,
+                                           interpolated=global_interpolate)
         self.distributionSamp.get_piecewise_pdf()
 
         if self.regularize:
@@ -216,6 +222,7 @@ class BinOpDist:
 
     def getName(self):
         return self.name
+
 
 class UnOpDist:
     """

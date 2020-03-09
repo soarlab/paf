@@ -18,15 +18,15 @@ def reset_default_precision():
     gmpy2.set_context(gmpy2.context())
 
 
-def setCurrentContextPrecision(mantissa, exponent):
-    ctx = gmpy2.get_context()
-    ctx.precision = mantissa
-    ctx.emax = 2 ** (exponent - 1)
-    ctx.emin = 1 - ctx.emax
-
-
-def resetContextDefault():
-    gmpy2.set_context(gmpy2.context())
+# def setCurrentContextPrecision(mantissa, exponent):
+#     ctx = gmpy2.get_context()
+#     ctx.precision = mantissa
+#     ctx.emax = 2 ** (exponent - 1)
+#     ctx.emin = 1 - ctx.emax
+#
+#
+# def resetContextDefault():
+#     gmpy2.set_context(gmpy2.context())
 
 
 class MyFunDistr(pacal.FunDistr):
