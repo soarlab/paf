@@ -11,6 +11,7 @@ from scipy.stats import kstest
 from pychebfun import Chebfun
 from project_utils import set_context_precision, reset_default_precision
 
+
 ###
 # Abstract ErrorModel class.
 ###
@@ -40,7 +41,10 @@ class AbstractErrorModel(Distr):
         self.precision = precision
         self.exponent = exponent
         # In gmpy2 precision includes a sign bit, so 2 ** precision = unit roundoff
-        self.unit_roundoff = 2 ** (-self.precision)
+        if precision is None:
+            self.unit_roundoff = None
+        else:
+            self.unit_roundoff = 2 ** (-self.precision)
         # numbers of interpolation points - if input doesn't make sense, set to default
         if not isinstance(polynomial_precision, list):
             self.polynomial_precision = [0, 0]
@@ -90,7 +94,6 @@ class AbstractErrorModel(Distr):
         piecewise_pdf.addSegment(Segment(0.5, 1.0, seg3))
         self.piecewise_pdf = piecewise_pdf
 
-
     def pdf(self, x):
         if isscalar(x):
             if -1.0 <= x < -0.5:
@@ -136,7 +139,7 @@ class AbstractErrorModel(Distr):
         else:
             return "Error(p={0})#{1}".format(self.p, self.id())
 
-    def compare(self, n=10000, file_name=None):
+    def compare(self, n=20000, file_name=None):
         """
         A function to compare the ErrorModel density function with an empirical distribution of relative errors
         and return a K-S test
@@ -146,15 +149,24 @@ class AbstractErrorModel(Distr):
         """
         if self.input_distribution is None:
             return "Nothing to compare against!"
+        # Typical distribution does not require a precision or exponent parameter, in that case choose single precision
+        if self.precision is None:
+            precision = 24
+        else:
+            precision = self.precision
+        if self.exponent is None:
+            exponent = 8
+        else:
+            exponent = self. exponent
         empirical = self.input_distribution.rand(n)
         pdf = self.get_piecewise_pdf()
         cdf = self.get_piecewise_cdf()
         rounded = np.zeros_like(empirical)
-        set_context_precision(self.precision, self.exponent)
+        set_context_precision(precision, exponent)
         for index, ti in enumerate(empirical):
             rounded[index] = mpfr(str(empirical[index]))
         reset_default_precision()
-        empirical = (empirical - rounded) / (empirical * self.unit_roundoff)
+        empirical = (empirical - rounded) / (empirical * (2 ** -precision))
         ks_test = kstest(empirical, cdf)
         x = np.linspace(-1, 1, 201)
         matplotlib.pyplot.close("all")
@@ -163,7 +175,8 @@ class AbstractErrorModel(Distr):
         y = pdf(x)
         h = plt.plot(x, y)
         plt.title(
-            self.input_distribution.getName() + ", KS-test=" + str(round(ks_test[0], 4)) + ", p-val=" + str(round(ks_test[1], 4)))
+            self.input_distribution.getName() + ", KS-test=" + str(round(ks_test[0], 4)) + ", p-val=" + str(
+                round(ks_test[1], 4)))
         if file_name is None:
             plt.show()
         else:

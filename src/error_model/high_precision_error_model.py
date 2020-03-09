@@ -11,7 +11,7 @@ from project_utils import set_context_precision, reset_default_precision
 ###
 class HighPrecisionErrorModel(AbstractErrorModel):
 
-    def __init__(self, input_distribution, precision, exponent):
+    def __init__(self, input_distribution, precision, exponent, polynomial_precision):
         """
         The class implements the high-precision error distribution function.
         Inputs:
@@ -19,7 +19,7 @@ class HighPrecisionErrorModel(AbstractErrorModel):
                             the rounding error distribution
             precision, exponent: gmpy2 precision environment
         """
-        super(HighPrecisionErrorModel, self).__init__(input_distribution, precision, exponent)
+        super(HighPrecisionErrorModel, self).__init__(input_distribution, precision, exponent, polynomial_precision)
         self.name = "HPError(" + input_distribution.getName() + ")"
         self.central_constant = None
         self._get_min_exponent()

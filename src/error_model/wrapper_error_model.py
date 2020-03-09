@@ -4,13 +4,13 @@ class ErrorModelWrapper:
     Wrapper class implementing only the methods which are required from tree_model
     Input: an ErrorModel object
     """
-    def __init__(self, error_model, precision, exp):
-        self.precision=precision
-        self.exp=exp
-        self.eps = 2 ** (-self.precision)
+    def __init__(self, error_model):
+        self.precision = error_model.precision
+        self.exp = error_model.exponent
+        self.eps = error_model.unit_roundoff
         self.error_model = error_model
         self.sampleInit = True
-        self.name=self.getName()
+        self.name = self.getName()
 
     def __str__(self):
         return self.error_model.getName()

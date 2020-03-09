@@ -12,7 +12,7 @@ from math import floor, log
 ###
 class LowPrecisionErrorModel(AbstractErrorModel):
 
-    def __init__(self, input_distribution, precision, exponent, polynomial_precision):
+    def __init__(self, input_distribution, precision, exponent, polynomial_precision=[0, 0]):
         """
         Constructor interpolates the density function using Chebyshev interpolation
         then uses this interpolation to build a PaCal object:
@@ -21,8 +21,16 @@ class LowPrecisionErrorModel(AbstractErrorModel):
         input_distribution: a PaCal object representing the distribution for which we want to compute
                             the rounding error distribution
         precision, exponent: specify the gmpy2 precision environment
-        polynomial_precision: the number of exact evaluations of the density function used to
-                        build the interpolating polynomial representing it
+        polynomial_precision: default precision as implemented in AbstractErrorModel will typically not converge
+                              so it is re-implemented as dynamically setting polynomial_precision. For very low
+                              precision, polynomial_precision needs to be high because the function is very
+                              discontinuous (there are few floating points so it won't impact performance).
+                              For higher precision it needs to be low for performance reason (but it won't impact
+                              accuracy because the function becomes much more regular).
+        Warning: the relative error is not defined in the interval rounding to 0. In low precision this interval might
+                 have a large probability. This will be reflected by the distribution not integrating to 1.
+                 Example: Uniform(-2,2) with 3 bit exponent, 4 bit mantissa and default polynomial_precision integrates
+                 to 0.926 !
         """
 
         super(LowPrecisionErrorModel, self).__init__(input_distribution, precision, exponent, polynomial_precision)
@@ -45,11 +53,9 @@ class LowPrecisionErrorModel(AbstractErrorModel):
             self.exp_sup_val = -self.max_exp
         else:
             self.exp_sup_val = floor(log(abs(self.sup_val), 2))
-        if not gmpy2.is_finite(self.inf_val):
-            self.inf_val = gmpy2.next_above(self.inf_val)
-        if not gmpy2.is_finite(self.sup_val):
-            self.sup_val = gmpy2.next_below(self.sup_val)
         reset_default_precision()
+        if polynomial_precision == [0, 0]:
+            self.polynomial_precision = [floor(400.0 / float(self.precision)), floor(100.0 / float(self.precision))]
 
     def _left_segment(self, x):
         return self._right_segment(x)
@@ -76,9 +82,9 @@ class LowPrecisionErrorModel(AbstractErrorModel):
             # add one because range(i,j) stops at j-1
             max_mantissa = floor(2 ** (self.precision - 1) * (1 / x - 1) - 0.5) + 1
         else:
-            max_mantissa = floor(2 ** (self.precision - 1) * (-1 / x - 1) + 0.5) + 1
+            max_mantissa = min(floor(2 ** (self.precision - 1) * (-1 / x - 1) + 0.5) + 1, 2 ** (self.precision-1))
             # for negative values, the test to allow the 0 mantissa is different
-            if abs(x) <= (2**self.precision)/(2**(self.precision+1)-1):
+            if abs(x) <= (2**self.precision) / (2**(self.precision+1)-1):
                 min_mantissa = 0
             else:
                 min_mantissa = 1
@@ -91,24 +97,24 @@ class LowPrecisionErrorModel(AbstractErrorModel):
             # Loop through exponents
             for i in range(self.exp_inf_val, self.exp_sup_val - 1, -1):
                 # Loop through mantissas
-                for j in range(0,  max_mantissa):
-                    m = -(1 + j / (2 ** self.precision))
+                for j in range(min_mantissa,  max_mantissa):
+                    m = -(1 + j / (2 ** (self.precision - 1)))
                     z = ((2 ** i) * m) / (1.0 - err)
                     sum += self.input_distribution.get_piecewise_pdf()(z) * -z * self.unit_roundoff / (1.0 - err)
         # Case 2: negative and positive representable numbers
         elif self.inf_val < 0:
             # Loop through exponents to 0
-            for i in range(self.exp_inf_val, -self.max_exp - 1, -1):
+            for i in range(self.exp_inf_val, -self.max_exp, -1):
                 # Loop through mantissas
-                for j in range(0, max_mantissa):
-                    m = -(1 + j / (2 ** self.precision))
+                for j in range(min_mantissa, max_mantissa):
+                    m = -(1 + j / (2 ** (self.precision - 1)))
                     z = ((2 ** i) * m) / (1.0 - err)
                     sum += self.input_distribution.get_piecewise_pdf()(z) * -z * self.unit_roundoff / (1.0 - err)
             # Loop through exponents from 0
-            for i in range(-self.max_exp, self.exp_sup_val + 1):
+            for i in range(1-self.max_exp, self.exp_sup_val + 1):
                 # Loop through mantissas
-                for j in range(0, max_mantissa):
-                    m = 1 + j / (2 ** self.precision)
+                for j in range(min_mantissa, max_mantissa):
+                    m = 1 + j / (2 ** (self.precision - 1))
                     z = ((2 ** i) * m) / (1.0 - err)
                     sum += self.input_distribution.get_piecewise_pdf()(z) * z * self.unit_roundoff / (1.0 - err)
         # Case 2: only positive representable numbers

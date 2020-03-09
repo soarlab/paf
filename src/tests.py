@@ -11,8 +11,9 @@ def test_HP_error_model():
     exponent = 8
     mantissa = 24
     t = time()
+    poly_precision = [50, 20]
     U = UniformDistr(4, 32)
-    E = HighPrecisionErrorModel(U, mantissa, exponent)
+    E = HighPrecisionErrorModel(U, mantissa, exponent, poly_precision)
     E.init_piecewise_pdf()
     print(E.getName())
     print(E.int_error())
@@ -20,7 +21,7 @@ def test_HP_error_model():
     print(time() - t)
     t = time()
     U = UniformDistr(4, 5)
-    E = HighPrecisionErrorModel(U, mantissa, exponent)
+    E = HighPrecisionErrorModel(U, mantissa, exponent, poly_precision)
     E.init_piecewise_pdf()
     print(E.getName())
     print(E.int_error())
@@ -28,7 +29,7 @@ def test_HP_error_model():
     print(time() - t)
     t = time()
     U = UniformDistr(7, 8)
-    E = HighPrecisionErrorModel(U, mantissa, exponent)
+    E = HighPrecisionErrorModel(U, mantissa, exponent, poly_precision)
     E.init_piecewise_pdf()
     print(E.getName())
     print(E.int_error())
@@ -36,7 +37,7 @@ def test_HP_error_model():
     print(time() - t)
     t = time()
     U = NormalDistr()
-    E = HighPrecisionErrorModel(U, mantissa, exponent)
+    E = HighPrecisionErrorModel(U, mantissa, exponent, poly_precision)
     E.init_piecewise_pdf()
     print(E.getName())
     print(E.int_error())
@@ -52,12 +53,12 @@ def test_HP_error_model():
 def test_LP_error_model():
     exponent = 3
     mantissa = 4
-    poly_precision = [300, 50]
+    poly_precision = [0, 0]
     t = time()
-    D = UniformDistr(2, 8)
+    D = UniformDistr(-1, 1)
     E = LowPrecisionErrorModel(D, mantissa, exponent, poly_precision)
     print(E.int_error())
-    print(E.compare(10000))
+    print(E.compare(100000))
     print(time() - t)
     t = time()
     D = NormalDistr()
@@ -73,12 +74,11 @@ def test_LP_error_model():
     print(time() - t)
     exponent = 5
     mantissa = 11
-    poly_precision = 50
     t = time()
     D = UniformDistr(2, 4)
     E = LowPrecisionErrorModel(D, mantissa, exponent, poly_precision)
     print(E.int_error())
-    print(E.compare(100000))
+    print(E.compare())
     print(time() - t)
     t = time()
     D = NormalDistr()
@@ -116,7 +116,7 @@ def test_typical_error_model():
     # Test comparing with U, precision unspecified
     print(E.compare())
     print(time() - t)
-    E = TypicalErrorModel(U, 9)
+    E = TypicalErrorModel(U, 8)
     E.init_piecewise_pdf()
     print(E.getName())
     print(E.int_error())

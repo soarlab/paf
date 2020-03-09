@@ -19,7 +19,7 @@ import ntpath
 from fpryacc import FPRyacc
 from tree_model import TreeModel
 from FPTaylor import getFPTaylorResults
-from tests import test_LP_error_model
+from tests import test_typical_error_model
 
 def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
     try:
@@ -66,8 +66,9 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
         del values_golden, abs_err_golden, rel_err_golden
         gc.collect()
 
-#error_model.test_HP_error_model()
-test_LP_error_model()
+test_typical_error_model()
+#test_HP_error_model()
+#test_LP_error_model()
 #error_model.test_typical_error_model()
 
 warnings.warn("Mantissa with implicit bit of sign. In gmpy2 set precision=p includes also sign bit. (e.g. Float32 is mantissa=24 and exp=8)\n")

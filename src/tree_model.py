@@ -56,7 +56,7 @@ class DistributionsManager:
             if wrapDist.name in self.errordictionary:
                 return self.errordictionary[wrapDist.name]
             else:
-                tmp=ErrorModelWrapper(FastTypicalErrorModel(wrapDist), precision, exp)
+                tmp=ErrorModelWrapper(FastTypicalErrorModel(wrapDist))
                 #tmp=WrappedHighPrecisionError(wrapDist, precision, exp)
                 #tmp=HighPrecisionErrorModel(wrapDist,precision,exp)
                 self.errordictionary[wrapDist.name] = tmp
