@@ -1,0 +1,86 @@
+
+----------------------- REVIEW 1 ---------------------
+SUBMISSION: 149
+TITLE: Probabilistic Analysis of Errors in Floating-Point Computations
+AUTHORS: Fredrik Dahlqvist, George Constantinides, Rocco Salvia and Zvonimir Rakamaric
+
+----------- Overall evaluation -----------
+SCORE: -1 (weak reject)
+----- TEXT:
+The main contribution of this paper is a computation of the distribution of relative rounding error based on a detailed model of IEEE floating-point arithmetic, and in terms of a given distribution of inputs. After normalizing to multiples of the unit roundoff (maximum possible roundoff for a given exponent), the distribution has a flat portion from -1/2 to 1/2, and drops off to 0 on the two sides. In my understanding, this is because a relative error from -1/2 to 1/2 is possible for all significands, while those less than -1/2 or greater than 1/2 is possible only for smaller values of significands (for a fixed exponent).
+
+This result is then used in Section 5 for the estimation of roundoff error in an expression. For expressions with repeated variables, Monte-Carlo methods are used to approximate the solution. The algorithm is implemented in a Python prototype called PAF, and the results are compared with that of existing tools including PrAn and FpTaylor (which perform worst-case analysis).
+
+The model of roundoff error in this paper is more detailed compared existing work (e.g. [21]), resulting in more precise estimates of its distribution. This could be useful for incorporating into other algorithms for roundoff error analysis. However, in my opinion the main observations in the paper and the techniques used to establish them are relatively simple. The major problem of estimating the overall error for an expression is still unresolved (left to Monte-Carlo simulation). For this reason I do not recommend acceptance at the CAV conference.
+
+Several further questions:
+
+The justifications of the three assumptions in Section 4.1 and 4.2 are not so clear. What is the significance of using Round in these statements? Perhaps it is better to just bound the difference by some fixed value?
+
+In page 13, proposition 2, is this the expected value of e_rel(X) or the expected value of |e_rel(x)|? It would seem that the expected value of e_rel(X) should be close to zero as the distribution is close to symmetric around 0.
+
+What is the advantage (in terms of accuracy or performance) of using the hybrid approach compared to using Monte Carlo sampling throughout?
+
+
+----------------------- REVIEW 2 ---------------------
+SUBMISSION: 149
+TITLE: Probabilistic Analysis of Errors in Floating-Point Computations
+AUTHORS: Fredrik Dahlqvist, George Constantinides, Rocco Salvia and Zvonimir Rakamaric
+
+----------- Overall evaluation -----------
+SCORE: -1 (weak reject)
+----- TEXT:
+Writing software that does nontrivial numerical computations using IEEE floating-point arithmetic is notoriously difficult, and best left to experts. Errors introduced by rounding give rise to results that are counterintuitive when then program is seen to manipulate infinite precision numbers, and thus, the results of floating-point computations are difficult to anticipate by programmers, and it's difficult to test algorithms of this kind.
+
+There are two standard approaches to dealing with this problem. The first is to assign intervals to inputs, and then to forward-propagate the relative error of the floating-point calculation compared to an idealised infinite precision calculation. The result is a relative error on the outputs of the program when compared to the infinite precision result.
+
+The interval approach has numerous problems. Program control flow may be difficult to analyze, and thus is overapproximated, resulting in bigger error estimates. Further widening of the intervals may be caused if the analysis is unable to relate the values of multiple program variables, and thus, has to consider worst cases for each. The result may well be error bounds that are inacceptable but yet do not correspond to actual, concrete executions.
+
+The second standard approach is to use a precise model of IEEE floating point arithmetic. This is is the approach used in the SMT-LIB floating-point theory and is used by program analysers that construct concrete program executions. After specifying how a compiler might translate a high-level language into specific IEEE floating-point operations, it is reasonably easy to obtain formulas whose models corresponds exactly to particular runs of the program. The main problem of this approach is high computational cost.
+
+The key idea of the paper is to use a statistical argument to bound the computational error for a given program. This presupposes, of course, that a meaningful distribution for the inputs of the program is known, say we assume a normal or uniform distribution. The authors argue that this is a common use case, say considering sensor inputs in a cyper-physical system. It should be stressed that this use case rules out adversarially chosen inputs, crafted to trigger particularly bad numerical behavior.
+
+However, assuming that we are content with this use-case, the technique promises a scalable approach to error estimation that may well appeal to non-expert programmers. It yields an average error, and is able to calculate a worst-case error for a given probability.
+
+The key contribution of the paper is Eq (12): It presents means to compute an error for high-precision calculations (32 bit or 64 bit) that are computationally tractable.
+
+Experimental evaluation
+
+Unsurprisingly, the experimental results show that the proposed method reports much tighter error bounds when compared to a conservative bound (produced by FPTaylor), when using 99.99% probability. This is, of course, not a like-for-like comparison.
+
+A straight-forward like for like alternative is to use random sampling using the input distribution that is assumed. The reference point (called "golden" in the paper) for the experimental comparison in the paper is random sampling for 2h. This is easy to implement and set up, even for a non-expert user.
+
+The value observed by the user of a tool implementing the proposed method is thus a time savings: Using the tool an estimate would be obtained in minutes, and it would be about as good as a result obtained with random sampling over a much longer period of time. The results in the paper show that the distributions produced by the tool are a good proxy for the "golden" distribution.
+
+Summary
+
+I like the theoretical results in the paper, and consider this an impressive result. In a sense, it's a bit of a pity that the like-for-like baseline is already very good: random sampling is easy to set up, even for an amateur, and can run easily on many threads, say using a cloud service, which reduces the practical value of what is proposed here to saving a relatively modest bit of money.
+
+
+----------------------- REVIEW 3 ---------------------
+SUBMISSION: 149
+TITLE: Probabilistic Analysis of Errors in Floating-Point Computations
+AUTHORS: Fredrik Dahlqvist, George Constantinides, Rocco Salvia and Zvonimir Rakamaric
+
+----------- Overall evaluation -----------
+SCORE: 1 (weak accept)
+----- TEXT:
+This paper applies statistical methods to derive output distributions of the rounding errors in IEEE arithmetic expressions given the error distributions on the inputs. The paper is well written (although the detailed statistics is beyond me), and shows how to derive closed form expressions for the output errors from the input errors. This means that you can generate expressions capturing the errors for arbitrary floating point expressions. Exact expressions can be evaluated for lower precisions (using a method that requires evalution for each number in the range), and can be approximated with a good degree of precison for higher precisions. It is also shown that output distributions of errors under mild assumptions have low correlation with input error distributions. One wrinkle is that the closed forms only work when the expression have only one occurence of a variable due to this implying that the random variables no longer are independent.
+
+The paper introduces a tool for computing error distributions, and compares it to monte carlo simulation on a number of benchmarks. The tool combines the closed form computation with monte carlo simulation to deal with the case of dependent variables, returning a continous function that is piecewise linear. This is compared to monte carlo simulation by binning the simulation results to make a histogram, and evaluating the distance for each bin compared to the returned function. Comparison is made against two other tools, FPTaylor and PrAn, that only does worst-case analysis. The results shows better accuracy at comparable runtime.
+
+A main thing that the paper should stress in a revised version is an argument for what the described analysis brings to the table. Why not just run monte carlo simulation? It would also be good to discuss how this could be used by a designer, maybe with some case studies where a rewrite of an expression is done to reduce errors. Could maybe an optimizaton tool be built around the error computer? This would also more squarely bring the paper into the interest of a larger section of the CAV community.
+
+
+----------------------- REVIEW 4 ---------------------
+SUBMISSION: 149
+TITLE: Probabilistic Analysis of Errors in Floating-Point Computations
+AUTHORS: Fredrik Dahlqvist, George Constantinides, Rocco Salvia and Zvonimir Rakamaric
+
+----------- Overall evaluation -----------
+SCORE: 1 (weak accept)
+----- TEXT:
+The paper presents a probabilist approach for the analysis of floating points computations. The authors first develop the necessary theory, based on theory of distributions, and then they apply it to the problem of floating point computation. Finally, they validate it on a set of standard benchmarks.
+
+I am little expert of the area, so my review can only be that of an informed outsider. Nevertheless the paper mathematical formulation seems sound to me, and the heavy mathematical notation is well explained in the text.
+The probabilistic approach also makes sense to me, and I am just worried about of novel it is, as in I am curious why no one has thought of this approach before.
