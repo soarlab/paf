@@ -124,7 +124,7 @@ class BinOpDist:
         # operator to multiply by a relative error
         elif self.operator == "*+":
             self.distributionConv = self.leftoperand.execute() * (
-                        1.0 + (self.rightoperand.unit_roundoff * self.rightoperand.execute()))
+                    1.0 + (self.rightoperand.unit_roundoff * self.rightoperand.execute()))
         else:
             print("Operation not supported!")
             exit(-1)
@@ -145,7 +145,8 @@ class BinOpDist:
         if self.operator == "*+":
             res = np.array(leftOp) * (1 + (self.rightoperand.unit_roundoff * np.array(rightOp)))
             if elaborateBorders:
-                res = self.elaborateBorders(leftOp, self.operator, (1 + (self.rightoperand.unit_roundoff * np.array(rightOp))),
+                res = self.elaborateBorders(leftOp, self.operator,
+                                            (1 + (self.rightoperand.unit_roundoff * np.array(rightOp))),
                                             res)
         else:
             res = eval("np.array(leftOp)" + self.operator + "np.array(rightOp)")
@@ -205,21 +206,46 @@ class BinOpDist:
         for i in range(variable_nb):
             lower_bound[i] = self.variable_dictionary[variable_tuple[i]].range_()[0]
             upper_bound[i] = self.variable_dictionary[variable_tuple[i]].range_()[1]
-        # build string representation of function to be integrated
-        func = "lambda "
-        for i in range(variable_nb):
-            func += variable_tuple[i]+", "
-        func += "t : self._evaluate_tree(["
-        for i in range(variable_nb - 1):
-            func += variable_tuple[i]+", "
-        func += variable_tuple[variable_nb] + "], t)"
+        # perform multidimensional integration
 
+    def _nd_trap(self, f, range_array, value_array, auxiliary_array):
+        """ Recursively performs an n-dimensional integration using the trapezoidal rule
+            If f is integrated along n dimensions, then at any call to _nd_trap the array range_array will have
+            dimension 1 <= m < n and value_array will have dimension n-m.
+            auxiliary_array is the list of inputs of f which are not integrated against (can be empty!).
+        """
+        integral = 0
+        nb_steps = 10.0
+        if len(range_array) == 0:
+            return integral
+        h = (range_array[0][1] - range_array[0][0]) / nb_steps
+        if len(range_array) == 1:
+            x = value_array
+            x.append(range_array[0][0])
+            integral += 0.5 * f(x, auxiliary_array)
+            for i in range(1, nb_steps):
+                x = x[:-1]
+                x.append(range_array[0][0] + (i * h))
+                integral += f(x, auxiliary_array)
+            x = x[:-1]
+            x.append(range_array[0][1])
+            integral += 0.5 * f(x, auxiliary_array)
+            return h * integral
+        else:
+            x = value_array
+            x.append(range_array[0][0])
+            integral += 0.5 * self._nd_trap(self, f, range_array[1:], x, auxiliary_array)
+            for i in range(0, nb_steps):
+                x = x[:-1]
+                x.append(range_array[0][0] + (i * h))
+                integral += self._nd_trap(self, f, range_array[1:], x, auxiliary_array)
+            x = x[:-1]
+            x.append(range_array[0][1])
+            integral += 0.5 * self._nd_trap(self, f, range_array[1:], x, auxiliary_array)
+            return h * integral
 
     def _evaluate_tree(self, input_tuple, t):
         """ Function to be integrated in the analytic method """
-
-
-
 
     def _populate_variable_dictionary(self, tree, variable_dictionary):
         if tree is not None:
@@ -238,7 +264,7 @@ class BinOpDist:
     def executeDependent(self):
         if self.dependent_mode == "full_mc":
             self._full_mc_dependent_execution()
-        #elif self.dependent_mode == "analytic":
+        # elif self.dependent_mode == "analytic":
         #   self._analytic_dependent_execution()
 
     def execute(self):
