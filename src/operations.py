@@ -3,6 +3,7 @@ from pychebfun import *
 from regularizer import *
 from project_utils import *
 from gmpy2 import *
+from scipy.integrate import nquad
 
 from setup_utils import global_interpolate
 
@@ -17,7 +18,7 @@ class quantizedPointMass:
         set_context_precision(self.precision, self.exp)
         qValue = printMPFRExactly(mpfr(str(self.inputdistribution.rand(1)[0])))
         reset_default_precision()
-        self.name = qValue
+        self.name = self.inputdistribution.getName()
         self.sampleInit = True
         self.distribution = ConstDistr(float(qValue))
         self.distribution.get_piecewise_pdf()
@@ -92,11 +93,10 @@ class DependentOperationExecutor(object):
 class BinOpDist:
     """
     Wrapper class for the result of an arithmetic operation on PaCal distributions
-    Warning! leftoperand and rightoperant MUST be PaCal distributions
     """
 
     def __init__(self, leftoperand, operator, rightoperand, poly_precision, samples_dep_op, regularize=True,
-                 convolution=True):
+                 convolution=True, dependent_mode="full_mc"):
         self.leftoperand = leftoperand
         self.operator = operator
         self.rightoperand = rightoperand
@@ -105,6 +105,7 @@ class BinOpDist:
         self.samples_dep_op = samples_dep_op
         self.regularize = regularize
         self.convolution = convolution
+        self.dependent_mode = dependent_mode
         self.distribution = None
         self.distributionConv = None
         self.distributionSamp = None
@@ -166,10 +167,8 @@ class BinOpDist:
         res[-2] = max(tmp_res)
         return res
 
-    def executeDependent(self):
-
+    def _full_mc_dependent_execution(self):
         tmp_res = self.distributionValues
-
         bin_nb = int(math.ceil(math.sqrt(len(tmp_res))))
 
         # !!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -190,6 +189,57 @@ class BinOpDist:
 
         self.aSamp = self.distributionSamp.range_()[0]
         self.bSamp = self.distributionSamp.range_()[-1]
+
+    def _analytic_dependent_execution(self):
+        """ Compute the dependent operation by integrating over all variables"""
+        # find set of variables
+        self.variable_dictionary = {}
+        self._populate_variable_dictionary(self.leftoperand)
+        self._populate_variable_dictionary(self.rightoperand)
+        # this is only guaranteed to work from Python 3.7
+        variable_tuple = list(self.variable_dictionary)
+        variable_nb = len(variable_tuple)
+        # find integration bounds
+        lower_bound = np.full(variable_nb, np.NINF)
+        upper_bound = np.full(variable_nb, np.inf)
+        for i in range(variable_nb):
+            lower_bound[i] = self.variable_dictionary[variable_tuple[i]].range_()[0]
+            upper_bound[i] = self.variable_dictionary[variable_tuple[i]].range_()[1]
+        # build string representation of function to be integrated
+        func = "lambda "
+        for i in range(variable_nb):
+            func += variable_tuple[i]+", "
+        func += "t : self._evaluate_tree(["
+        for i in range(variable_nb - 1):
+            func += variable_tuple[i]+", "
+        func += variable_tuple[variable_nb] + "], t)"
+
+
+    def _evaluate_tree(self, input_tuple, t):
+        """ Function to be integrated in the analytic method """
+
+
+
+
+    def _populate_variable_dictionary(self, tree, variable_dictionary):
+        if tree is not None:
+            # test if tree is a leaf
+            if tree.left is None:
+                # test if it contains a variable
+                if not tree.root_value.isScalar:
+                    # test if it is already contained in the set
+                    if tree.root_name not in variable_dictionary:
+                        variable_dictionary[tree.root_name] = tree.root_value.distribution
+            # else recursively call _populate_variable_set
+            else:
+                self._populate_variable_dictionary(tree.left, variable_dictionary)
+                self._populate_variable_dictionary(tree.right, variable_dictionary)
+
+    def executeDependent(self):
+        if self.dependent_mode == "full_mc":
+            self._full_mc_dependent_execution()
+        #elif self.dependent_mode == "analytic":
+        #   self._analytic_dependent_execution()
 
     def execute(self):
         if self.distribution == None:

@@ -20,14 +20,14 @@ class AbstractErrorModel(Distr):
         """
         Error distribution class.
         Inputs:
-            input_distribution: a PaCal object representing the distribution for which we want to compute
+            :param input_distribution: a PaCal object representing the distribution for which we want to compute
                                 the rounding error distribution
-            precision, exponent: gmpy2 precision environment
-            polynomial_precision: a pair of integer controlling the precision of the polynomial interpolation of
-                                  the middle and wing segments respectively. Warning: this is not the number of
-                                  interpolation points.
-                                   Default is (0,0) which means that it is determined dynamically by pychebfun. Note
-                                  that 0 would be a nonsensical value anyway, so it's safe to use it as a flag.
+            :param precision, exponent: gmpy2 precision environment
+            :param polynomial_precision: a pair of integers controlling the precision of the polynomial interpolation of
+                                         the middle and wing segments respectively. Warning: this is not the number of
+                                         interpolation points.
+                                         Default is (0,0) which means that it is determined dynamically by pychebfun.
+                                         0 would be a nonsensical value anyway, so it's safe to use it as a flag.
         """
         super(AbstractErrorModel, self).__init__()
         self.input_distribution = input_distribution
