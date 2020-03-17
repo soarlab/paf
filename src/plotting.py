@@ -220,11 +220,12 @@ def plot_error_analysis_PDF(abs_err, loadedGolden, abs_err_samples, abs_err_gold
 
 
 def plot_error_analysis_CDF(abs_err, loadedGolden, abs_err_samples, abs_err_golden, summary_file
-                            ,file_name, abs_fpt, rel_fpt):
+                            ,file_name, abs_fpt, rel_fpt, absORrel):
 
-    print("Generating Graphs Error Analysis CDF\n")
+    print("Generating Graphs Error Analysis CDF "+absORrel+"\n")
 
-    tmp_name = file_name + "_abs_error_CDF_Bins_Auto"
+    tmp_name = file_name + "_"+absORrel+"_error_CDF_Bins_Auto"
+
     plt.figure(tmp_name, figsize=(15, 10))
 
     if loadedGolden:
@@ -241,23 +242,23 @@ def plot_error_analysis_CDF(abs_err, loadedGolden, abs_err_samples, abs_err_gold
 
     golden_file = open(output_path + file_name + "/golden.txt", "a+")
     binLenGolden = len(vals_golden)
-    title="CDF Error Analysis with Golden distribution with num. bins: " + str(binLenGolden)
+    title="CDF "+absORrel+" Error Analysis with Golden distribution with num. bins: " + str(binLenGolden)
     collectInfoAboutSampling(golden_file, vals_golden, edges_golden, title, pdf=False, golden_mode_index=0)
     golden_file.close()
 
     binLenDistr = 1000
-    title = "CDF Error Analysis with PAF with gap: " + str(binLenDistr)
+    title = "CDF "+absORrel+" Error Analysis with PAF with gap: " + str(binLenDistr)
     collectInfoAboutDistribution(summary_file, abs_err, title, abs_err.a, binLenDistr)
 
     sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
     not_norm_vals, not_norm_edges = np.histogram(abs_err_samples, bins='auto', density=True)
     vals, edges = plotCDF(not_norm_edges, not_norm_vals, normalize=True, linewidth=3, color="blue",label="Sampled distribution")
     binLenSamp = len(vals)
-    title="CDF Error Analysis with Sampling model with num. bins: " + str(binLenSamp)
+    title="CDF "+absORrel+"Error Analysis with Sampling model with num. bins: " + str(binLenSamp)
     collectInfoAboutSampling(sampling_file, vals, edges, title, pdf=False, golden_mode_index=0)
     sampling_file.close()
 
-    title="CDF Measure Distances Error Analysis"
+    title="CDF Measure Distances "+absORrel+" Error Analysis"
     measureDistances(abs_err, summary_file, vals_golden, vals, edges_golden, edges, title, pdf=False)
 
     plt.autoscale(enable=True, axis='both', tight=False)

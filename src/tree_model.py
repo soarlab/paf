@@ -130,14 +130,20 @@ class TreeModel:
             self.abs_err_distr= UnOpDist(BinOpDist(self.final_quantized_distr, "-",
                                                     self.final_exact_distr, 1000, self.samples_dep_op,
                                                regularize=True, convolution=False), "abs_err", "abs")
+            self.relative_err_distr = UnOpDist(BinOpDist(self.abs_err_distr, "/",
+                                                self.final_exact_distr, 1000, self.samples_dep_op,
+                                                regularize=True, convolution=False), "rel_err", "abs")
         except MyCustomException as t:
             print("Child exit for n="+str(t.num))
             self.final_quantized_distr = self.partial_tree.root_value[2]
             self.final_exact_distr = self.partial_tree.root_value[0]
-            self.abs_err_distr = UnOpDist(
-                BinOpDist(self.final_quantized_distr, "-", self.final_exact_distr, 1000, self.samples_dep_op,
-                          regularize=True, convolution=False), "abs_err", "abs")
+            self.abs_err_distr = UnOpDist(BinOpDist(self.final_quantized_distr, "-",
+                                                    self.final_exact_distr, 1000, self.samples_dep_op,
+                                                regularize=True, convolution=False), "abs_err", "abs")
 
+            self.relative_err_distr = UnOpDist(BinOpDist(self.abs_err_distr, "/",
+                                                self.final_exact_distr, 1000, self.samples_dep_op,
+                                                regularize=True, convolution=False), "rel_err", "abs")
     def evaluate(self, tree):
         """ Recursively populate the Tree with the triples
         (distribution, error distribution, quantized distribution) """
@@ -247,7 +253,7 @@ class TreeModel:
             values.append(sample)
             tmp_abs = abs(float(printMPFRExactly(lp_sample)) - sample)
             abs_err.append(tmp_abs)
-            rel_err.append(tmp_abs / sample)
+            rel_err.append(tmp_abs / abs(sample))
             end_time = time.time() - start_time
         self.resetInit(self.partial_tree)
         resetContextDefault()

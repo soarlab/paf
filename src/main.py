@@ -15,6 +15,7 @@ import traceback
 import logging
 import gc
 import ntpath
+import numpy
 
 from fpryacc import FPRyacc
 from tree_model import TreeModel, copy_tree
@@ -51,8 +52,14 @@ def process_file(xs, file, mantissa, exp, range_my_dict, abs_my_dict):
         f = open(output_path + file_name + "/" + file_name + "_CDF_summary.out", "w+")
         f.write("Execution Time:"+str(finalTime)+"s \n\n")
 
-        plot_range_analysis_CDF(T.final_quantized_distr, loadedGolden, values_samples, values_golden, f, file_name, range_my_dict.get(file_name))
-        plot_error_analysis_CDF(T.abs_err_distr, loadedGolden, abs_err_samples, abs_err_golden, f, file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
+        plot_range_analysis_CDF(T.final_quantized_distr, loadedGolden, values_samples,
+                                values_golden, f, file_name, range_my_dict.get(file_name))
+
+        plot_error_analysis_CDF(T.abs_err_distr, loadedGolden, abs_err_samples,
+                                abs_err_golden, f, file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name), absORrel="Abs")
+
+        plot_error_analysis_CDF(T.relative_err_distr, loadedGolden, rel_err_samples,
+                                rel_err_golden, f, file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name), absORrel="Rel")
 
         f.flush()
         f.close()
@@ -62,6 +69,7 @@ def process_file(xs, file, mantissa, exp, range_my_dict, abs_my_dict):
 
         plot_range_analysis_PDF(T.final_quantized_distr, loadedGolden, values_samples, values_golden, f, file_name, range_my_dict.get(file_name))
         plot_error_analysis_PDF(T.abs_err_distr, loadedGolden, abs_err_samples, abs_err_golden, f, file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
+
         f.flush()
         f.close()
 
@@ -82,15 +90,36 @@ warnings.warn("Mantissa with implicit bit of sign. In gmpy2 set precision=p incl
 mantissa=24
 exp=8
 
-#xs=[100.0, 115.0, 133.0, 153.0, 176.0, 202.0, 233.0, 268.0,
-#    309.0, 356.0, 409.0, 471.0, 543.0, 625.0, 720.0, 829.0, 954.0, 1099.0, 1265.0, 1456.0, 1677.0, 1931.0,
-#    2223.0, 2560.0, 2947.0, 3393.0, 3907.0, 4498.0, 5179.0, 5964.0, 6866.0, 7906.0, 9103.0, 10481.0,
-#    12068.0, 13895.0, 15999.0, 18421.0, 21210.0, 24421.0, 28118.0, 32375.0, 37276.0, 42919.0, 49417.0,
-#    56899.0, 65513.0, 75431.0, 86851.0, 100000.0]
+xs=numpy.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,   14,   17,   21,   24,   27,   31,   34,
+         37,   41,   44,   47,   51,   54,   57,   61,   64,   67,   71,
+         74,   77,   81,   84,   87,   91,   94,   97,  101,  104,  107,
+        111,  114,  117,  121,  124,  127,  131,  134,  137,  141,  144,
+        148,  151,  154,  158,  161,  164,  168,  171,  174,  178,  181,
+        184,  188,  191,  194,  198,  201,  204,  208,  211,  214,  218,
+        221,  224,  228,  231,  234,  238,  241,  244,  248,  251,  254,
+        258,  261,  264,  268,  271,  274,  278,  281,  284,  288,  291,
+        295,  298,  301,  305,  308,  311,  315,  318,  321,  325,  328,
+        331,  335,  338,  341,  345,  348,  351,  355,  358,  361,  365,
+        368,  371,  375,  378,  381,  385,  388,  391,  395,  398,  401,
+        405,  408,  411,  415,  418,  421,  425,  428,  432,  435,  438,
+        442,  445,  448,  452,  455,  458,  462,  465,  468,  472,  475,
+        478,  482,  485,  488,  492,  495,  498,  502,  505,  508,  512,
+        515,  518,  522,  525,  528,  532,  535,  538,  542,  545,  548,
+        552,  555,  558,  562,  565,  568,  572,  575,  579,  582,  585,
+        589,  592,  595,  599,  602,  605,  609,  612,  615,  619,  622,
+        625,  629,  632,  635,  639,  642,  645,  649,  652,  655,  659,
+        662,  665,  669,  672,  675,  679,  682,  685,  689,  692,  695,
+        699,  702,  705,  709,  712,  716,  719,  722,  726,  729,  732,
+        736,  739,  742,  746,  749,  752,  756,  759,  762,  766,  769,
+        772,  776,  779,  782,  786,  789,  792,  796,  799,  802,  806,
+        809,  812,  816,  819,  822,  826,  829,  832,  836,  839,  842,
+        846,  849,  852,  856,  859,  863,  866,  869,  873,  876,  879,
+        883,  886,  889,  893,  896,  899,  903,  906,  909,  913,  916,
+        919,  923,  926,  929,  933,  936,  939,  943,  946,  949,  953,
+        956,  959,  963,  966,  969,  973,  976,  979,  983,  986,  989,
+        993,  996, 1000])
 
-xs=[2,5,10,15,20]
-
-file="/home/roki/GIT/Accuracy/Code/test.txt"
+file="/home/roki/GIT/paf/test.txt"
 
 range_my_dict, abs_my_dict, rel_my_dict = getFPTaylorResults(fptaylor_exe, fptaylor_path)
 process_file(xs, file, mantissa, exp, range_my_dict, abs_my_dict)

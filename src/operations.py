@@ -92,7 +92,7 @@ class BinOpDist:
     """
 
     def __init__(self, leftoperand, operator, rightoperand, poly_precision, samples_dep_op, regularize=True,
-                 convolution=True):
+                 convolution=True, removeSmallValuesRelativeError=False):
         self.leftoperand = leftoperand
         self.operator = operator
         self.rightoperand = rightoperand
@@ -105,6 +105,7 @@ class BinOpDist:
         self.distributionConv = None
         self.distributionSamp = None
         self.sampleInit = True
+        self.removeSmallValuesRelativeError=removeSmallValuesRelativeError
         self.execute()
 
     def executeIndependent(self):
@@ -142,6 +143,9 @@ class BinOpDist:
                 res = self.elaborateBorders(leftOp, self.operator, (1 + (self.rightoperand.eps * np.array(rightOp))),
                                             res)
         else:
+            if self.removeSmallValuesRelativeError:
+                rightOp = rightOp[np.abs(rightOp)>=0.1]
+                leftOp = leftOp[np.abs(rightOp)>=0.1]
             res = eval("np.array(leftOp)" + self.operator + "np.array(rightOp)")
             if elaborateBorders:
                 res = self.elaborateBorders(leftOp, self.operator, rightOp, res)
