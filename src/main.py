@@ -21,6 +21,9 @@ from fpryacc import FPRyacc
 from tree_model import TreeModel, copy_tree
 from FPTaylor import getFPTaylorResults
 
+import sys
+sys.setrecursionlimit(1000000)
+
 def process_file(xs, file, mantissa, exp, range_my_dict, abs_my_dict):
     try:
         print(file)
@@ -46,7 +49,7 @@ def process_file(xs, file, mantissa, exp, range_my_dict, abs_my_dict):
             shutil.rmtree(output_path+file_name)
         os.makedirs(output_path+file_name)
 
-        loadedSamples, values_samples, abs_err_samples, rel_err_samples = T.generate_error_samples(finalTime, file_name)
+        loadedSamples, values_samples, abs_err_samples, rel_err_samples = T.generate_error_samples(1, file_name)
         loadedGolden, values_golden, abs_err_golden, rel_err_golden = T.generate_error_samples(golden_model_time, file_name, golden=True)
 
         f = open(output_path + file_name + "/" + file_name + "_CDF_summary.out", "w+")
@@ -90,6 +93,7 @@ warnings.warn("Mantissa with implicit bit of sign. In gmpy2 set precision=p incl
 mantissa=24
 exp=8
 
+'''
 xs=numpy.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,   14,   17,   21,   24,   27,   31,   34,
          37,   41,   44,   47,   51,   54,   57,   61,   64,   67,   71,
          74,   77,   81,   84,   87,   91,   94,   97,  101,  104,  107,
@@ -118,6 +122,9 @@ xs=numpy.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,   14,   17,   21,   24,   27,
         919,  923,  926,  929,  933,  936,  939,  943,  946,  949,  953,
         956,  959,  963,  966,  969,  973,  976,  979,  983,  986,  989,
         993,  996, 1000])
+'''
+
+xs=numpy.array([500])
 
 file="/home/roki/GIT/paf/test.txt"
 
