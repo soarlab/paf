@@ -2,7 +2,7 @@ input_file=open("./test.txt","w+")
 
 declarations=""
 for i in range(0,100):
-	declarations=declarations+"x"+str(i)+":U(0.0,1.0), "+"y"+str(i)+":U(0.0,1.0), "
+	declarations=declarations+"x"+str(i)+":N(0.0,1.0), "+"y"+str(i)+":N(0.0,1.0), "
 
 declarations=declarations[:-2]+"\n"
 

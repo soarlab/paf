@@ -125,6 +125,7 @@ class TreeModel:
 
         try:
             self.evaluate(self.tree)
+            self.partial_tree = self.tree
             self.final_quantized_distr=self.tree.root_value[2]
             self.final_exact_distr=self.tree.root_value[0]
             self.abs_err_distr= UnOpDist(BinOpDist(self.final_quantized_distr, "-",
