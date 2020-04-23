@@ -107,7 +107,7 @@ xs=numpy.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,   14,   17,   21,   24,   27,
         405,  408,  411,  415,  418,  421,  425,  428,  432,  435,  438,
         442,  445,  448,  452,  455,  458,  462,  465,  468,  472,  475, 478, 480])
 
-file="/home/roki/GIT/paf/test.txt"
+file="/proj/QNNandAAs/rocco/paf/test.txt"
 
 range_my_dict, abs_my_dict, rel_my_dict = getFPTaylorResults(fptaylor_exe, fptaylor_path)
 process_file(xs, file, mantissa, exp, range_my_dict, abs_my_dict)
