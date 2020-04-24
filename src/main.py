@@ -82,7 +82,7 @@ range_my_dict, abs_my_dict, rel_my_dict = getFPTaylorResults(fptaylor_exe, fptay
 if not len(abs_my_dict) == len(rel_my_dict) and not len(range_my_dict) == len(rel_my_dict):
     print("WARNING!!! Mismatch in FPTaylor")
 
-pool = MyPool(processes=num_processes)
+pool = MyPool(processes=num_processes, maxtasksperchild=3)
 
 for file in os.listdir(benchmarks_path):
     if file.endswith(".txt"):
