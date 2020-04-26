@@ -175,7 +175,11 @@ class BinOpDist:
         # Try also with bins=AUTO !!!
         # !!!!!!!!!!!!!!!!!!!!!!!!!!
 
-        n, bins, patches = plt.hist(tmp_res, bins='auto', density=True)
+        n, bins, patches = plt.hist(tmp_res, bins=1000, density=True)
+
+        nonzero=np.nonzero(n)
+        n=n[nonzero]
+        bins=bins[nonzero]
 
         breaks = [min(bins), max(bins)]
 

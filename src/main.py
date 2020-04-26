@@ -24,23 +24,23 @@ from FPTaylor import getFPTaylorResults
 import sys
 sys.setrecursionlimit(1000000)
 
-def process_file(xs, file, mantissa, exp, range_my_dict, abs_my_dict):
+def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
     try:
         print(file)
         f = open(file,"r")
         #file_name = (ntpath.basename(file).split(".")[0]).lower()
         text = f.read()
-        text = text[:-1]
+        #text = text[:-1]
         f.close()
         myYacc=FPRyacc(text, False)
 
         start_time = time.time()
 
-        T = TreeModel(xs, myYacc, mantissa, exp, 100, 250000)
+        T = TreeModel(myYacc, mantissa, exp, 100, 250000)
 
         end_time = time.time()
 
-        file_name = (ntpath.basename(file).split(".")[0]).lower()+str(T.counter+1)
+        file_name = (ntpath.basename(file).split(".")[0]).lower()
 
         print("Exe time --- %s seconds ---" % (end_time - start_time))
         finalTime=end_time-start_time
@@ -93,25 +93,16 @@ warnings.warn("Mantissa with implicit bit of sign. In gmpy2 set precision=p incl
 mantissa=24
 exp=8
 
-xs=numpy.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,   14,   17,   21,   24,   27,   31,   34,
-         37,   41,   44,   47,   51,   54,   57,   61,   64,   67,   71,
-         74,   77,   81,   84,   87,   91,   94,   97,  101,  104,  107,
-        111,  114,  117,  121,  124,  127,  131,  134,  137,  141,  144,
-        148,  151,  154,  158,  161,  164,  168,  171,  174,  178,  181,
-        184,  188,  191,  194,  198,  201,  204,  208,  211,  214,  218,
-        221,  224,  228,  231,  234,  238,  241,  244,  248,  251,  254,
-        258,  261,  264,  268,  271,  274,  278,  281,  284,  288,  291,
-        295,  298,  301,  305,  308,  311,  315,  318,  321,  325,  328,
-        331,  335,  338,  341,  345,  348,  351,  355,  358,  361,  365,
-        368,  371,  375,  378,  381,  385,  388,  391,  395,  398,  401,
-        405,  408,  411,  415,  418,  421,  425,  428,  432,  435,  438,
-        442,  445,  448,  452,  455,  458,  462,  465,  468,  472,  475, 478, 480])
-
-file="/proj/QNNandAAs/rocco/paf/test.txt"
-
 range_my_dict, abs_my_dict, rel_my_dict = getFPTaylorResults(fptaylor_exe, fptaylor_path)
-process_file(xs, file, mantissa, exp, range_my_dict, abs_my_dict)
+
+pool = MyPool(processes=setup_utils.num_processes, maxtasksperchild=2)
+
+for file in os.listdir(benchmarks_path):
+    if file.endswith(".txt"):
+        pool.apply_async(process_file, [benchmarks_path+file, mantissa, exp, range_my_dict, abs_my_dict])
+
+pool.close()
+
+pool.join()
 
 print("\nDone with sample\n")
-
-os._exit(0)
