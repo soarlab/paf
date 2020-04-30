@@ -61,10 +61,10 @@ class FastTypicalErrorModel(TypicalErrorModel):
     """
     An implementation of the (fast) typical error distribution with three segments
     """
-    def __init__(self, precision, input_distribution=None, **kwargs):
-        super(FastTypicalErrorModel, self).__init__(input_distribution, precision)
+    def __init__(self, input_distribution, precision, exponent, polynomial_precision):
+        super(FastTypicalErrorModel, self).__init__(input_distribution, precision, exponent, polynomial_precision)
         self.name = "FastTypicalErrorDistribution"
-        self.hidden_err_model = MyFunDistr(TypErrInterp(-1.0, 1.0, 50), breakPoints =[-1.0, 1.0], interpolated=global_interpolate)
+        self.hidden_err_model = MyFunDistr(TypErrInterp(-1.0, 1.0, polynomial_precision), breakPoints =[-1.0, 1.0], interpolated=global_interpolate)
 
     def init_piecewise_pdf(self):
         self.piecewise_pdf=self.hidden_err_model.get_piecewise_pdf()

@@ -60,7 +60,7 @@ class DistributionsManager:
             if wrapDist.name in self.errordictionary:
                 return self.errordictionary[wrapDist.name]
             else:
-                tmp = ErrorModelWrapper(FastTypicalErrorModel(precision, wrapDist.distribution))
+                tmp = ErrorModelWrapper(FastTypicalErrorModel(wrapDist.distribution, precision, exp, 50))
                 #tmp = ErrorModelWrapper(TypicalErrorModel(precision=precision))
                 self.errordictionary[wrapDist.name] = tmp
                 return tmp
@@ -134,9 +134,13 @@ class TreeModel:
         self.evaluate(self.tree)
         self.final_quantized_distr = self.tree.root_value[2]
         self.final_exact_distr = self.tree.root_value[0]
-        self.abs_err_distr = UnOpDist(
-            BinOpDist(self.final_quantized_distr, "-", self.final_exact_distr, 1000, self.samples_dep_op,
-                      regularize=True, convolution=False), "abs_err", "abs")
+
+        self.abs_err_distr = UnOpDist(BinOpDist(self.final_quantized_distr, "-",
+                                                self.final_exact_distr, 1000, self.samples_dep_op,
+                                                regularize=True, convolution=False), "abs_err", "abs")
+        self.relative_err_distr = UnOpDist(BinOpDist(self.abs_err_distr, "/",
+                                                     self.final_exact_distr, 1000, self.samples_dep_op,
+                                                     regularize=True, convolution=False), "rel_err", "abs")
 
     def evaluate(self, tree):
         """ Recursively populate the Tree with the triples
@@ -144,7 +148,7 @@ class TreeModel:
         # Test if we're at a leaf
         if tree.root_value is not None:
             # Non-quantized distribution
-            dist = self.manager.createUnaryOperation(tree.root_value, tree.root_value.distribution.getName())
+            dist = self.manager.createUnaryOperation(tree.root_value, tree.root_name)
             # initialize=True means we quantize the inputs
             if self.initialize:
                 # Compute error model

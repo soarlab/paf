@@ -13,6 +13,8 @@ class ErrorModelWrapper:
         self.unit_roundoff = error_model.unit_roundoff
         if input_distribution_wrapper is not None:
             self.input_name = input_distribution_wrapper.name
+        else:
+            self.input_name = "N/A"
         self.name = self.getName()
 
     def __str__(self):
@@ -24,7 +26,7 @@ class ErrorModelWrapper:
         elif isinstance(self.distribution, TypicalErrorModel):
             name = "TypicalError"
         elif isinstance(self.distribution, FastTypicalErrorModel):
-            name = "TypicalError"
+            name = "FastTypicalError"
         elif isinstance(self.distribution, LowPrecisionErrorModel):
             name = "LPError(" + self.input_name + ")"
         return name

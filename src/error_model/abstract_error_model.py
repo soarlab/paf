@@ -42,6 +42,7 @@ class AbstractErrorModel(Distr):
         self.exponent = exponent
         # In gmpy2 precision includes a sign bit, so 2 ** precision = unit roundoff
         self.unit_roundoff = 2 ** (-self.precision)
+        self.eps = 2 ** (-self.precision)
         # numbers of interpolation points - if input doesn't make sense, set to default
         if not isinstance(polynomial_precision, list):
             self.polynomial_precision = [0, 0]

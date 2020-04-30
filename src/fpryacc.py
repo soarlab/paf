@@ -37,23 +37,51 @@ class FPRyacc:
 
     def p_FileInput(self, p):
         ''' FileInput : VarDeclaration NEWLINE Expression
-        '''
+		'''
         p[0] = p[3]
         self.myPrint("FileInput", p)
 
     def p_VarDeclaration(self, p):
         ''' VarDeclaration : Distribution
-                           | Distribution COMMA VarDeclaration
-        '''
+						   | Distribution COMMA VarDeclaration
+		'''
         # if len(p)>2:
         #	p[0]=str(p[1])+str(p[2])+str(p[3])
         # elif len(p)==2:
         #	p[0]=str(p[1])
         self.myPrint("VarDeclaration", p)
 
+    def p_Edges(self,p):
+        ''' Edge : POSNUMBER
+                 | POSNUMBER COMMA Edge
+        '''
+
+        if len(p) > 3:
+            p[0] = [float(p[1])]+p[3]
+        else:
+            p[0]=[float(p[1])]
+
+    def p_Values(self,p):
+        ''' Value : POSNUMBER
+                  | POSNUMBER COMMA Edge
+        '''
+
+        if len(p) > 3:
+            p[0] = [float(p[1])]+p[3]
+        else:
+            p[0]=[float(p[1])]
+
+    def p_Custom(self, p):
+        ''' Distribution : WORD COLON C LPAREN SLPAREN Edge SRPAREN COMMA SLPAREN Value SRPAREN RPAREN
+    	'''
+
+        distr = CustomDistr(str(p[1]), p[6], p[10])
+        self.addVariable(str(p[1]), distr)
+        self.myPrint("Custom", p)
+
     def p_Uniform(self, p):
         ''' Distribution : WORD COLON U LPAREN POSNUMBER COMMA POSNUMBER RPAREN
-        '''
+		'''
 
         distr = U(str(p[1]), str(p[5]), str(p[7]))
         self.addVariable(str(p[1]), distr)
@@ -61,7 +89,7 @@ class FPRyacc:
 
     def p_Uniform1(self, p):
         ''' Distribution : WORD COLON U LPAREN MINUS POSNUMBER COMMA POSNUMBER RPAREN
-        '''
+		'''
 
         distr = U(str(p[1]), "-" + str(p[6]), str(p[8]))
         self.addVariable(str(p[1]), distr)
@@ -69,7 +97,7 @@ class FPRyacc:
 
     def p_Uniform2(self, p):
         ''' Distribution : WORD COLON U LPAREN MINUS POSNUMBER COMMA MINUS POSNUMBER RPAREN
-        '''
+		'''
 
         distr = U(str(p[1]), "-" + str(p[6]), "-" + str(p[9]))
         self.addVariable(str(p[1]), distr)
@@ -77,7 +105,7 @@ class FPRyacc:
 
     def p_Normal(self, p):
         ''' Distribution : WORD COLON N LPAREN POSNUMBER COMMA POSNUMBER RPAREN
-        '''
+		'''
 
         distr = N(str(p[1]), str(p[5]), str(p[7]))
         self.addVariable(str(p[1]), distr)
@@ -85,7 +113,7 @@ class FPRyacc:
 
     def p_Normal1(self, p):
         ''' Distribution : WORD COLON N LPAREN MINUS POSNUMBER COMMA POSNUMBER RPAREN
-        '''
+		'''
 
         distr = N(str(p[1]), "-" + str(p[6]), str(p[8]))
         self.addVariable(str(p[1]), distr)
@@ -93,7 +121,7 @@ class FPRyacc:
 
     def p_Normal2(self, p):
         ''' Distribution : WORD COLON N LPAREN MINUS POSNUMBER COMMA MINUS POSNUMBER RPAREN
-        '''
+		'''
 
         distr = N(str(p[1]), "-" + str(p[6]), "-" + str(p[9]))
         self.addVariable(str(p[1]), distr)
@@ -101,7 +129,7 @@ class FPRyacc:
 
     def p_Beta(self, p):
         ''' Distribution : WORD COLON B LPAREN POSNUMBER COMMA POSNUMBER RPAREN
-        '''
+		'''
 
         distr = B(str(p[1]), str(p[5]), str(p[7]))
         self.addVariable(str(p[1]), distr)
@@ -109,18 +137,18 @@ class FPRyacc:
 
     def p_Expression(self, p):
         '''Expression : AnnidateArithExpr
-                      | BinaryArithExpr
-        '''
+					  | BinaryArithExpr
+		'''
         p[0] = p[1]
         self.myPrint("Expression", p)
 
     def p_BinaryArithExpr(self, p):
         '''BinaryArithExpr : AnnidateArithExpr PLUS  AnnidateArithExpr
-                           | AnnidateArithExpr MINUS AnnidateArithExpr
-                           | AnnidateArithExpr MUL AnnidateArithExpr
-                           | AnnidateArithExpr DIVIDE AnnidateArithExpr
-                           | MINUS AnnidateArithExpr
-        '''
+						   | AnnidateArithExpr MINUS AnnidateArithExpr
+						   | AnnidateArithExpr MUL AnnidateArithExpr
+						   | AnnidateArithExpr DIVIDE AnnidateArithExpr
+						   | MINUS AnnidateArithExpr
+		'''
         if len(p) > 3:
             oper = Operation(p[1].value, str(p[2]), p[3].value)
             node = self.manager.createNode(oper, [p[1], p[3]])
@@ -133,8 +161,8 @@ class FPRyacc:
 
     def p_UnaryArithExp(self, p):
         '''AnnidateArithExpr : EXP LPAREN AnnidateArithExpr RPAREN
-                             | EXP LPAREN BinaryArithExpr RPAREN
-        '''
+							 | EXP LPAREN BinaryArithExpr RPAREN
+		'''
 
         oper = UnaryOperation(p[3].value, "exp")
         node = self.manager.createNode(oper, [p[3]])
@@ -143,8 +171,8 @@ class FPRyacc:
 
     def p_UnaryArithCos(self, p):
         '''AnnidateArithExpr : COS LPAREN AnnidateArithExpr RPAREN
-                             | COS LPAREN BinaryArithExpr RPAREN
-        '''
+							 | COS LPAREN BinaryArithExpr RPAREN
+		'''
         oper = UnaryOperation(p[3].value, "cos")
         node = self.manager.createNode(oper, [p[3]])
         p[0] = node
@@ -152,8 +180,8 @@ class FPRyacc:
 
     def p_UnaryArithSin(self, p):
         '''AnnidateArithExpr : SIN LPAREN AnnidateArithExpr RPAREN
-                             | SIN LPAREN BinaryArithExpr RPAREN
-        '''
+							 | SIN LPAREN BinaryArithExpr RPAREN
+		'''
         oper = UnaryOperation(p[3].value, "sin")
         node = self.manager.createNode(oper, [p[3]])
         p[0] = node
@@ -161,11 +189,11 @@ class FPRyacc:
 
     def p_AnnidateArithExpr(self, p):
         '''AnnidateArithExpr : LPAREN AnnidateArithExpr PLUS  AnnidateArithExpr RPAREN
-                             | LPAREN AnnidateArithExpr MINUS AnnidateArithExpr RPAREN
-                             | LPAREN AnnidateArithExpr MUL AnnidateArithExpr RPAREN
-                             | LPAREN AnnidateArithExpr DIVIDE AnnidateArithExpr RPAREN
-                             | LPAREN MINUS AnnidateArithExpr RPAREN
-        '''
+							 | LPAREN AnnidateArithExpr MINUS AnnidateArithExpr RPAREN
+							 | LPAREN AnnidateArithExpr MUL AnnidateArithExpr RPAREN
+							 | LPAREN AnnidateArithExpr DIVIDE AnnidateArithExpr RPAREN
+							 | LPAREN MINUS AnnidateArithExpr RPAREN
+		'''
 
         if len(p) > 5:
             oper = Operation(p[2].value, str(p[3]), p[4].value)
