@@ -6,9 +6,9 @@ from pacal import UniformDistr, NormalDistr
 from scipy import integrate
 import matplotlib.pyplot as plt
 
-from abstract_error_model import AbstractErrorModel
+from error_model.abstract_error_model import AbstractErrorModel
 from project_utils import setCurrentContextPrecision, resetContextDefault
-from wrapper_error_model import ErrorModelWrapper
+from error_model.wrapper_error_model import ErrorModelWrapper
 
 ###
 # Exact Error Distribution for High-Precisions (above half-precision).
