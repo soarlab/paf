@@ -147,6 +147,8 @@ def collectInfoAboutSampling(f, vals, edges, name, pdf, golden_mode_index=None):
                     break
             res = res + "Range: [" + str(edges[lower]) + "," + str(edges[upper+1]) + "] contains " + str(i * 100) + "% of the distribution.\n\n"
     res = res + "Range: [" + str(edges[0]) + "," + str(edges[-1]) + "] contains 100% of the distribution.\n\n"
+    tmp=getBinAndValue(edges, vals)
+    res=res+tmp+"\n"
     res = res+"###########################################\n\n\n"
     #print(res)
     f.write(res)
@@ -192,3 +194,9 @@ def getValueHist(edges, vals, x, pdf):
         else:
             index_bin = np.digitize(x, edges, right=False)
             return abs(vals[index_bin - 1])
+
+def getBinAndValue(edges, values):
+	ret=""
+	for index,edge in enumerate(edges[:-1]):
+		ret=ret+"["+str(edge)+", "+str(edges[index+1])+"] -> "+str(values[index])+"\n"
+	return ret		

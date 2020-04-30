@@ -30,7 +30,7 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
         f = open(file,"r")
         #file_name = (ntpath.basename(file).split(".")[0]).lower()
         text = f.read()
-        #text = text[:-1]
+        text = text[:-1]
         f.close()
         myYacc=FPRyacc(text, False)
 
@@ -49,7 +49,7 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
             shutil.rmtree(output_path+file_name)
         os.makedirs(output_path+file_name)
 
-        loadedSamples, values_samples, abs_err_samples, rel_err_samples = T.generate_error_samples(1, file_name)
+        loadedSamples, values_samples, abs_err_samples, rel_err_samples = T.generate_error_samples(finalTime, file_name)
         loadedGolden, values_golden, abs_err_golden, rel_err_golden = T.generate_error_samples(golden_model_time, file_name, golden=True)
 
         f = open(output_path + file_name + "/" + file_name + "_CDF_summary.out", "w+")
