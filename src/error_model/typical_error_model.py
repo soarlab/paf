@@ -2,13 +2,13 @@ from time import time
 from pacal import UniformDistr
 import matplotlib.pyplot as plt
 
-from abstract_error_model import AbstractErrorModel
+from error_model.abstract_error_model import AbstractErrorModel
 import numpy as np
 
 ###
 # Approximate Error Model given by the "Typical Distribution"
 ###
-from wrapper_error_model import ErrorModelWrapper
+from error_model.wrapper_error_model import ErrorModelWrapper
 
 
 class TypicalErrorModel(AbstractErrorModel):

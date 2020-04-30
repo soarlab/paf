@@ -1,6 +1,6 @@
-from abstract_error_model import AbstractErrorModel
+from error_model.abstract_error_model import AbstractErrorModel
 from project_utils import setCurrentContextPrecision, resetContextDefault, printMPFRExactly
-from wrapper_error_model import ErrorModelWrapper
+from error_model.wrapper_error_model import ErrorModelWrapper
 
 import matplotlib.pyplot as plt
 from time import time

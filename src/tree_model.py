@@ -1,4 +1,3 @@
-import copy
 import sys
 
 import numpy as np
@@ -7,11 +6,10 @@ from gmpy2 import mpfr
 import time
 import os
 
-from abstract_error_model import AbstractErrorModel
-from fast_typical_error_model import FastTypicalErrorModel
-from point_mass_error_model import ErrorModelPointMass
-from typical_error_model import TypicalErrorModel
-from wrapper_error_model import ErrorModelWrapper
+from error_model.abstract_error_model import AbstractErrorModel
+from error_model.fast_typical_error_model import FastTypicalErrorModel
+from error_model.point_mass_error_model import ErrorModelPointMass
+from error_model.wrapper_error_model import ErrorModelWrapper
 from model import UnaryOperation
 from operations import quantizedPointMass, BinOpDist, UnOpDist
 from setup_utils import loadIfExists, storage_path

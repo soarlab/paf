@@ -3,7 +3,7 @@ import copy
 from pychebfun import chebfun
 
 from project_utils import MyFunDistr
-from typical_error_model import TypicalErrorModel
+from error_model.typical_error_model import TypicalErrorModel
 from setup_utils import global_interpolate
 
 import numpy as np
