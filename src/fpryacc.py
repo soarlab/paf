@@ -51,25 +51,25 @@ class FPRyacc:
         #	p[0]=str(p[1])
         self.myPrint("VarDeclaration", p)
 
-    def p_Edges(self,p):
+    def p_Edges(self, p):
         ''' Edge : POSNUMBER
                  | POSNUMBER COMMA Edge
         '''
 
         if len(p) > 3:
-            p[0] = [float(p[1])]+p[3]
+            p[0] = [float(p[1])] + p[3]
         else:
-            p[0]=[float(p[1])]
+            p[0] = [float(p[1])]
 
-    def p_Values(self,p):
+    def p_Values(self, p):
         ''' Value : POSNUMBER
                   | POSNUMBER COMMA Edge
         '''
 
         if len(p) > 3:
-            p[0] = [float(p[1])]+p[3]
+            p[0] = [float(p[1])] + p[3]
         else:
-            p[0]=[float(p[1])]
+            p[0] = [float(p[1])]
 
     def p_Custom(self, p):
         ''' Distribution : WORD COLON C LPAREN SLPAREN Edge SRPAREN COMMA SLPAREN Value SRPAREN RPAREN
