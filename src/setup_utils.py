@@ -24,9 +24,9 @@ fptaylor_path=home_directory_project+"FPTaylor/"
 output_path=home_directory_project+"results/"
 fptaylor_exe="/home/roki/GIT/FPTaylor/./fptaylor"
 pran_exe=""
-golden_model_time=7200
+golden_model_time=600
 global_interpolate=True
-loadIfExists=True
+loadIfExists=False
 storeIfDoesnExist=False
 
 

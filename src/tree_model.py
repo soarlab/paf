@@ -21,7 +21,7 @@ def copy_tree(my_tree):
         else:
             copied_tree = BinaryTree(my_tree.value.operator, None,
                                      copy_tree(my_tree.children[0]),
-                                     copy_tree(my_tree.children[1]), my_tree.value.independent)
+                                     copy_tree(my_tree.children[1]), my_tree.value.indipendent)
     return copied_tree
 
 
@@ -60,8 +60,8 @@ class DistributionsManager:
             if wrapDist.name in self.errordictionary:
                 return self.errordictionary[wrapDist.name]
             else:
-                #tmp = ErrorModelWrapper(FastTypicalErrorModel(wrapDist.distribution))
-                tmp = ErrorModelWrapper(TypicalErrorModel(precision=precision))
+                tmp = ErrorModelWrapper(FastTypicalErrorModel(precision, wrapDist.distribution))
+                #tmp = ErrorModelWrapper(TypicalErrorModel(precision=precision))
                 self.errordictionary[wrapDist.name] = tmp
                 return tmp
         elif error_model == "high_precision":
@@ -178,7 +178,7 @@ class TreeModel:
 
             if isPointMassDistr(dist):
                 error = ErrorModelPointMass(qdist, self.precision, self.exponent)
-                quantized_distribution = quantizedPointMass(dist, self.precision, self.exponent)
+                quantized_distribution = quantizedPointMass(qdist, self.precision, self.exponent)
 
             else:
                 error = self.manager.createErrorModel(qdist, self.precision, self.exponent, self.poly_precision,
@@ -191,7 +191,7 @@ class TreeModel:
 
             if isPointMassDistr(dist):
                 error = ErrorModelPointMass(qdist, self.precision, self.exponent)
-                quantized_distribution = quantizedPointMass(dist, self.precision, self.exponent)
+                quantized_distribution = quantizedPointMass(qdist, self.precision, self.exponent)
             else:
                 error = self.manager.createErrorModel(qdist, self.precision, self.exponent, self.poly_precision,
                                                       self.error_model)
@@ -232,7 +232,7 @@ class TreeModel:
             values.append(sample)
             tmp_abs = abs(float(printMPFRExactly(lp_sample)) - sample)
             abs_err.append(tmp_abs)
-            rel_err.append(tmp_abs / sample)
+            rel_err.append(tmp_abs/sample)
             end_time = time.time() - start_time
         self.resetInit(self.tree)
         reset_default_precision()
