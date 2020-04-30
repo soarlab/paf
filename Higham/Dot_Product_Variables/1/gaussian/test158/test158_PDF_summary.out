@@ -1,0 +1,75 @@
+Execution Time:1359.301284790039s 
+
+###### Info about PDF Range Analysis with PAF with gaps: 1000#######:
+
+Starting range analysis from: 33.29244092150276
+
+
+Range: [32.344436260166304,34.240445582839214] contains 25.0% of the distribution.
+
+Range: [31.55443237571926,35.03044946728626] contains 50.0% of the distribution.
+
+Range: [30.290426160603985,36.294455682401534] contains 75.0% of the distribution.
+
+Range: [29.65842305304635,36.92645878995917] contains 85.0% of the distribution.
+
+Range: [28.236416061041666,38.34846578196385] contains 95.0% of the distribution.
+
+Range: [26.656408292147574,39.928473550857944] contains 99.0% of the distribution.
+
+Range: [23.180391200580573,43.404490642424946] contains 99.99% of the distribution.
+
+Range: [0.0,158.00077688941053] contains 100% of the distribution.
+
+###########################################
+
+##### DISTANCE MEASURES ######
+
+PDF Measure Distances Range Analysis
+Variational Distance - Golden -> paf : 0.10410344703798136
+Variational Distance - Golden -> Sampling : 0.46351799332612786
+AVG Variational Distance - Golden -> paf : 0.044766598028081916
+AVG Variational Distance - Golden -> Sampling : 0.15475644986012332
+KL Distance - Golden -> paf : 0.1286725626719834
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> paf : 0.023356301187917608
+WSS Distance - Golden -> Sampling : 0.1164690580025335
+##################################
+
+###### Info about PDF Error Analysis with PAF with gap: 1000#######:
+
+Starting range analysis from: 0.0
+
+
+Range: [0.0,1.8995471197058602e-06] contains 25.0% of the distribution.
+
+Range: [0.0,3.995599113864043e-06] contains 50.0% of the distribution.
+
+Range: [0.0,6.844919793422856e-06] contains 75.0% of the distribution.
+
+Range: [0.0,8.580712851085097e-06] contains 85.0% of the distribution.
+
+Range: [0.0,1.1724790842322327e-05] contains 95.0% of the distribution.
+
+Range: [0.0,1.5589386706551424e-05] contains 99.0% of the distribution.
+
+Range: [0.0,2.4170099557636363e-05] contains 99.99% of the distribution.
+
+Range: [0.0,3.2750812408721686e-05] contains 100% of the distribution.
+
+###########################################
+
+##### DISTANCE MEASURES ######
+
+PDF Measure Distances Abs Error
+
+Variational Distance - Golden -> paf : 64576.872783831
+Variational Distance - Golden -> Sampling : 113964.10018195961
+AVG Variational Distance - Golden -> paf : 27414.88965011002
+AVG Variational Distance - Golden -> Sampling : 34334.414645116754
+KL Distance - Golden -> paf : 0.23286750329326905
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> paf : 23140.33850115142
+WSS Distance - Golden -> Sampling : 34334.41464511676
+##################################
+
