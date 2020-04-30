@@ -12,6 +12,7 @@ class FPRlex(object):
 	
 	reserved = {
 		'N' : 'N',
+		'C': 'C',
 		'B' : 'B',
 		'U' : 'U',
 		'if': 'if',
@@ -34,6 +35,8 @@ class FPRlex(object):
 		'LPAREN',
 		'RPAREN',
 		'NEWLINE',
+		'SLPAREN',
+		'SRPAREN',
 		'COLON'] + list(reserved.values())))
 		
 	# Regular expression rules for simple tokens
@@ -43,6 +46,8 @@ class FPRlex(object):
 	t_DIVIDE  = r'/'
 	t_LPAREN  = r'\('
 	t_RPAREN  = r'\)'
+	t_SLPAREN = r'\['
+	t_SRPAREN = r'\]'
 	t_COMMA = r','
 	t_COLON = r':'
 
