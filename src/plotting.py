@@ -11,17 +11,19 @@ plt.rcParams.update({'legend.frameon': False})
 plt.rcParams.update({'legend.handletextpad': 0.1})
 plt.rcParams.update({'legend.labelspacing': 0.5})
 plt.rcParams.update({'axes.labelpad': 20})
-plt.rcParams.update({'legend.loc':'best'})
+plt.rcParams.update({'legend.loc': 'best'})
+
 
 def plotTicks(figureName, mark, col, lw, s, ticks, label=""):
     if not ticks is None and not None in eval(ticks):
-        values_ticks=eval(ticks)
+        values_ticks = eval(ticks)
         minVal = values_ticks[0]
         maxVal = values_ticks[1]
         labelMinVal = str('%.1e' % float(minVal))
         labelMaxVal = str("%.1e" % float(maxVal))
         plt.figure(figureName)
-        plt.scatter(x=[minVal, maxVal], y=[0, 0], c=col, marker=mark, label="FPTaylor: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=lw, s=s)
+        plt.scatter(x=[minVal, maxVal], y=[0, 0], c=col, marker=mark,
+                    label="FPTaylor: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=lw, s=s)
 
 
 def plotBoundsDistr(figureName, distribution):
@@ -50,28 +52,28 @@ def plot_range_analysis_PDF(final_distribution, loadedGolden, r, golden_samples,
     else:
         vals_golden_10000, edges_golden_10000 = np.histogram(golden_samples, bins=10000, density=True)
         vals_golden, edges_golden, patch_discard = plt.hist(golden_samples, bins='auto', density=True,
-                                                             color="darkgoldenrod", label="Golden distribution")
-        store_histograms_range(file_name,vals_golden, edges_golden, vals_golden_10000, edges_golden_10000)
+                                                            color="darkgoldenrod", label="Golden distribution")
+        store_histograms_range(file_name, vals_golden, edges_golden, vals_golden_10000, edges_golden_10000)
 
     golden_file = open(output_path + file_name + "/golden.txt", "a+")
     binLenGolden = len(vals_golden)
-    title="PDF Range Analysis with Golden distribution with num. bins: " + str(binLenGolden)
+    title = "PDF Range Analysis with Golden distribution with num. bins: " + str(binLenGolden)
     golden_mode, golden_ind = collectInfoAboutSampling(golden_file, vals_golden, edges_golden, title, pdf=True)
     golden_file.close()
 
     distr_mode = final_distribution.distribution.mode()
     binLenDistr = 1000
-    title="PDF Range Analysis with PAF with gaps: " + str(binLenDistr)
+    title = "PDF Range Analysis with PAF with gaps: " + str(binLenDistr)
     collectInfoAboutDistribution(paf_file, final_distribution, title, distr_mode, binLenDistr)
 
     sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
     vals, edges, patches = plt.hist(r, bins='auto', density=True, color="blue", label="Sampled distribution")
     binLenSamp = len(vals)
-    title="PDF Range Analysis with Sampling Model with num. bins: " + str(binLenSamp)
-    collectInfoAboutSampling(sampling_file, vals, edges, title,pdf=True)
+    title = "PDF Range Analysis with Sampling Model with num. bins: " + str(binLenSamp)
+    collectInfoAboutSampling(sampling_file, vals, edges, title, pdf=True)
     sampling_file.close()
 
-    title="PDF Measure Distances Range Analysis"
+    title = "PDF Measure Distances Range Analysis"
     measureDistances(final_distribution, paf_file, vals_golden, vals, edges_golden, edges, title)
 
     golden_max = abs(final_distribution.distribution.get_piecewise_pdf()(golden_mode))
@@ -95,6 +97,7 @@ def plot_range_analysis_PDF(final_distribution, loadedGolden, r, golden_samples,
     plt.clf()
     plt.close()
 
+
 def plotCDF(edges, vals, normalize, **kwargs):
     if normalize:
         tmp_vals = vals / sum(vals)
@@ -103,7 +106,9 @@ def plotCDF(edges, vals, normalize, **kwargs):
     plt.plot(edges[:-1], np.cumsum(tmp_vals), **kwargs)
     return np.cumsum(tmp_vals), edges
 
-def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_short, samples_golden, fileHook, file_name, range_fpt):
+
+def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_short, samples_golden, fileHook, file_name,
+                            range_fpt):
     a = final_distribution.a
     b = final_distribution.b
 
@@ -115,33 +120,35 @@ def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_short, sam
     if loadedGolden:
         notnorm_vals_golden, notnorm_edges_golden = load_histograms_range_from_disk(file_name)
         vals_golden, edges_golden = plotCDF(notnorm_edges_golden, notnorm_vals_golden, normalize=True,
-                                                 color="darkgoldenrod", linewidth=3, label="Golden distribution")
+                                            color="darkgoldenrod", linewidth=3, label="Golden distribution")
     else:
         not_norm_vals_golden_10000, not_norm_edges_golden_10000 = np.histogram(samples_golden, bins=10000, density=True)
         not_norm_vals_golden, not_norm_edges_golden = np.histogram(samples_golden, bins='auto', density=True)
-        store_histograms_range(file_name, not_norm_vals_golden,not_norm_edges_golden,not_norm_vals_golden_10000,not_norm_edges_golden_10000)
+        store_histograms_range(file_name, not_norm_vals_golden, not_norm_edges_golden, not_norm_vals_golden_10000,
+                               not_norm_edges_golden_10000)
         vals_golden, edges_golden = plotCDF(not_norm_edges_golden, not_norm_vals_golden, normalize=True,
-                                                 color="darkgoldenrod", linewidth=3, label="Golden distribution")
+                                            color="darkgoldenrod", linewidth=3, label="Golden distribution")
 
     golden_file = open(output_path + file_name + "/golden.txt", "a+")
     binLenGolden = len(vals_golden)
-    title="CDF Range Analysis with Golden distribution with num. bins: " + str(binLenGolden)
+    title = "CDF Range Analysis with Golden distribution with num. bins: " + str(binLenGolden)
     collectInfoAboutSampling(golden_file, vals_golden, edges_golden, title, pdf=False, golden_mode_index=0)
     golden_file.close()
 
     binLenDistr = 1000
-    title = "CDF Range Analysis with PAF with gap: "+ str(binLenDistr)
+    title = "CDF Range Analysis with PAF with gap: " + str(binLenDistr)
     collectInfoAboutDistribution(fileHook, final_distribution, title, a, binLenDistr)
 
     sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
     notnorm_vals, notnorm_edges = np.histogram(samples_short, bins='auto', density=True)
-    vals, edges = plotCDF(notnorm_edges, notnorm_vals, normalize=True, color="blue", label="Sampled distribution", linewidth=3)
+    vals, edges = plotCDF(notnorm_edges, notnorm_vals, normalize=True, color="blue", label="Sampled distribution",
+                          linewidth=3)
     binLenSamp = len(vals)
-    title="CDF Range Analysis with Sampling model with num. bins: " + str(binLenSamp)
+    title = "CDF Range Analysis with Sampling model with num. bins: " + str(binLenSamp)
     collectInfoAboutSampling(sampling_file, vals, edges, title, pdf=False, golden_mode_index=0)
     sampling_file.close()
 
-    title="CDF Measure Distances Range Analysis"
+    title = "CDF Measure Distances Range Analysis"
     measureDistances(final_distribution, fileHook, vals_golden, vals, edges_golden, edges, title, pdf=False)
 
     plt.autoscale(enable=True, axis='both', tight=False)
@@ -160,8 +167,8 @@ def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_short, sam
     plt.close()
 
 
-def plot_error_analysis_PDF(abs_err, loadedGolden, abs_err_samples, abs_err_golden, summary_file, file_name, abs_fpt, rel_fpt):
-
+def plot_error_analysis_PDF(abs_err, loadedGolden, abs_err_samples, abs_err_golden, summary_file, file_name, abs_fpt,
+                            rel_fpt):
     print("Generating Graphs Error Analysis PDF\n")
 
     tmp_name = file_name + "_abs_error_PDF_Bins_Auto"
@@ -174,12 +181,12 @@ def plot_error_analysis_PDF(abs_err, loadedGolden, abs_err_samples, abs_err_gold
     else:
         vals_golden_10000, edges_golden_10000 = np.histogram(abs_err_golden, bins=10000, density=True)
         vals_golden, edges_golden, patch_discard = plt.hist(abs_err_golden, bins='auto', density=True,
-                                                    color="darkgoldenrod", label="Golden distribution")
-        store_histograms_error(file_name,vals_golden, edges_golden, vals_golden_10000, edges_golden_10000)
+                                                            color="darkgoldenrod", label="Golden distribution")
+        store_histograms_error(file_name, vals_golden, edges_golden, vals_golden_10000, edges_golden_10000)
 
     golden_file = open(output_path + file_name + "/golden.txt", "a+")
     binLenGolden = len(vals_golden)
-    title="PDF Error Analysis with Golden distribution with num. bins: " + str(binLenGolden)
+    title = "PDF Error Analysis with Golden distribution with num. bins: " + str(binLenGolden)
     golden_mode, golden_ind = collectInfoAboutSampling(golden_file, vals_golden, edges_golden, title, pdf=True)
     golden_file.close()
 
@@ -190,11 +197,11 @@ def plot_error_analysis_PDF(abs_err, loadedGolden, abs_err_samples, abs_err_gold
     sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
     vals, edges, patches = plt.hist(abs_err_samples, bins='auto', density=True, color="blue", label="Sampling model")
     binLenSamp = len(vals)
-    title="PDF Error Analysis with Sampling Model with num. bins: " + str(binLenSamp)
+    title = "PDF Error Analysis with Sampling Model with num. bins: " + str(binLenSamp)
     collectInfoAboutSampling(sampling_file, vals, edges, title, pdf=True)
     sampling_file.close()
 
-    title="PDF Measure Distances Abs Error\n"
+    title = "PDF Measure Distances Abs Error\n"
     measureDistances(abs_err, summary_file, vals_golden, vals, edges_golden, edges, title)
 
     golden_max = abs(abs_err.execute().get_piecewise_pdf()(golden_mode))
@@ -220,45 +227,45 @@ def plot_error_analysis_PDF(abs_err, loadedGolden, abs_err_samples, abs_err_gold
 
 
 def plot_error_analysis_CDF(abs_err, loadedGolden, abs_err_samples, abs_err_golden, summary_file
-                            ,file_name, abs_fpt, rel_fpt, absORrel):
+                            , file_name, abs_fpt, rel_fpt, absORrel):
+    print("Generating Graphs Error Analysis CDF " + absORrel + "\n")
 
-    print("Generating Graphs Error Analysis CDF "+absORrel+"\n")
-
-    tmp_name = file_name + "_"+absORrel+"_error_CDF_Bins_Auto"
+    tmp_name = file_name + "_" + absORrel + "_error_CDF_Bins_Auto"
 
     plt.figure(tmp_name, figsize=(15, 10))
 
     if loadedGolden:
         notnorm_vals_golden, notnorm_edges_golden = load_histograms_error_from_disk(file_name)
         vals_golden, edges_golden = plotCDF(notnorm_edges_golden, notnorm_vals_golden, normalize=True,
-                                                 color="darkgoldenrod", linewidth=3, label="Golden distribution")
+                                            color="darkgoldenrod", linewidth=3, label="Golden distribution")
     else:
         not_norm_vals_golden_10000, not_norm_edges_golden_10000 = np.histogram(abs_err_golden, bins=10000, density=True)
         not_norm_vals_golden, not_norm_edges_golden = np.histogram(abs_err_golden, bins='auto', density=True)
-        store_histograms_error(file_name, not_norm_vals_golden,not_norm_edges_golden,not_norm_vals_golden_10000,not_norm_edges_golden_10000)
+        store_histograms_error(file_name, not_norm_vals_golden, not_norm_edges_golden, not_norm_vals_golden_10000,
+                               not_norm_edges_golden_10000)
         vals_golden, edges_golden = plotCDF(not_norm_edges_golden, not_norm_vals_golden, normalize=True,
-                                                 color="darkgoldenrod", linewidth=3, label="Golden distribution")
-
+                                            color="darkgoldenrod", linewidth=3, label="Golden distribution")
 
     golden_file = open(output_path + file_name + "/golden.txt", "a+")
     binLenGolden = len(vals_golden)
-    title="CDF "+absORrel+" Error Analysis with Golden distribution with num. bins: " + str(binLenGolden)
+    title = "CDF " + absORrel + " Error Analysis with Golden distribution with num. bins: " + str(binLenGolden)
     collectInfoAboutSampling(golden_file, vals_golden, edges_golden, title, pdf=False, golden_mode_index=0)
     golden_file.close()
 
     binLenDistr = 1000
-    title = "CDF "+absORrel+" Error Analysis with PAF with gap: " + str(binLenDistr)
+    title = "CDF " + absORrel + " Error Analysis with PAF with gap: " + str(binLenDistr)
     collectInfoAboutDistribution(summary_file, abs_err, title, abs_err.a, binLenDistr)
 
     sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
     not_norm_vals, not_norm_edges = np.histogram(abs_err_samples, bins='auto', density=True)
-    vals, edges = plotCDF(not_norm_edges, not_norm_vals, normalize=True, linewidth=3, color="blue",label="Sampled distribution")
+    vals, edges = plotCDF(not_norm_edges, not_norm_vals, normalize=True, linewidth=3, color="blue",
+                          label="Sampled distribution")
     binLenSamp = len(vals)
-    title="CDF "+absORrel+"Error Analysis with Sampling model with num. bins: " + str(binLenSamp)
+    title = "CDF " + absORrel + "Error Analysis with Sampling model with num. bins: " + str(binLenSamp)
     collectInfoAboutSampling(sampling_file, vals, edges, title, pdf=False, golden_mode_index=0)
     sampling_file.close()
 
-    title="CDF Measure Distances "+absORrel+" Error Analysis"
+    title = "CDF Measure Distances " + absORrel + " Error Analysis"
     measureDistances(abs_err, summary_file, vals_golden, vals, edges_golden, edges, title, pdf=False)
 
     plt.autoscale(enable=True, axis='both', tight=False)

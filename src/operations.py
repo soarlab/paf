@@ -6,6 +6,7 @@ from gmpy2 import *
 
 from setup_utils import global_interpolate
 
+
 class quantizedPointMass:
 
     def __init__(self, wrapperInputDistribution, precision, exp):
@@ -39,12 +40,13 @@ class quantizedPointMass:
     def getName(self):
         return self.name
 
+
 class DependentOperationExecutor(object):
     def __init__(self, bins, n, interp_points):
-        self.bins=bins
-        self.n=n
-        self.interp_points=interp_points
-        self.name="Dep. Operation: bins = "+str(self.bins)+", values = "+str(self.n)+"]"
+        self.bins = bins
+        self.n = n
+        self.interp_points = interp_points
+        self.name = "Dep. Operation: bins = " + str(self.bins) + ", values = " + str(self.n) + "]"
         self.interp_dep_op = chebfun(self.executeOperation, domain=[min(bins), max(bins)], N=self.interp_points)
 
     def executeOperation(self, t):
@@ -74,16 +76,18 @@ class DependentOperationExecutor(object):
         # by __getstate__
 
     def __setstate__(self, dict):
-        self.bins=dict["bins"]
-        self.n=dict["n"]
-        self.interp_points=dict["interp_points"]
+        self.bins = dict["bins"]
+        self.n = dict["n"]
+        self.interp_points = dict["interp_points"]
         self.name = dict["name"]
         if 'interp_dep_op' not in dict:
-            dict['interp_dep_op'] = chebfun(self.executeOperation, domain=[min(self.bins), max(self.bins)], N=self.interp_points)
+            dict['interp_dep_op'] = chebfun(self.executeOperation, domain=[min(self.bins), max(self.bins)],
+                                            N=self.interp_points)
         self.__dict__ = dict  # make dict our attribute dictionary
 
     def __call__(self, t, *args, **kwargs):
         return self.interp_dep_op(t)
+
 
 class BinOpDist:
     """
@@ -105,7 +109,7 @@ class BinOpDist:
         self.distributionConv = None
         self.distributionSamp = None
         self.sampleInit = True
-        self.removeSmallValuesRelativeError=removeSmallValuesRelativeError
+        self.removeSmallValuesRelativeError = removeSmallValuesRelativeError
         self.execute()
 
     def executeIndependent(self):
@@ -119,7 +123,8 @@ class BinOpDist:
             self.distributionConv = self.leftoperand.execute() / self.rightoperand.execute()
         # operator to multiply by a relative error
         elif self.operator == "*+":
-            self.distributionConv = self.leftoperand.execute() * (1.0 + (self.rightoperand.eps * self.rightoperand.execute()))
+            self.distributionConv = self.leftoperand.execute() * (
+                    1.0 + (self.rightoperand.eps * self.rightoperand.execute()))
         else:
             print("Operation not supported!")
             exit(-1)
@@ -144,8 +149,8 @@ class BinOpDist:
                                             res)
         else:
             if self.removeSmallValuesRelativeError:
-                rightOp = rightOp[np.abs(rightOp)>=0.1]
-                leftOp = leftOp[np.abs(rightOp)>=0.1]
+                rightOp = rightOp[np.abs(rightOp) >= 0.1]
+                leftOp = leftOp[np.abs(rightOp) >= 0.1]
             res = eval("np.array(leftOp)" + self.operator + "np.array(rightOp)")
             if elaborateBorders:
                 res = self.elaborateBorders(leftOp, self.operator, rightOp, res)
@@ -179,7 +184,8 @@ class BinOpDist:
 
         breaks = [min(bins), max(bins)]
 
-        self.distributionSamp = MyFunDistr(DependentOperationExecutor(bins,n,self.poly_precision), breakPoints=breaks, interpolated=global_interpolate)
+        self.distributionSamp = MyFunDistr(DependentOperationExecutor(bins, n, self.poly_precision), breakPoints=breaks,
+                                           interpolated=global_interpolate)
         self.distributionSamp.get_piecewise_pdf()
 
         if self.regularize:
@@ -220,6 +226,7 @@ class BinOpDist:
 
     def getName(self):
         return self.name
+
 
 class UnOpDist:
     """

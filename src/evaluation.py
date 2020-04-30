@@ -183,7 +183,7 @@ def getValueHist(edges, vals, x, pdf):
             return 0.0
         else:
             index_bin=np.digitize(x,edges,right=False)
-            return abs(vals[index_bin-1])
+            return abs(vals[index_bin - 1])
     else:
         if x <= min(edges):
             return 0.0

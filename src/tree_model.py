@@ -15,10 +15,12 @@ from operations import quantizedPointMass, BinOpDist, UnOpDist
 from setup_utils import loadIfExists, storage_path
 from project_utils import printMPFRExactly, resetContextDefault, setCurrentContextPrecision
 
+
 # define Python user-defined exceptions
 class MyCustomException(Exception):
     def __init__(self, num):
-        self.num=num
+        self.num = num
+
 
 def copy_tree(my_tree):
     if my_tree.leaf:
@@ -41,6 +43,7 @@ class BinaryTree(object):
         self.right = right
         self.convolution = convolution
 
+
 class UnaryTree(object):
     def __init__(self, name, value, onlychild):
         self.root_name = name
@@ -48,10 +51,12 @@ class UnaryTree(object):
         self.left = onlychild
         self.right = None
 
+
 def isPointMassDistr(dist):
     if dist.distribution.range_()[0] == dist.distribution.range_()[-1]:
         return True
     return False
+
 
 class DistributionsManager:
     def __init__(self, samples_dep_op):
@@ -64,39 +69,42 @@ class DistributionsManager:
             if wrapDist.name in self.errordictionary:
                 return self.errordictionary[wrapDist.name]
             else:
-                tmp=ErrorModelWrapper(FastTypicalErrorModel(wrapDist), precision, exp)
-                #tmp=WrappedHighPrecisionError(wrapDist, precision, exp)
-                #tmp=HighPrecisionErrorModel(wrapDist,precision,exp)
+                tmp = ErrorModelWrapper(FastTypicalErrorModel(wrapDist), precision, exp)
+                # tmp=WrappedHighPrecisionError(wrapDist, precision, exp)
+                # tmp=HighPrecisionErrorModel(wrapDist,precision,exp)
                 self.errordictionary[wrapDist.name] = tmp
                 return tmp
         else:
             if wrapDist.name in self.errordictionary:
                 return self.errordictionary[wrapDist.name]
             else:
-                tmp=AbstractErrorModel(wrapDist, precision, exp, pol_prec)
-                self.errordictionary[wrapDist.name]=tmp
+                tmp = AbstractErrorModel(wrapDist, precision, exp, pol_prec)
+                self.errordictionary[wrapDist.name] = tmp
                 return tmp
 
-    def createBinOperation(self, leftoperand, operator, rightoperand, poly_precision,  regularize=True, convolution=True):
-        name="("+leftoperand.name+str(operator)+rightoperand.name+")"
+    def createBinOperation(self, leftoperand, operator, rightoperand, poly_precision, regularize=True,
+                           convolution=True):
+        name = "(" + leftoperand.name + str(operator) + rightoperand.name + ")"
         if name in self.distrdictionary:
             return self.distrdictionary[name]
         else:
-            tmp=BinOpDist(leftoperand, operator, rightoperand, poly_precision, self.samples_dep_op, regularize, convolution)
-            self.distrdictionary[name]=tmp
+            tmp = BinOpDist(leftoperand, operator, rightoperand, poly_precision, self.samples_dep_op, regularize,
+                            convolution)
+            self.distrdictionary[name] = tmp
             return tmp
 
     def createUnaryOperation(self, operand, name, operation=None):
         if operation is not None:
-            tmp_name=name+"("+operand.name+")"
+            tmp_name = name + "(" + operand.name + ")"
         else:
-            tmp_name=name
+            tmp_name = name
         if tmp_name in self.distrdictionary:
-            return  self.distrdictionary[tmp_name]
+            return self.distrdictionary[tmp_name]
         else:
-            tmp=UnOpDist(operand, tmp_name, operation)
-            self.distrdictionary[tmp_name]=tmp
+            tmp = UnOpDist(operand, tmp_name, operation)
+            self.distrdictionary[tmp_name] = tmp
             return tmp
+
 
 class TreeModel:
 
@@ -109,40 +117,41 @@ class TreeModel:
         self.tree = copy_tree(my_yacc.expression)
         # Evaluate tree
 
-        self.counter=0
+        self.counter = 0
 
-        self.i=0
+        self.i = 0
 
-        self.vectorX=xs
+        self.vectorX = xs
 
-        self.currentX=self.vectorX[0]
+        self.currentX = self.vectorX[0]
 
         self.eps = 2 ** (-self.precision)
-        self.samples_dep_op=samples_dep_op
-        self.manager=DistributionsManager(self.samples_dep_op)
+        self.samples_dep_op = samples_dep_op
+        self.manager = DistributionsManager(self.samples_dep_op)
 
         try:
             self.evaluate(self.tree)
             self.partial_tree = self.tree
-            self.final_quantized_distr=self.tree.root_value[2]
-            self.final_exact_distr=self.tree.root_value[0]
-            self.abs_err_distr= UnOpDist(BinOpDist(self.final_quantized_distr, "-",
+            self.final_quantized_distr = self.tree.root_value[2]
+            self.final_exact_distr = self.tree.root_value[0]
+            self.abs_err_distr = UnOpDist(BinOpDist(self.final_quantized_distr, "-",
                                                     self.final_exact_distr, 1000, self.samples_dep_op,
-                                               regularize=True, convolution=False), "abs_err", "abs")
+                                                    regularize=True, convolution=False), "abs_err", "abs")
             self.relative_err_distr = UnOpDist(BinOpDist(self.abs_err_distr, "/",
-                                                self.final_exact_distr, 1000, self.samples_dep_op,
-                                                regularize=True, convolution=False), "rel_err", "abs")
+                                                         self.final_exact_distr, 1000, self.samples_dep_op,
+                                                         regularize=True, convolution=False), "rel_err", "abs")
         except MyCustomException as t:
-            print("Child exit for n="+str(t.num))
+            print("Child exit for n=" + str(t.num))
             self.final_quantized_distr = self.partial_tree.root_value[2]
             self.final_exact_distr = self.partial_tree.root_value[0]
             self.abs_err_distr = UnOpDist(BinOpDist(self.final_quantized_distr, "-",
                                                     self.final_exact_distr, 1000, self.samples_dep_op,
-                                                regularize=True, convolution=False), "abs_err", "abs")
+                                                    regularize=True, convolution=False), "abs_err", "abs")
 
             self.relative_err_distr = UnOpDist(BinOpDist(self.abs_err_distr, "/",
-                                                self.final_exact_distr, 1000, self.samples_dep_op,
-                                                regularize=True, convolution=False), "rel_err", "abs")
+                                                         self.final_exact_distr, 1000, self.samples_dep_op,
+                                                         regularize=True, convolution=False), "rel_err", "abs")
+
     def evaluate(self, tree):
         """ Recursively populate the Tree with the triples
         (distribution, error distribution, quantized distribution) """
@@ -156,7 +165,7 @@ class TreeModel:
                 # Compute error model
                 if isPointMassDistr(dist):
                     error = ErrorModelPointMass(dist, self.precision, self.exp)
-                    quantized_distribution = quantizedPointMass(dist,self.precision, self.exp)
+                    quantized_distribution = quantizedPointMass(dist, self.precision, self.exp)
                 else:
                     error = self.manager.createErrorModel(dist, self.precision, self.exp, self.poly_precision)
                     quantized_distribution = self.manager.createBinOperation(dist, "*+", error, self.poly_precision)
@@ -176,8 +185,10 @@ class TreeModel:
             self.evaluate(tree.left)
             self.evaluate(tree.right)
 
-            dist  = self.manager.createBinOperation(tree.left.root_value[0], tree.root_name, tree.right.root_value[0], self.poly_precision, convolution=tree.convolution)
-            qdist = self.manager.createBinOperation(tree.left.root_value[2], tree.root_name, tree.right.root_value[2], self.poly_precision, convolution=tree.convolution)
+            dist = self.manager.createBinOperation(tree.left.root_value[0], tree.root_name, tree.right.root_value[0],
+                                                   self.poly_precision, convolution=tree.convolution)
+            qdist = self.manager.createBinOperation(tree.left.root_value[2], tree.root_name, tree.right.root_value[2],
+                                                    self.poly_precision, convolution=tree.convolution)
 
             if isPointMassDistr(dist):
                 error = ErrorModelPointMass(qdist, self.precision, self.exp)
@@ -187,8 +198,8 @@ class TreeModel:
                 error = self.manager.createErrorModel(qdist, self.precision, self.exp, self.poly_precision)
                 quantized_distribution = self.manager.createBinOperation(qdist, "*+", error, self.poly_precision)
 
-            if tree.root_name=='+':
-                self.counter=self.counter+1
+            if tree.root_name == '+':
+                self.counter = self.counter + 1
         else:
             self.evaluate(tree.left)
             dist = self.manager.createUnaryOperation(tree.left.root_value[0], tree.root_name, tree.root_name)
@@ -203,22 +214,22 @@ class TreeModel:
 
         # We now populate the triple with distribution, error model, quantized distribution '''
         tree.root_value = [dist, error, quantized_distribution]
-        if self.counter >= self.currentX-1:
-            self.i=self.i+1
-            if self.i<len(self.vectorX):
-                self.currentX=self.vectorX[self.i]
+        if self.counter >= self.currentX - 1:
+            self.i = self.i + 1
+            if self.i < len(self.vectorX):
+                self.currentX = self.vectorX[self.i]
                 self.partial_tree = tree
-                tmp=os.fork()
-                if tmp<=0:
-                    #it is a child
-                    raise MyCustomException(self.vectorX[self.i-1])
+                tmp = os.fork()
+                if tmp <= 0:
+                    # it is a child
+                    raise MyCustomException(self.vectorX[self.i - 1])
             else:
-                self.currentX=sys.maxsize
+                self.currentX = sys.maxsize
                 self.partial_tree = tree
-                tmp=os.fork()
-                if tmp<=0:
-                    #it is a child
-                    raise MyCustomException(self.vectorX[self.i-1])
+                tmp = os.fork()
+                if tmp <= 0:
+                    # it is a child
+                    raise MyCustomException(self.vectorX[self.i - 1])
 
     def resetInit(self, tree):
         if tree.left is not None or tree.right is not None:

@@ -1,5 +1,5 @@
-
 from pychebfun import *
+
 
 class ConditionalError:
     """
@@ -8,6 +8,7 @@ class ConditionalError:
     using Monte-Carlo integration with sample_nb samples at the leaves of the tree0
     and cheb_point_nb interpolation points to construct the final distribution
     """
+
     def __init__(self, expression, sample_nb, cheb_point_nb, unit_roundoff):
         self.expression = expression
         self.sample_nb = sample_nb
@@ -38,17 +39,17 @@ class ConditionalError:
                 self.error_range += 1
 
     def get_monte_carlo_error(self):
-        d = np.zeros([self.sample_nb,self.cheb_point_nb])
+        d = np.zeros([self.sample_nb, self.cheb_point_nb])
         d_final = np.zeros(self.cheb_point_nb)
         for i in range(0, self.sample_nb):
             print(i)
-            exact_at_sample, error_at_sample=self.get_error_at_sample(self.expression.tree)
+            exact_at_sample, error_at_sample = self.get_error_at_sample(self.expression.tree)
             relative_error = (exact_at_sample - error_at_sample) / exact_at_sample
             # evaluate at cheb_point_nb
             for j in range(0, self.cheb_point_nb):
-                d[i,j]=relative_error.get_piecewise_pdf()(self.interpolation_points[j])
+                d[i, j] = relative_error.get_piecewise_pdf()(self.interpolation_points[j])
         d_final = np.sum(d, axis=0)
-        d_final = d_final / self.sample_nb #* self.unit_roundoff)
+        d_final = d_final / self.sample_nb  # * self.unit_roundoff)
         return d_final
 
     def get_error_at_sample(self, tree):
@@ -66,13 +67,17 @@ class ConditionalError:
             if tree.right is not None:
                 exact_r, prob_r = self.get_error_at_sample(tree.right)
             if tree.root_name == "+":
-                return (exact_l + exact_r), (prob_l + prob_r) * (1 + tree.root_value[1].distribution * self.unit_roundoff)
+                return (exact_l + exact_r), (prob_l + prob_r) * (
+                            1 + tree.root_value[1].distribution * self.unit_roundoff)
             elif tree.root_name == "-":
-                return (exact_l - exact_r), (prob_l - prob_r) * (1 + tree.root_value[1].distribution * self.unit_roundoff)
+                return (exact_l - exact_r), (prob_l - prob_r) * (
+                            1 + tree.root_value[1].distribution * self.unit_roundoff)
             elif tree.root_name == "*":
-                return (exact_l * exact_r), (prob_l * prob_r) * (1 + tree.root_value[1].distribution * self.unit_roundoff)
+                return (exact_l * exact_r), (prob_l * prob_r) * (
+                            1 + tree.root_value[1].distribution * self.unit_roundoff)
             elif tree.root_name == "/":
-                return (exact_l / exact_r), (prob_l / prob_r) * (1 + tree.root_value[1].distribution * self.unit_roundoff)
+                return (exact_l / exact_r), (prob_l / prob_r) * (
+                            1 + tree.root_value[1].distribution * self.unit_roundoff)
             else:
                 print("Operation not supported!")
                 exit(-1)
