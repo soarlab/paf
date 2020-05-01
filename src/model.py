@@ -7,7 +7,7 @@ import numpy as np
 from project_utils import MyFunDistr, normalizeDistribution
 from setup_utils import global_interpolate
 from scipy import stats
-from scipy import *
+
 
 class NodeManager:
     def __init__(self):

@@ -10,7 +10,7 @@ import pacal
 
 def init_pacal(num_threads):
     '''Limit pacal threads'''
-    pacal.params.general.parallel = False
+    pacal.params.general.parallel = True
     pacal.params.general.nprocs = num_threads
 
 num_threads=8
@@ -24,7 +24,7 @@ fptaylor_path=home_directory_project+"FPTaylor/"
 output_path=home_directory_project+"results/"
 fptaylor_exe="/home/roki/GIT/FPTaylor/./fptaylor"
 pran_exe=""
-golden_model_time=5
+golden_model_time=1
 global_interpolate=True
 loadIfExists=False
 storeIfDoesnExist=False

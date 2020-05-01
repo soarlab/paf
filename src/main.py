@@ -15,9 +15,6 @@ import traceback
 import logging
 import gc
 import ntpath
-import sys
-
-sys.setrecursionlimit(1000000)
 
 from fpryacc import FPRyacc
 from tree_model import TreeModel

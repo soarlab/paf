@@ -53,7 +53,9 @@ class FPRyacc:
 
     def p_Edges(self,p):
         ''' Edge : POSNUMBER
+                 | NEGNUMBER
                  | POSNUMBER COMMA Edge
+                 | NEGNUMBER COMMA Edge
         '''
 
         if len(p) > 3:
