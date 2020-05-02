@@ -27,7 +27,7 @@ pran_exe=""
 golden_model_time=1
 global_interpolate=True
 loadIfExists=False
-storeIfDoesnExist=False
+storeIfDoesnExist=True
 
 
 class NoDaemonProcess(multiprocessing.Process):

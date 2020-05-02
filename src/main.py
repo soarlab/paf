@@ -75,6 +75,13 @@ exp = 8
 file = "./test.txt"
 
 range_my_dict, abs_my_dict, rel_my_dict = getFPTaylorResults(fptaylor_exe, fptaylor_path)
-process_file(file, mantissa, exp, range_my_dict, abs_my_dict)
+pool = MyPool(processes=setup_utils.num_processes, maxtasksperchild=2)
+
+for file in os.listdir(benchmarks_path):
+    if file.endswith(".txt"):
+        pool.apply_async(process_file, (file, mantissa, exp, range_my_dict, abs_my_dict))
+
+pool.close()
+pool.join()
 
 print("\nDone with sample\n")
