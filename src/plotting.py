@@ -4,7 +4,7 @@ from setup_utils import output_path, benchmarks_path
 from storage import load_histograms_error_from_disk, load_histograms_error_from_disk, \
     load_histograms_range_from_disk, store_histograms_error, store_histograms_range
 from evaluation import collectInfoAboutSampling, collectInfoAboutDistribution, measureDistances, \
-    collectInfoAboutCDFDistribution
+    collectInfoAboutCDFDistribution, collectInfoAboutCDFSampling
 
 plt.rcParams.update({'font.size': 30})
 plt.rcParams.update({'figure.autolayout': True})
@@ -104,7 +104,7 @@ def plotCDF(edges, vals, normalize, **kwargs):
         tmp_vals = vals
     cdf_tmp=np.insert(np.cumsum(tmp_vals), 0, 0.0, axis=0)
     plt.plot(edges, cdf_tmp , **kwargs)
-    return np.cumsum(tmp_vals), edges
+    return cdf_tmp, edges
 
 def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_short, samples_golden, fileHook, file_name, range_fpt):
     a = final_distribution.a
@@ -129,7 +129,7 @@ def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_short, sam
     golden_file = open(output_path + file_name + "/golden.txt", "a+")
     binLenGolden = len(vals_golden)
     title="CDF Range Analysis with Golden distribution with num. bins: " + str(binLenGolden)
-    collectInfoAboutSampling(golden_file, vals_golden, edges_golden, title, pdf=False, golden_mode_index=0)
+    collectInfoAboutCDFSampling(golden_file, not_norm_vals_golden, edges_golden, title)
     golden_file.close()
 
     title = "CDF Range Analysis with PAF with gap using INV CDF "
@@ -140,10 +140,10 @@ def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_short, sam
     vals, edges = plotCDF(notnorm_edges, notnorm_vals, normalize=True, color="blue", label="Sampled distribution", linewidth=3)
     binLenSamp = len(vals)
     title="CDF Range Analysis with Sampling model with num. bins: " + str(binLenSamp)
-    collectInfoAboutSampling(sampling_file, vals, edges, title, pdf=False, golden_mode_index=0)
+    collectInfoAboutCDFSampling(sampling_file, notnorm_vals, edges, title)
     sampling_file.close()
 
-    title="CDF Measure Distances Range Analysis"
+    #title="CDF Measure Distances Range Analysis"
     measureDistances(final_distribution, fileHook, vals_golden, vals, edges_golden, edges, title, pdf=False)
 
     plt.autoscale(enable=True, axis='both', tight=False)

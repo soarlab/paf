@@ -7,7 +7,10 @@ def measureDistances(distr_wrapper, fileHook, vals_golden, vals_orig, edges_gold
     vals_DistrPM = np.asarray(measureDistrVsGoldenEdges(distr_wrapper, edges_golden, pdf))
 
     vals = []
-    for edge_golden in edges_golden[:-1]:
+    if pdf:
+        edges_golden=edges_golden[:-1]
+
+    for edge_golden in edges_golden:
         vals.append(getValueHist(edges_orig, vals_orig, edge_golden, pdf))
     vals = np.asarray(vals)
 
@@ -120,6 +123,33 @@ def collectInfoAboutDistribution(f, finalDistr_wrapper, name, distr_mode, bin_le
     f.write(res)
     return
 
+def computeAreas(edges,vals):
+    area=np.zeros(len(vals))
+    for ind_edge, edge in enumerate(edges[:-1]):
+        area[ind_edge] = vals[ind_edge] * abs(edge - edges[ind_edge + 1])
+    return area
+
+def collectInfoAboutCDFSampling(f, vals, edges, name):
+    res="###### Info about "+name+"#######:\n\n"
+    res=res+"Starting from value 0.0\n\n\n"
+    area = computeAreas(edges, vals)
+    for i in [0.25, 0.5, 0.75, 0.85, 0.95, 0.99, 0.9999, 1]:
+        if i == 0.0:
+            ret_val=edges[0]
+        elif i == 1.0:
+            ret_val=edges[-1]
+        else:
+            # given a measure of probability returns the value of x
+            cum_area = np.cumsum(area)
+            index = np.digitize(i, cum_area, right=False)
+            new_q = i - sum(area[0:index])
+            ret_val = (new_q / vals[index]) + edges[index]
+        res = res + "Range: [0.0," + str(ret_val) + "] contains " + str(i * 100) + "% of the distribution.\n\n"
+    res = res+"###########################################\n\n\n"
+    #print(res)
+    f.write(res)
+    return
+
 def collectInfoAboutSampling(f, vals, edges, name, pdf, golden_mode_index=None):
     res="###### Info about "+name+"#######:\n\n"
     if golden_mode_index is None:
@@ -181,7 +211,7 @@ def measureDistrVsGoldenEdges(distr, edges_golden, pdf=True):
         return vals
     else:
         distr_fun = distr.distribution.get_piecewise_cdf()
-        for ind, edge in enumerate(edges_golden[:-1]):
+        for ind, edge in enumerate(edges_golden):
             if edge <= distr.a:
                 vals.append(0.0)
             elif edge >= distr.b:
