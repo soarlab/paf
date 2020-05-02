@@ -3,7 +3,8 @@ import numpy as np
 from setup_utils import output_path, benchmarks_path
 from storage import load_histograms_error_from_disk, load_histograms_error_from_disk, \
     load_histograms_range_from_disk, store_histograms_error, store_histograms_range
-from evaluation import collectInfoAboutSampling, collectInfoAboutDistribution, measureDistances
+from evaluation import collectInfoAboutSampling, collectInfoAboutDistribution, measureDistances, \
+    collectInfoAboutCDFDistribution
 
 plt.rcParams.update({'font.size': 30})
 plt.rcParams.update({'figure.autolayout': True})
@@ -82,8 +83,9 @@ def plot_range_analysis_PDF(final_distribution, loadedGolden, r, golden_samples,
 
     plt.autoscale(enable=True, axis='both', tight=False)
     plt.ylim(top=2.0 * finalMax)
-    x = np.linspace(a, b, 1000)
-    plt.plot(x, abs(final_distribution.distribution.get_piecewise_pdf()(x)), linewidth=5, color="red")
+    #x = np.linspace(a, b, 1000)
+    #plt.plot(x, abs(final_distribution.distribution.get_piecewise_pdf()(x)), linewidth=3, color="red")
+    final_distribution.distribution.plot(linewidth=3, color="red")
     plotTicks(tmp_filename, "X", "green", 4, 500, ticks=range_fpt, label="FPT: " + str(range_fpt))
     plotBoundsDistr(tmp_filename, final_distribution.distribution)
     plt.xlabel('Distribution Range')
@@ -100,7 +102,8 @@ def plotCDF(edges, vals, normalize, **kwargs):
         tmp_vals = vals / sum(vals)
     else:
         tmp_vals = vals
-    plt.plot(edges[:-1], np.cumsum(tmp_vals), **kwargs)
+    cdf_tmp=np.insert(np.cumsum(tmp_vals), 0, 0.0, axis=0)
+    plt.plot(edges, cdf_tmp , **kwargs)
     return np.cumsum(tmp_vals), edges
 
 def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_short, samples_golden, fileHook, file_name, range_fpt):
@@ -129,9 +132,8 @@ def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_short, sam
     collectInfoAboutSampling(golden_file, vals_golden, edges_golden, title, pdf=False, golden_mode_index=0)
     golden_file.close()
 
-    binLenDistr = 1000
-    title = "CDF Range Analysis with PAF with gap: "+ str(binLenDistr)
-    collectInfoAboutDistribution(fileHook, final_distribution, title, a, binLenDistr)
+    title = "CDF Range Analysis with PAF with gap using INV CDF "
+    collectInfoAboutCDFDistribution(fileHook, final_distribution, title)
 
     sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
     notnorm_vals, notnorm_edges = np.histogram(samples_short, bins='auto', density=True)
@@ -146,8 +148,9 @@ def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_short, sam
 
     plt.autoscale(enable=True, axis='both', tight=False)
     plt.ylim(bottom=-0.05, top=1.1)
-    x = np.linspace(a, b, 1000)
-    plt.plot(x, abs(final_distribution.distribution.get_piecewise_cdf()(x)), linewidth=3, color="red")
+    #x = np.linspace(a, b, 1000)
+    #plt.plot(x, abs(final_distribution.distribution.get_piecewise_cdf()(x)), linewidth=3, color="red")
+    final_distribution.distribution.get_piecewise_cdf().plot(linewidth=3, color="red")
     plotTicks(tmp_filename, "X", "green", 4, 500, ticks=range_fpt, label="FPT: " + str(range_fpt))
     plotBoundsDistr(tmp_filename, final_distribution.distribution)
     plt.xlabel('Distribution Range')

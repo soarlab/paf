@@ -1,12 +1,15 @@
 import copy
 
 import pacal
+from pacal.distr import Distr
+from pacal.utils import wrap_pdf
 from pychebfun import chebfun
 from scipy.stats import truncnorm
 import numpy as np
 from project_utils import MyFunDistr, normalizeDistribution
 from setup_utils import global_interpolate
 from scipy import stats
+from pacal.segments import PiecewiseDistribution, Segment, ConstSegment
 
 
 class NodeManager:
@@ -227,7 +230,7 @@ def checkProbabilityDistribution(name, edges, area):
         print("Custom prob. distr. "+name+" does not integrate to 1")
         exit(-1)
 
-class CustomDistr(stats.rv_continuous):
+class CustomDistr(stats.rv_continuous, Distr):
     def __init__(self,name, edges, area):
         checkProbabilityDistribution(name, edges,area)
         super().__init__(a=edges[0], b=edges[-1], name='CustomDistr')
@@ -244,9 +247,26 @@ class CustomDistr(stats.rv_continuous):
         #self.testpdf()
         #self.testcdf()
         #self.testicdf()
-        self.distribution = MyFunDistr(CustomInterpolator(500, self.edges, self.values), breakPoints =[self.a, self.b], interpolated=False)
-        self.distribution.get_piecewise_pdf()
-        self.distribution=normalizeDistribution(self.distribution, init=True)
+        #self.distribution = MyFunDistr(CustomInterpolator(1000, self.edges, self.values), breakPoints =[self.a, self.b], interpolated=False)
+        #piecewise_pdf = PiecewiseDistribution([])
+        #for index,edge in enumerate(edges[:-1]):
+        #    piecewise_pdf.addSegment(Segment(edge, edges[index+1], self.values[index]))
+        #self.piecewise_pdf=piecewise_pdf
+        self.init_piecewise_pdf()
+        self.get_piecewise_cdf()
+        #self.distribution=normalizeDistribution(self.distribution, init=True)
+
+    def get_piecewise_pdf(self):
+        """return PDF function as a PiecewiseDistribution object"""
+        if self.piecewise_pdf is None:
+            self.init_piecewise_pdf()
+        return self.piecewise_pdf
+
+    def init_piecewise_pdf(self):
+        piecewise_pdf = PiecewiseDistribution([])
+        for index, edge in enumerate(self.edges[:-1]):
+            piecewise_pdf.addSegment(ConstSegment(edge, self.edges[index + 1], self.values[index]))
+        self.piecewise_pdf = piecewise_pdf
 
     def testpdf(self):
         for val in [0,0.1,1, 1.1,1.2,1.3,1.4,1.5]:
@@ -269,7 +289,23 @@ class CustomDistr(stats.rv_continuous):
         return tmp
 
     def execute(self):
-        return self.distribution
+        self.get_piecewise_pdf()
+        return self
+
+    def rand_raw(self, n=None):  # None means return scalar
+        return self._ppf(n)
+        #inv_cdf = self.get_piecewise_invcdf()
+        #u = np.random.uniform(size=n)
+        #return inv_cdf(u)
+
+    def __call__(self, x):
+        return self.pdf(self, x)
+
+    def range(self):
+        return self.edges[0], self.edges[-1]
+
+    def getName(self):
+        return self.name
 
     def getRepresentation(self):
         return "Custom distribution in range ["+str(self.a)+","+str(self.b)+"]"
@@ -305,23 +341,26 @@ class CustomDistr(stats.rv_continuous):
         return (new_q/self.values[index])+self.edges[index]
 
     def _cdf(self, x):
-        if x<=self.a:
+        if x<self.a:
             return 0.0
-        elif x>=self.b:
+        elif x>self.b:
             return 1.0
         else:
             index=np.digitize(x, self.edges, right=False)
             res=sum(self.area[0:index-1])+self.values[index-1]*abs(self.edges[index-1]-x)
             return res
 
-    #def _pdf(self, x):
-    #    if x<self.a or x>self.b:
-    #        return 0.0
-    #    index=np.digitize(x, self.edges, right=False)
-    #    if index-1>=len(self.values):
-    #        #can happen only when x is equal to self.b
-    #        index=index-1
-    #    return abs(self.values[index-1])
+    def pdf(self, x):
+        return self._pdf(x)
+
+    def _pdf(self, x):
+        if x<self.a or x>self.b:
+            return 0.0
+        index=np.digitize(x, self.edges, right=False)
+        if index-1>=len(self.values):
+            #can happen only when x is equal to self.b
+            index=index-1
+        return abs(self.values[index-1])
 
 class U:
     def __init__(self,name,a,b):

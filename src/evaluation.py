@@ -71,12 +71,28 @@ def elaborateBinsAndEdges(fileHook, edges, vals, name):
     fileHook.write("Weighted - Ratio: " + str(float(counter) / float(tot)) + "\n\n")
     fileHook.write("########################\n\n")
 
+def collectInfoAboutCDFDistribution(f, finalDistr_wrapper, name):
+    res="###### Info about "+name+"#######:\n\n"
+    res=res+"Starting range analysis from: 0.0 \n\n\n"
+    for i in [0.25, 0.5, 0.75, 0.85, 0.95, 0.99, 0.9999]:
+        val=finalDistr_wrapper.execute().get_piecewise_invcdf()(i)
+        if val>=i:
+            res=res+"Range: [0.0,"+str(val)+"] contains "+str(i*100)+"% of the distribution.\n\n"
+        else:
+            res = res + "Problem with INV CDF\n\n"
+            break
+    res=res+"Range: [0.0,"+str(finalDistr_wrapper.b)+"] contains "+str(100)+"% of the distribution.\n\n"
+    res = res+"###########################################\n\n"
+    f.write(res)
+    return
+
 def collectInfoAboutDistribution(f, finalDistr_wrapper, name, distr_mode, bin_len):
     res="###### Info about "+name+"#######:\n\n"
     res=res+"Starting range analysis from: " + str(distr_mode) + "\n\n\n"
     gap=abs(finalDistr_wrapper.a-finalDistr_wrapper.b)
     gap=gap/float(bin_len)
     for i in [0.25, 0.5, 0.75, 0.85, 0.95, 0.99, 0.9999]:
+        val=finalDistr_wrapper.execute().get_piecewise_invcdf()(i)
         val = 0
         lower = distr_mode
         upper = distr_mode
