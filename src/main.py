@@ -79,7 +79,8 @@ pool = MyPool(processes=setup_utils.num_processes, maxtasksperchild=2)
 
 for file in os.listdir(benchmarks_path):
     if file.endswith(".txt"):
-        pool.apply_async(process_file, (file, mantissa, exp, range_my_dict, abs_my_dict))
+        pool.apply_async(process_file, (benchmarks_path+file, mantissa, exp, range_my_dict, abs_my_dict))
+        time.sleep(20)
 
 pool.close()
 pool.join()
