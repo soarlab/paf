@@ -2,7 +2,7 @@ import setup_utils  # It has to be first line, do not remove
 
 from setup_utils import home_directory_project, benchmarks_path, \
     storage_path, fptaylor_path, output_path, fptaylor_exe, pran_exe, \
-    golden_model_time, loadIfExists, storeIfDoesnExist, MyPool
+    loadIfExists, storeIfDoesnExist, MyPool
 
 from plotting import plot_range_analysis_CDF, plot_range_analysis_PDF, \
     plot_error_analysis_PDF, plot_error_analysis_CDF
@@ -21,11 +21,11 @@ from tree_model import TreeModel
 from FPTaylor import getFPTaylorResults
 
 
-def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
+def process_file(golden_time, file, mantissa, exp, range_my_dict, abs_my_dict):
     try:
         print(file)
         f = open(file, "r")
-        file_name = (ntpath.basename(file).split(".")[0]).lower()  # (file.split(".")[0]).lower()
+        file_name = (ntpath.basename(file).split(".")[0]).lower()+"_"+str(golden_time)  # (file.split(".")[0]).lower()
         text = f.read()
         text = text[:-1]
         f.close()
@@ -39,9 +39,11 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
         if os.path.exists(output_path + file_name):
             shutil.rmtree(output_path + file_name)
         os.makedirs(output_path + file_name)
-
+        
+        print(file+", time:"+str(golden_time))
+        
         loadedSamples, values_samples, abs_err_samples, rel_err_samples = T.generate_error_samples(finalTime, file_name)
-        loadedGolden, values_golden, abs_err_golden, rel_err_golden = T.generate_error_samples(golden_model_time,
+        loadedGolden, values_golden, abs_err_golden, rel_err_golden = T.generate_error_samples(golden_time,
                                                                                                file_name, golden=True)
 
         f = open(output_path + file_name + "/" + file_name + "_CDF_summary.out", "w+")
@@ -72,15 +74,19 @@ warnings.warn("Mantissa with implicit bit of sign. In gmpy2 set precision=p incl
 mantissa = 24
 exp = 8
 
-file = "./test.txt"
+#file = "./test.txt"
 
 range_my_dict, abs_my_dict, rel_my_dict = getFPTaylorResults(fptaylor_exe, fptaylor_path)
-pool = MyPool(processes=setup_utils.num_processes, maxtasksperchild=2)
+pool = MyPool(processes=setup_utils.num_processes, maxtasksperchild=1)
 
-for file in os.listdir(benchmarks_path):
-    if file.endswith(".txt"):
-        pool.apply_async(process_file, (benchmarks_path+file, mantissa, exp, range_my_dict, abs_my_dict))
-        time.sleep(20)
+golden_times=[7200, 14400, 21600, 28800, 36000, 43200]
+
+for golden_time in golden_times:
+	for file in os.listdir(benchmarks_path):
+		if file.endswith(".txt"):
+			pool.apply_async(process_file, (golden_time, benchmarks_path+file, mantissa, exp, range_my_dict, abs_my_dict))
+			time.sleep(20)
+	time.sleep(golden_time)
 
 pool.close()
 pool.join()

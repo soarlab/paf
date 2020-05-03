@@ -13,9 +13,9 @@ def init_pacal(num_threads):
     pacal.params.general.parallel = True
     pacal.params.general.nprocs = num_threads
 
-num_threads=2
+num_threads=32
 init_pacal(num_threads)
-num_processes=int(multiprocessing.cpu_count()/num_threads)
+num_processes=24#int(multiprocessing.cpu_count()/num_threads)
 
 home_directory_project=os.getcwd()+"/"
 benchmarks_path=home_directory_project+"benchmarks/"
@@ -24,7 +24,7 @@ fptaylor_path=home_directory_project+"FPTaylor/"
 output_path=home_directory_project+"results/"
 fptaylor_exe="/home/roki/GIT/FPTaylor/./fptaylor"
 pran_exe=""
-golden_model_time=21600
+#golden_model_time=43200
 global_interpolate=True
 loadIfExists=False
 storeIfDoesnExist=True
