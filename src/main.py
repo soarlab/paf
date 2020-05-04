@@ -26,6 +26,8 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
         print(file)
         f = open(file, "r")
         file_name = (ntpath.basename(file).split(".")[0]).lower()  # (file.split(".")[0]).lower()
+        storage_file_name=''.join(str(elem+"_") for elem in file_name.split("_")[0:-1])
+        storage_file_name=storage_file_name[:-1]
         text = f.read()
         text = text[:-1]
         f.close()
@@ -42,11 +44,11 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
 
         loadedSamples, values_samples, abs_err_samples, rel_err_samples = T.generate_error_samples(finalTime, file_name)
         loadedGolden, values_golden, abs_err_golden, rel_err_golden = T.generate_error_samples(golden_model_time,
-                                                                                               file_name, golden=True)
+                                                                                               storage_file_name, golden=True)
 
         f = open(output_path + file_name + "/" + file_name + "_CDF_summary.out", "w+")
         f.write("Execution Time:" + str(finalTime) + "s \n\n")
-        plot_range_analysis_CDF(T.final_quantized_distr, loadedGolden, values_samples, values_golden, f, file_name, range_my_dict.get(file_name))
+        plot_range_analysis_CDF(T.final_quantized_distr, loadedGolden, values_samples, values_golden, f, file_name, storage_file_name, range_my_dict.get(file_name))
         #plot_error_analysis_CDF(T.abs_err_distr, loadedGolden, abs_err_samples, abs_err_golden, f, file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
         #plot_error_analysis_CDF(T.relative_err_distr, loadedGolden, rel_err_samples, rel_err_golden, f, file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
         f.flush()
@@ -54,7 +56,7 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
 
         f = open(output_path + file_name + "/" + file_name + "_PDF_summary.out", "w+")
         f.write("Execution Time:" + str(finalTime) + "s \n\n")
-        plot_range_analysis_PDF(T.final_quantized_distr, loadedGolden, values_samples, values_golden, f, file_name, range_my_dict.get(file_name))
+        plot_range_analysis_PDF(T.final_quantized_distr, loadedGolden, values_samples, values_golden, f, file_name, storage_file_name, range_my_dict.get(file_name))
         #plot_error_analysis_PDF(T.abs_err_distr, loadedGolden, abs_err_samples, abs_err_golden, f, file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
         f.flush()
         f.close()
@@ -72,17 +74,18 @@ warnings.warn("Mantissa with implicit bit of sign. In gmpy2 set precision=p incl
 mantissa = 24
 exp = 8
 
-file = "./test.txt"
+file = "./custom_distribution_2.txt"
 
 range_my_dict, abs_my_dict, rel_my_dict = getFPTaylorResults(fptaylor_exe, fptaylor_path)
-pool = MyPool(processes=setup_utils.num_processes, maxtasksperchild=2)
 
+pool = MyPool(processes=setup_utils.num_processes, maxtasksperchild=2)
 for file in os.listdir(benchmarks_path):
     if file.endswith(".txt"):
         pool.apply_async(process_file, (benchmarks_path+file, mantissa, exp, range_my_dict, abs_my_dict))
         time.sleep(20)
-
 pool.close()
 pool.join()
+
+#process_file(file, mantissa, exp, range_my_dict, abs_my_dict)
 
 print("\nDone with sample\n")
