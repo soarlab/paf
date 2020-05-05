@@ -51,6 +51,10 @@ def process_file(xs, file, mantissa, exp, range_my_dict, abs_my_dict):
             shutil.rmtree(output_path + file_name)
         os.makedirs(output_path + file_name)
 
+        outfile= open(output_path + file_name + "/" + file_name + "_input.txt", "w+")
+        outfile.write(text)
+        outfile.close()
+
         loadedSamples, values_samples, abs_err_samples, rel_err_samples = T.generate_error_samples(1, file_name)
         loadedGolden, values_golden, abs_err_golden, rel_err_golden = T.generate_error_samples(golden_model_time,
                                                                                                file_name, golden=True)
@@ -116,7 +120,7 @@ xs = numpy.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14, 17, 21, 24, 27, 31, 34,
                   405, 408, 411, 415, 418, 421, 425, 428, 432, 435, 438,
                   442, 445, 448, 452, 455, 458, 462, 465, 468, 472, 475, 478, 480])
 
-file = "/proj/QNNandAAs/rocco/paf/test.txt"
+file = "/home/roki/GIT/paf/benchmarksTest/test_beta(2,2).txt"
 
 range_my_dict, abs_my_dict, rel_my_dict = getFPTaylorResults(fptaylor_exe, fptaylor_path)
 process_file(xs, file, mantissa, exp, range_my_dict, abs_my_dict)
