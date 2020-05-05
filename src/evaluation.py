@@ -76,15 +76,15 @@ def elaborateBinsAndEdges(fileHook, edges, vals, name):
 
 def collectInfoAboutCDFDistribution(f, finalDistr_wrapper, name):
     res="###### Info about "+name+"#######:\n\n"
-    res=res+"Starting range analysis from: 0.0 \n\n\n"
-    for i in [0.25, 0.5, 0.75, 0.85, 0.95, 0.99, 0.9999]:
+    res=res+"Starting range analysis from: "+str(finalDistr_wrapper.a)+" \n\n\n"
+    for i in [0.0001, 0.0001, 0.0005, 0.2005, 0.25, 0.4005, 0.5, 0.6005, 0.75, 0.8003, 0.8004, 0.8005, 0.8006, 0.8007, 0.85, 0.95, 0.99, 0.9999]:
         val=finalDistr_wrapper.execute().get_piecewise_invcdf()(i)
         if val>=i:
-            res=res+"Range: [0.0,"+str(val)+"] contains "+str(i*100)+"% of the distribution.\n\n"
+            res=res+"Range: ["+str(finalDistr_wrapper.a)+","+str(val)+"] contains "+str(i*100)+"% of the distribution.\n\n"
         else:
             res = res + "Problem with INV CDF\n\n"
             break
-    res=res+"Range: [0.0,"+str(finalDistr_wrapper.b)+"] contains "+str(100)+"% of the distribution.\n\n"
+    res=res+"Range: ["+str(finalDistr_wrapper.a)+","+str(finalDistr_wrapper.b)+"] contains "+str(100)+"% of the distribution.\n\n"
     res = res+"###########################################\n\n"
     f.write(res)
     return
@@ -131,9 +131,9 @@ def computeAreas(edges,vals):
 
 def collectInfoAboutCDFSampling(f, vals, edges, name):
     res="###### Info about "+name+"#######:\n\n"
-    res=res+"Starting from value 0.0\n\n\n"
+    res=res+"Starting from value "+str(edges[0])+"\n\n\n"
     area = computeAreas(edges, vals)
-    for i in [0.25, 0.5, 0.75, 0.85, 0.95, 0.99, 0.9999, 1]:
+    for i in [0.0001, 0.0001, 0.0005, 0.2005, 0.25, 0.4005, 0.5, 0.6005, 0.75, 0.8003, 0.8004, 0.8005, 0.8006, 0.8007, 0.85, 0.95, 0.99, 0.9999, 1.0]:
         if i == 0.0:
             ret_val=edges[0]
         elif i == 1.0:
@@ -144,7 +144,7 @@ def collectInfoAboutCDFSampling(f, vals, edges, name):
             index = np.digitize(i, cum_area, right=False)
             new_q = i - sum(area[0:index])
             ret_val = (new_q / vals[index]) + edges[index]
-        res = res + "Range: [0.0," + str(ret_val) + "] contains " + str(i * 100) + "% of the distribution.\n\n"
+        res = res + "Range: ["+str(edges[0])+"," + str(ret_val) + "] contains " + str(i * 100) + "% of the distribution.\n\n"
     res = res+"###########################################\n\n\n"
     #print(res)
     f.write(res)

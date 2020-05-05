@@ -35,7 +35,7 @@ def plotBoundsDistr(figureName, distribution):
                 label="PAF: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=6, s=600)
 
 
-def plot_range_analysis_PDF(final_distribution, loadedGolden, r, golden_samples, paf_file, file_name, range_fpt):
+def plot_range_analysis_PDF(final_distribution, loadedGolden, r, golden_samples, paf_file, file_name, storage_file_name, range_fpt):
     a = final_distribution.a
     b = final_distribution.b
 
@@ -45,7 +45,7 @@ def plot_range_analysis_PDF(final_distribution, loadedGolden, r, golden_samples,
     plt.figure(tmp_filename, figsize=(15, 10))
 
     if loadedGolden:
-        vals_golden, edges_golden = load_histograms_range_from_disk(file_name)
+        vals_golden, edges_golden = load_histograms_range_from_disk(storage_file_name)
         plt.fill_between(edges_golden, np.concatenate(([0], vals_golden)), step="pre", color="darkgoldenrod",
                          label="Golden distribution")
     else:
@@ -85,9 +85,9 @@ def plot_range_analysis_PDF(final_distribution, loadedGolden, r, golden_samples,
     plt.ylim(top=2.0 * finalMax)
     #x = np.linspace(a, b, 1000)
     #plt.plot(x, abs(final_distribution.distribution.get_piecewise_pdf()(x)), linewidth=3, color="red")
-    final_distribution.distribution.plot(linewidth=3, color="red")
+    #final_distribution.distribution.plot(linewidth=3, color="red")
     plotTicks(tmp_filename, "X", "green", 4, 500, ticks=range_fpt, label="FPT: " + str(range_fpt))
-    plotBoundsDistr(tmp_filename, final_distribution.distribution)
+    #plotBoundsDistr(tmp_filename, final_distribution.distribution)
     plt.xlabel('Distribution Range')
     plt.ticklabel_format(axis='both', style='sci', scilimits=(0, 0))
     plt.ylabel('PDF')
@@ -106,7 +106,7 @@ def plotCDF(edges, vals, normalize, **kwargs):
     plt.plot(edges, cdf_tmp , **kwargs)
     return cdf_tmp, edges
 
-def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_short, samples_golden, fileHook, file_name, range_fpt):
+def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_short, samples_golden, fileHook, file_name, storage_file_name, range_fpt):
     a = final_distribution.a
     b = final_distribution.b
 
@@ -116,8 +116,8 @@ def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_short, sam
     plt.figure(tmp_filename, figsize=(15, 10))
 
     if loadedGolden:
-        notnorm_vals_golden, notnorm_edges_golden = load_histograms_range_from_disk(file_name)
-        vals_golden, edges_golden = plotCDF(notnorm_edges_golden, notnorm_vals_golden, normalize=True,
+        not_norm_vals_golden, not_norm_edges_golden = load_histograms_range_from_disk(storage_file_name)
+        vals_golden, edges_golden = plotCDF(not_norm_edges_golden, not_norm_vals_golden, normalize=True,
                                                  color="darkgoldenrod", linewidth=3, label="Golden distribution")
     else:
         not_norm_vals_golden_10000, not_norm_edges_golden_10000 = np.histogram(samples_golden, bins=10000, density=True)
