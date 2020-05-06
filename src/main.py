@@ -30,7 +30,7 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
         f = open(file,"r")
         #file_name = (ntpath.basename(file).split(".")[0]).lower()
         text = f.read()
-        text = text[:-1]
+        #text = text[:-1]
         f.close()
         myYacc=FPRyacc(text, False)
 
