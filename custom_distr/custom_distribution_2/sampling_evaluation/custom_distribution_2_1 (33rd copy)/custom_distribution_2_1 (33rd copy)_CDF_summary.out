@@ -1,0 +1,60 @@
+Execution Time:14.118920803070068s 
+
+###### Info about CDF Range Analysis with PAF with gap using INV CDF #######:
+
+Starting range analysis from: 0.0 
+
+
+Range: [0.0,9.999999848819048] contains 0.01% of the distribution.
+
+Range: [0.0,9.999999848819048] contains 0.01% of the distribution.
+
+Range: [0.0,49.999999234828785] contains 0.05% of the distribution.
+
+Range: [0.0,200.24925902356108] contains 20.05% of the distribution.
+
+Range: [0.0,300.12311546686897] contains 25.0% of the distribution.
+
+Range: [0.0,400.24926414178447] contains 40.050000000000004% of the distribution.
+
+Range: [0.0,500.2487437690296] contains 50.0% of the distribution.
+
+Range: [0.0,600.248925351561] contains 60.050000000000004% of the distribution.
+
+Range: [0.0,700.37437189117] contains 75.0% of the distribution.
+
+Range: [0.0,760.3474750789015] contains 80.03% of the distribution.
+
+Range: [0.0,780.2974644294138] contains 80.04% of the distribution.
+
+Range: [0.0,800.2474919723226] contains 80.05% of the distribution.
+
+Range: [0.0,820.1975201366251] contains 80.06% of the distribution.
+
+Range: [0.0,840.1476174777167] contains 80.07% of the distribution.
+
+Range: [0.0,900.1237369843171] contains 85.0% of the distribution.
+
+Range: [0.0,900.3762627063464] contains 95.0% of the distribution.
+
+Range: [0.0,900.4772726437473] contains 99.0% of the distribution.
+
+Range: [0.0,990.0470470326059] contains 99.99% of the distribution.
+
+Range: [0.0,1000.0000596046448] contains 100% of the distribution.
+
+###########################################
+
+##### DISTANCE MEASURES ######
+
+CDF Range Analysis with Sampling model with num. bins: 52
+Variational Distance - Golden -> paf : 8.2928549299921e-05
+Variational Distance - Golden -> Sampling : 0.20515166868956058
+AVG Variational Distance - Golden -> paf : 4.3194962446970455e-05
+AVG Variational Distance - Golden -> Sampling : 0.015592097229165262
+KL Distance - Golden -> paf : 2.9444065680879976e-09
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> paf : 4.319496244697046e-05
+WSS Distance - Golden -> Sampling : 0.01559209722916528
+##################################
+

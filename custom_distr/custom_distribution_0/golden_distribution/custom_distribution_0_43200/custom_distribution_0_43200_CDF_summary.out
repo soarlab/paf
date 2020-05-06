@@ -1,0 +1,38 @@
+Execution Time:18.65386986732483s 
+
+###### Info about CDF Range Analysis with PAF with gap using INV CDF #######:
+
+Starting range analysis from: 0.0 
+
+
+Range: [0.0,0.2500000000177038] contains 25.0% of the distribution.
+
+Range: [0.0,0.5209854924572218] contains 50.0% of the distribution.
+
+Range: [0.0,999.7494986535423] contains 75.0% of the distribution.
+
+Range: [0.0,999.8496989754829] contains 85.0% of the distribution.
+
+Range: [0.0,999.9498997231245] contains 95.0% of the distribution.
+
+Range: [0.0,999.989980259071] contains 99.0% of the distribution.
+
+Range: [0.0,999.9998995500973] contains 99.99% of the distribution.
+
+Range: [0.0,1000.0000596046448] contains 100% of the distribution.
+
+###########################################
+
+##### DISTANCE MEASURES ######
+
+CDF Range Analysis with Sampling model with num. bins: 24
+Variational Distance - Golden -> paf : 9.183772750764874e-05
+Variational Distance - Golden -> Sampling : 0.5001286727975675
+AVG Variational Distance - Golden -> paf : 8.879054158767229e-05
+AVG Variational Distance - Golden -> Sampling : 0.023018951903752877
+KL Distance - Golden -> paf : 1.6912318339949687e-10
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> paf : 8.87905415876723e-05
+WSS Distance - Golden -> Sampling : 0.02301895190375287
+##################################
+

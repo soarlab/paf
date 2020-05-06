@@ -1,0 +1,38 @@
+Execution Time:13.951619863510132s 
+
+###### Info about PDF Range Analysis with PAF with gaps: 1000#######:
+
+Starting range analysis from: 900.312978030749
+
+
+Range: [899.3129779711444,901.3129780903537] contains 25.0% of the distribution.
+
+Range: [499.3129541292865,1000.0000596046448] contains 50.0% of the distribution.
+
+Range: [100.31293034703322,1000.0000596046448] contains 75.0% of the distribution.
+
+Range: [99.31293028742857,1000.0000596046448] contains 85.0% of the distribution.
+
+Range: [99.31293028742857,1000.0000596046448] contains 95.0% of the distribution.
+
+Range: [99.31293028742857,1000.0000596046448] contains 99.0% of the distribution.
+
+Range: [9.312924923010542,1000.0000596046448] contains 99.99% of the distribution.
+
+Range: [0.0,1000.0000596046448] contains 100% of the distribution.
+
+###########################################
+
+##### DISTANCE MEASURES ######
+
+PDF Measure Distances Range Analysis
+Variational Distance - Golden -> paf : 0.05651665489710043
+Variational Distance - Golden -> Sampling : 0.04929358163783287
+AVG Variational Distance - Golden -> paf : 0.0009941113437965375
+AVG Variational Distance - Golden -> Sampling : 0.0017578667473781104
+KL Distance - Golden -> paf : 3.703597439995119
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> paf : 0.0009940984020736102
+WSS Distance - Golden -> Sampling : 0.001657053349011235
+##################################
+
