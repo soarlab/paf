@@ -1,0 +1,120 @@
+###### Info about CDF Range Analysis with Golden distribution with num. bins: 7#######:
+
+Starting from value 98.45210655754863
+
+
+Range: [98.45210655754863,107.5338682983043] contains 25.0% of the distribution.
+
+Range: [98.45210655754863,110.56112221188951] contains 50.0% of the distribution.
+
+Range: [98.45210655754863,113.58837612547474] contains 75.0% of the distribution.
+
+Range: [98.45210655754863,116.61563003905997] contains 85.0% of the distribution.
+
+Range: [98.45210655754863,119.64288395264518] contains 95.0% of the distribution.
+
+Range: [98.45210655754863,119.64288395264518] contains 99.0% of the distribution.
+
+Range: [98.45210655754863,119.64288395264518] contains 99.99% of the distribution.
+
+Range: [98.45210655754863,119.64288395264518] contains 100% of the distribution.
+
+###########################################
+
+
+###### Info about CDF Abs Error Analysis with Golden distribution with num. bins: 7#######:
+
+Starting from value 1.5961055055413453e-07
+
+
+Range: [1.5961055055413453e-07,1.5961055055413453e-07] contains 25.0% of the distribution.
+
+Range: [1.5961055055413453e-07,3.472803468745107e-05] contains 50.0% of the distribution.
+
+Range: [1.5961055055413453e-07,4.6250842733083376e-05] contains 75.0% of the distribution.
+
+Range: [1.5961055055413453e-07,4.6250842733083376e-05] contains 85.0% of the distribution.
+
+Range: [1.5961055055413453e-07,6.9296458824348e-05] contains 95.0% of the distribution.
+
+Range: [1.5961055055413453e-07,8.081926686998031e-05] contains 99.0% of the distribution.
+
+Range: [1.5961055055413453e-07,8.081926686998031e-05] contains 99.99% of the distribution.
+
+Range: [1.5961055055413453e-07,8.081926686998031e-05] contains 100% of the distribution.
+
+###########################################
+
+
+###### Info about CDF Rel Error Analysis with Golden distribution with num. bins: 7#######:
+
+Starting from value 1.5285214432929661e-09
+
+
+Range: [1.5285214432929661e-09,1.5285214432929661e-09] contains 25.0% of the distribution.
+
+Range: [1.5285214432929661e-09,3.1554205712568606e-07] contains 50.0% of the distribution.
+
+Range: [1.5285214432929661e-09,4.2021323568648374e-07] contains 75.0% of the distribution.
+
+Range: [1.5285214432929661e-09,5.248844142472814e-07] contains 85.0% of the distribution.
+
+Range: [1.5285214432929661e-09,6.295555928080791e-07] contains 95.0% of the distribution.
+
+Range: [1.5285214432929661e-09,7.342267713688767e-07] contains 99.0% of the distribution.
+
+Range: [1.5285214432929661e-09,7.342267713688767e-07] contains 99.99% of the distribution.
+
+Range: [1.5285214432929661e-09,7.342267713688767e-07] contains 100% of the distribution.
+
+###########################################
+
+
+###### Info about PDF Range Analysis with Golden distribution with num. bins: 7#######:
+
+Starting from value 110.56112221188951
+
+
+Range: [107.5338682983043,116.61563003905997] contains 25.0% of the distribution.
+
+Range: [104.50661438471907,119.64288395264518] contains 50.0% of the distribution.
+
+Range: [104.50661438471907,119.64288395264518] contains 75.0% of the distribution.
+
+Range: [101.47936047113386,119.64288395264518] contains 85.0% of the distribution.
+
+Range: [101.47936047113386,119.64288395264518] contains 95.0% of the distribution.
+
+Range: [98.45210655754863,119.64288395264518] contains 99.0% of the distribution.
+
+Range: [98.45210655754863,119.64288395264518] contains 99.99% of the distribution.
+
+Range: [98.45210655754863,119.64288395264518] contains 100% of the distribution.
+
+###########################################
+
+
+###### Info about PDF Error Analysis with Golden distribution with num. bins: 7#######:
+
+Starting from value 1.5961055055413453e-07
+
+
+Range: [1.5961055055413453e-07,1.1682418596186445e-05] contains 25.0% of the distribution.
+
+Range: [1.5961055055413453e-07,3.472803468745107e-05] contains 50.0% of the distribution.
+
+Range: [1.5961055055413453e-07,4.6250842733083376e-05] contains 75.0% of the distribution.
+
+Range: [1.5961055055413453e-07,4.6250842733083376e-05] contains 85.0% of the distribution.
+
+Range: [1.5961055055413453e-07,6.9296458824348e-05] contains 95.0% of the distribution.
+
+Range: [1.5961055055413453e-07,8.081926686998031e-05] contains 99.0% of the distribution.
+
+Range: [1.5961055055413453e-07,8.081926686998031e-05] contains 99.99% of the distribution.
+
+Range: [1.5961055055413453e-07,8.081926686998031e-05] contains 100% of the distribution.
+
+###########################################
+
+

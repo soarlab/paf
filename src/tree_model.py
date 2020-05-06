@@ -200,6 +200,8 @@ class TreeModel:
 
             if tree.root_name == '+':
                 self.counter = self.counter + 1
+            elif tree.left.root_name == "x0" and tree.right.root_name == "y0" and tree.root_name == "*":
+                self.counter = self.counter + 1
         else:
             self.evaluate(tree.left)
             dist = self.manager.createUnaryOperation(tree.left.root_value[0], tree.root_name, tree.root_name)
@@ -214,7 +216,7 @@ class TreeModel:
 
         # We now populate the triple with distribution, error model, quantized distribution '''
         tree.root_value = [dist, error, quantized_distribution]
-        if self.counter >= self.currentX - 1:
+        if self.counter >= self.currentX:
             self.i = self.i + 1
             if self.i < len(self.vectorX):
                 self.currentX = self.vectorX[self.i]
@@ -296,4 +298,7 @@ class TreeModel:
                 exit(-1)
         else:
             sample = tree.root_value[0].getSampleSet(n=1)[0]
-            return sample, mpfr(str(sample))
+            if self.initialize:
+                return sample, mpfr(str(sample))
+            else:
+                return sample, sample

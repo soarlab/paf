@@ -38,11 +38,11 @@ def process_file(xs, file, mantissa, exp, range_my_dict, abs_my_dict):
 
         start_time = time.time()
 
-        T = TreeModel(xs, myYacc, mantissa, exp, 100, 250000)
+        T = TreeModel(xs, myYacc, mantissa, exp, 100, 250000, initialize=False)
 
         end_time = time.time()
 
-        file_name = (ntpath.basename(file).split(".")[0]).lower() + str(T.counter + 1)
+        file_name = (ntpath.basename(file).split(".")[0]).lower() + str(T.counter)
 
         print("Exe time --- %s seconds ---" % (end_time - start_time))
         finalTime = end_time - start_time
@@ -120,7 +120,7 @@ xs = numpy.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14, 17, 21, 24, 27, 31, 34,
                   405, 408, 411, 415, 418, 421, 425, 428, 432, 435, 438,
                   442, 445, 448, 452, 455, 458, 462, 465, 468, 472, 475, 478, 480])
 
-file = "/home/roki/GIT/paf/benchmarksTest/test_beta(2,2).txt"
+file = "/home/roki/GIT/paf/benchmarksTest/test_N(0,1)_.txt"
 
 range_my_dict, abs_my_dict, rel_my_dict = getFPTaylorResults(fptaylor_exe, fptaylor_path)
 process_file(xs, file, mantissa, exp, range_my_dict, abs_my_dict)

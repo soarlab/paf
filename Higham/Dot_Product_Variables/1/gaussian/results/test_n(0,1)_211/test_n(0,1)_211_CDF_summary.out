@@ -1,0 +1,110 @@
+Execution Time:1009.2571067810059s 
+
+###### Info about CDF Range Analysis with PAF with gap: 1000#######:
+
+Starting range analysis from: 0.0
+
+
+Range: [0.0,42.83327316494057] contains 25.0% of the distribution.
+
+Range: [0.0,44.732285275701464] contains 50.0% of the distribution.
+
+Range: [0.0,46.63129738646236] contains 75.0% of the distribution.
+
+Range: [0.0,47.68630411466285] contains 85.0% of the distribution.
+
+Range: [0.0,49.585316225423746] contains 95.0% of the distribution.
+
+Range: [0.0,51.69532968182474] contains 99.0% of the distribution.
+
+Range: [0.0,55.91535659462672] contains 99.99% of the distribution.
+
+Range: [0.0,211.00134564010168] contains 100% of the distribution.
+
+###########################################
+
+##### DISTANCE MEASURES ######
+
+CDF Measure Distances Range Analysis
+Variational Distance - Golden -> paf : 0.2351696985236943
+Variational Distance - Golden -> Sampling : 0.0
+AVG Variational Distance - Golden -> paf : 0.14059507891252662
+AVG Variational Distance - Golden -> Sampling : 0.0
+KL Distance - Golden -> paf : 0.005947806579744638
+KL Distance - Golden -> Sampling : 0.0
+WSS Distance - Golden -> paf : 0.14059507891252662
+WSS Distance - Golden -> Sampling : 0.0
+##################################
+
+###### Info about CDF Abs Error Analysis with PAF with gap: 1000#######:
+
+Starting range analysis from: 0.0
+
+
+Range: [0.0,2.9256587922787986e-06] contains 25.0% of the distribution.
+
+Range: [0.0,6.185678589389468e-06] contains 50.0% of the distribution.
+
+Range: [0.0,1.0532371652203694e-05] contains 75.0% of the distribution.
+
+Range: [0.0,1.316546456525462e-05] contains 85.0% of the distribution.
+
+Range: [0.0,1.8097289386524492e-05] contains 95.0% of the distribution.
+
+Range: [0.0,2.3948606971081867e-05] contains 99.0% of the distribution.
+
+Range: [0.0,3.6821505657108604e-05] contains 99.99% of the distribution.
+
+Range: [0.0,4.17951256039828e-05] contains 100% of the distribution.
+
+###########################################
+
+##### DISTANCE MEASURES ######
+
+CDF Measure Distances Abs Error Analysis
+Variational Distance - Golden -> paf : 0.2476727866658483
+Variational Distance - Golden -> Sampling : 0.3333333333333335
+AVG Variational Distance - Golden -> paf : 0.16250421280476998
+AVG Variational Distance - Golden -> Sampling : 0.3333333333333333
+KL Distance - Golden -> paf : 0.056419734012869094
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> paf : 0.16250421280477
+WSS Distance - Golden -> Sampling : 0.3333333333333333
+##################################
+
+###### Info about CDF Rel Error Analysis with PAF with gap: 1000#######:
+
+Starting range analysis from: 0.0
+
+
+Range: [0.0,6.626477647600795e-08] contains 25.0% of the distribution.
+
+Range: [0.0,1.3871426542310952e-07] contains 50.0% of the distribution.
+
+Range: [0.0,2.3590260425458722e-07] contains 75.0% of the distribution.
+
+Range: [0.0,2.95099137906489e-07] contains 85.0% of the distribution.
+
+Range: [0.0,4.0200631062111766e-07] contains 95.0% of the distribution.
+
+Range: [0.0,5.292346814550527e-07] contains 99.0% of the distribution.
+
+Range: [0.0,7.951773177120883e-07] contains 99.99% of the distribution.
+
+Range: [0.0,8.835303530134392e-07] contains 100% of the distribution.
+
+###########################################
+
+##### DISTANCE MEASURES ######
+
+CDF Measure Distances Rel Error Analysis
+Variational Distance - Golden -> paf : 0.23374099699102002
+Variational Distance - Golden -> Sampling : 0.3333333333333333
+AVG Variational Distance - Golden -> paf : 0.1104076472014597
+AVG Variational Distance - Golden -> Sampling : 0.1111111111111111
+KL Distance - Golden -> paf : 0.004103416456492134
+KL Distance - Golden -> Sampling : inf
+WSS Distance - Golden -> paf : 0.11040764720145971
+WSS Distance - Golden -> Sampling : 0.1111111111111111
+##################################
+
