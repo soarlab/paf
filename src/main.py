@@ -36,7 +36,7 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
 
         start_time = time.time()
 
-        T = TreeModel(myYacc, mantissa, exp, 100, 250000)
+        T = TreeModel(myYacc, mantissa, exp, 100, 250000, initialize=False)
 
         end_time = time.time()
 

@@ -286,4 +286,7 @@ class TreeModel:
                 exit(-1)
         else:
             sample = tree.root_value[0].getSampleSet(n=1)[0]
-            return sample, mpfr(str(sample))
+            if self.initialize:
+                return sample, mpfr(str(sample))
+            else:
+                return sample, sample
