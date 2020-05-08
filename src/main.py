@@ -31,7 +31,7 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
         storage_file_name=storage_file_name[:-1]
 
         text = f.read()
-        text = text[:-1]
+        #text = text[:-1]
         f.close()
         myYacc = FPRyacc(text, False)
         start_time = time.time()
