@@ -233,7 +233,7 @@ class TreeModel:
         while end_time <= sample_time:
             self.resetInit(self.tree)
             sample, lp_sample = self.evaluate_error_at_sample(self.tree)
-            values.append(sample)
+            values.append(float(lp_sample))
             tmp_abs = abs(float(printMPFRExactly(lp_sample)) - sample)
             abs_err.append(tmp_abs)
             rel_err.append(tmp_abs/sample)
