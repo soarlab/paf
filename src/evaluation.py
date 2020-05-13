@@ -77,7 +77,8 @@ def elaborateBinsAndEdges(fileHook, edges, vals, name):
 def collectInfoAboutCDFDistribution(f, finalDistr_wrapper, name):
     res="###### Info about "+name+"#######:\n\n"
     res=res+"Starting range analysis from: "+str(finalDistr_wrapper.a)+" \n\n\n"
-    for i in [0.0001, 0.0005, 0.2005, 0.25, 0.4005, 0.4999999, 0.5, 0.5005, 0.501, 0.6005, 0.75, 0.751, 0.8003, 0.8004, 0.8005, 0.8006, 0.8007, 0.85, 0.95, 0.99, 0.9999]:
+    for i in [0.2005, 0.25, 0.2504, 0.2505, 0.2506, 0.251, 0.4999999, 0.5, 0.5005, 0.501, 0.6005, 0.75, 0.7504, 0.7505, 0.7506, 0.751, 0.9999]:
+        print(i)
         val=finalDistr_wrapper.execute().get_piecewise_invcdf()(i)
         #if val>=i:
         res=res+"Range: ["+str(finalDistr_wrapper.a)+","+str(val)+"] contains "+str(i*100)+"% of the distribution.\n\n"
@@ -133,7 +134,7 @@ def collectInfoAboutCDFSampling(f, vals, edges, name):
     res="###### Info about "+name+"#######:\n\n"
     res=res+"Starting from value "+str(edges[0])+"\n\n\n"
     area = computeAreas(edges, vals)
-    for i in [0.0001, 0.0005, 0.2005, 0.25, 0.4005, 0.4999999, 0.5, 0.5005, 0.501, 0.6005, 0.75, 0.751, 0.8003, 0.8004, 0.8005, 0.8006, 0.8007, 0.85, 0.95, 0.99, 0.9999, 1.0]:
+    for i in [0.2005, 0.25, 0.2504, 0.2505, 0.2506, 0.251, 0.4999999, 0.5, 0.5005, 0.501, 0.6005, 0.75, 0.7504, 0.7505, 0.7506, 0.751, 0.9999, 1.0]:
         if i == 0.0:
             ret_val=edges[0]
         elif i == 1.0:
@@ -212,9 +213,9 @@ def measureDistrVsGoldenEdges(distr, edges_golden, pdf=True):
     else:
         distr_fun = distr.distribution.get_piecewise_cdf()
         for ind, edge in enumerate(edges_golden):
-            if edge <= distr.a:
+            if edge < distr.a:
                 vals.append(0.0)
-            elif edge >= distr.b:
+            elif edge > distr.b:
                 vals.append(1.0)
             else:
                 vals.append(abs(distr_fun(edge)))
@@ -225,15 +226,18 @@ def my_KL_entropy(p, q):
 
 def getValueHist(edges, vals, x, pdf):
     if pdf:
-        if x <= min(edges) or x >= max(edges):
+        if x < min(edges) or x > max(edges):
             return 0.0
         else:
             index_bin=np.digitize(x,edges,right=False)
+            if index_bin - 1 >= len(vals):
+                # can happen only when x is equal to self.b
+                index_bin = index_bin - 1
             return abs(vals[index_bin-1])
     else:
-        if x <= min(edges):
+        if x < min(edges):
             return 0.0
-        elif x >= max(edges):
+        elif x > max(edges):
             return 1.0
         else:
             index_bin = np.digitize(x, edges, right=False)

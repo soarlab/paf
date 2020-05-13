@@ -57,37 +57,37 @@ def plot_range_analysis_PDF(final_distribution, loadedGolden, r, golden_samples,
     golden_file = open(output_path + file_name + "/golden.txt", "a+")
     binLenGolden = len(vals_golden)
     title="PDF Range Analysis with Golden distribution with num. bins: " + str(binLenGolden)
-    golden_mode, golden_ind = collectInfoAboutSampling(golden_file, vals_golden, edges_golden, title, pdf=True)
+    #golden_mode, golden_ind = collectInfoAboutSampling(golden_file, vals_golden, edges_golden, title, pdf=True)
     golden_file.close()
 
     distr_mode = final_distribution.distribution.mode()
     binLenDistr = 1000
     title="PDF Range Analysis with PAF with gaps: " + str(binLenDistr)
-    collectInfoAboutDistribution(paf_file, final_distribution, title, distr_mode, binLenDistr)
+    #collectInfoAboutDistribution(paf_file, final_distribution, title, distr_mode, binLenDistr)
 
     sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
     vals, edges, patches = plt.hist(r, bins='auto', density=True, color="blue", label="Sampled distribution")
     binLenSamp = len(vals)
     title="PDF Range Analysis with Sampling Model with num. bins: " + str(binLenSamp)
-    collectInfoAboutSampling(sampling_file, vals, edges, title,pdf=True)
+    #collectInfoAboutSampling(sampling_file, vals, edges, title,pdf=True)
     sampling_file.close()
 
     title="PDF Measure Distances Range Analysis"
     measureDistances(final_distribution, paf_file, vals_golden, vals, edges_golden, edges, title)
 
-    golden_max = abs(final_distribution.distribution.get_piecewise_pdf()(golden_mode))
+    #golden_max = abs(final_distribution.distribution.get_piecewise_pdf()(golden_mode))
     mode_distr = final_distribution.distribution.mode()
     distr_max = abs(final_distribution.distribution.get_piecewise_pdf()(mode_distr))
 
-    finalMax = max(golden_max, distr_max)
+    finalMax = distr_max
 
     plt.autoscale(enable=True, axis='both', tight=False)
     plt.ylim(top=2.0 * finalMax)
     #x = np.linspace(a, b, 1000)
     #plt.plot(x, abs(final_distribution.distribution.get_piecewise_pdf()(x)), linewidth=3, color="red")
-    #final_distribution.distribution.plot(linewidth=3, color="red")
+    final_distribution.distribution.plot(linewidth=3, color="red")
     plotTicks(tmp_filename, "X", "green", 4, 500, ticks=range_fpt, label="FPT: " + str(range_fpt))
-    #plotBoundsDistr(tmp_filename, final_distribution.distribution)
+    plotBoundsDistr(tmp_filename, final_distribution.distribution)
     plt.xlabel('Distribution Range')
     plt.ticklabel_format(axis='both', style='sci', scilimits=(0, 0))
     plt.ylabel('PDF')
