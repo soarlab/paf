@@ -46,10 +46,10 @@ def process_file(golden_tm, file, mantissa, exp, range_my_dict, abs_my_dict):
         
         loadedSamples, values_samples, abs_err_samples, rel_err_samples = T.generate_error_samples(finalTime, file_name)
 
-        loadedGolden, values_golden, abs_err_golden, rel_err_golden = T.generate_error_samples(
-            golden_tm,
-            storage_file_name, golden=True)
+        print("len samples", str(len(values_samples)))
+        loadedGolden, values_golden, abs_err_golden, rel_err_golden = T.generate_error_samples(golden_tm, storage_file_name, golden=True)
 
+        print("len golden", str(len(values_golden)))
         f = open(output_path + file_name + "/" + file_name + "_CDF_summary.out", "w+")
         f.write("Execution Time:" + str(finalTime) + "s \n\n")
         plot_range_analysis_CDF(T.final_quantized_distr, loadedGolden, values_samples, values_golden, f, file_name, storage_file_name, range_my_dict.get(file_name))
@@ -79,15 +79,19 @@ mantissa = 24
 exp = 8
 
 range_my_dict, abs_my_dict, rel_my_dict = getFPTaylorResults(fptaylor_exe, fptaylor_path)
-golden_times=[7200, 14400, 21600, 28800, 36000, 43200]
+golden_times=[43200, 7200, 36000, 14400, 21600, 28800]
 
 pool = MyPool(processes=setup_utils.num_processes, maxtasksperchild=1)
 for file in os.listdir(benchmarks_path):
     if file.endswith(".txt"):
-        for index, golden_tm in enumerate(golden_times[:-1]):
-            pool.apply_async(process_file, (golden_tm, benchmarks_path+file, mantissa, exp, range_my_dict, abs_my_dict))
-            pool.apply_async(process_file, (golden_times[index+1], benchmarks_path + file, mantissa, exp, range_my_dict, abs_my_dict))
-            time.sleep(max(golden_tm, golden_times[index+1]))
+        #for index, golden_tm in enumerate(golden_times[:-1]):
+        pool.apply_async(process_file, (43200, benchmarks_path+file, mantissa, exp, range_my_dict, abs_my_dict))
+        pool.apply_async(process_file, (7200, benchmarks_path + file, mantissa, exp, range_my_dict, abs_my_dict))
+        pool.apply_async(process_file, (21600, benchmarks_path + file, mantissa, exp, range_my_dict, abs_my_dict))
+        time.sleep(21600)
+        pool.apply_async(process_file, (36000, benchmarks_path+file, mantissa, exp, range_my_dict, abs_my_dict))
+        pool.apply_async(process_file, (14400, benchmarks_path + file, mantissa, exp, range_my_dict, abs_my_dict))
+        pool.apply_async(process_file, (28800, benchmarks_path + file, mantissa, exp, range_my_dict, abs_my_dict))
 
 pool.close()
 pool.join()
