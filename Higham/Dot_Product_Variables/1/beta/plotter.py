@@ -11,7 +11,7 @@ x=list(map(int, x))
 markers=[".","v","p","s","x"]
 i=0
 
-lambda_="1"
+lambda_="5"
 
 #for folder in os.listdir("./"):
 #	if "1_" in folder and ".txt" in folder and not "1_x" in folder:
