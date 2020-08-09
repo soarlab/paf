@@ -135,9 +135,9 @@ class TreeModel:
         self.final_quantized_distr = self.tree.root_value[2]
         self.final_exact_distr = self.tree.root_value[0]
 
-        #self.abs_err_distr = UnOpDist(BinOpDist(self.final_quantized_distr, "-",
-        #                                        self.final_exact_distr, 1000, self.samples_dep_op,
-        #                                        regularize=True, convolution=False), "abs_err", "abs")
+        self.abs_err_distr = UnOpDist(BinOpDist(self.final_quantized_distr, "-",
+                                                self.final_exact_distr, 1000, self.samples_dep_op,
+                                                regularize=True, convolution=False), "abs_err", "abs")
         #self.relative_err_distr = UnOpDist(BinOpDist(self.abs_err_distr, "/",
         #                                             self.final_exact_distr, 1000, self.samples_dep_op,
         #                                             regularize=True, convolution=False), "rel_err", "abs")

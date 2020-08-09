@@ -218,8 +218,13 @@ class FPRyacc:
             p[0] = p[1]
         self.myPrint("UnaryArithExpr", p)
 
-    def p_Number(self, p):
+    def p_Pos_Number(self, p):
         '''UnaryExpr : POSNUMBER'''
+        p[0] = self.manager.createNode(Number(str(p[1])), [])
+        self.myPrint("Number", p)
+
+    def p_Neg_Number(self, p):
+        '''UnaryExpr : NEGNUMBER'''
         p[0] = self.manager.createNode(Number(str(p[1])), [])
         self.myPrint("Number", p)
 
