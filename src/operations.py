@@ -3,7 +3,7 @@ from pychebfun import *
 from regularizer import *
 from project_utils import *
 from gmpy2 import *
-from scipy.integrate import nquad
+import distributions
 
 from setup_utils import global_interpolate
 
@@ -309,13 +309,13 @@ class UnOpDist:
         if operation is None:
             self.distribution = operand.execute()
         elif operation is "exp":
-            self.distribution = pacal.exp(operand.execute())
+            self.distribution = distributions.exp(operand.execute())
             self.distribution.get_piecewise_pdf()
         elif operation is "cos":
-            self.distribution = pacal.cos(operand.execute())
+            self.distribution = distributions.cos(operand.execute())
             self.distribution.get_piecewise_pdf()
         elif operation is "sin":
-            self.distribution = pacal.sin(operand.execute())
+            self.distribution = distributions.sin(operand.execute())
             self.distribution.get_piecewise_pdf()
         elif operation is "abs":
             self.distribution = abs(operand.execute())

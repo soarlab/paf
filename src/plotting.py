@@ -3,8 +3,8 @@ import numpy as np
 from setup_utils import output_path, benchmarks_path
 from storage import load_histograms_error_from_disk, load_histograms_error_from_disk, \
     load_histograms_range_from_disk, store_histograms_error, store_histograms_range
-from evaluation import collectInfoAboutSampling, collectInfoAboutDistribution, measureDistances, \
-    collectInfoAboutCDFDistribution, collectInfoAboutCDFSampling
+from evaluation import collectInfoAboutSampling, collectInfoAboutCDFDistributionINV, measureDistances, \
+    collectInfoAboutCDFDistributionNaive, collectInfoAboutCDFSampling
 
 plt.rcParams.update({'font.size': 30})
 plt.rcParams.update({'figure.autolayout': True})
@@ -63,13 +63,13 @@ def plot_range_analysis_PDF(final_distribution, loadedGolden, r, golden_samples,
     distr_mode = final_distribution.distribution.mode()
     binLenDistr = 1000
     title="PDF Range Analysis with PAF with gaps: " + str(binLenDistr)
-    collectInfoAboutDistribution(paf_file, final_distribution, title, distr_mode, binLenDistr)
+    collectInfoAboutCDFDistributionNaive(paf_file, final_distribution, title, distr_mode, binLenDistr)
 
     sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
     vals, edges, patches = plt.hist(r, bins='auto', density=True, color="blue", label="Sampled distribution")
     binLenSamp = len(vals)
     title="PDF Range Analysis with Sampling Model with num. bins: " + str(binLenSamp)
-    collectInfoAboutSampling(sampling_file, vals, edges, title,pdf=True)
+    collectInfoAboutSampling(sampling_file, vals, edges, title, pdf=True)
     sampling_file.close()
 
     title="PDF Measure Distances Range Analysis"
@@ -133,7 +133,7 @@ def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_short, sam
     golden_file.close()
 
     title = "CDF Range Analysis with PAF with gap using INV CDF "
-    collectInfoAboutCDFDistribution(fileHook, final_distribution, title)
+    collectInfoAboutCDFDistributionINV(fileHook, final_distribution, title)
 
     sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
     notnorm_vals, notnorm_edges = np.histogram(samples_short, bins='auto', density=True)
@@ -150,7 +150,7 @@ def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_short, sam
     plt.ylim(bottom=-0.05, top=1.1)
     #x = np.linspace(a, b, 1000)
     #plt.plot(x, abs(final_distribution.distribution.get_piecewise_cdf()(x)), linewidth=3, color="red")
-    final_distribution.distribution.get_piecewise_cdf().plot(linewidth=3, color="red")
+    final_distribution.distribution.get_piecewise_cdf().plot(xmin=a, xmax=b, linewidth=3, color="red")
     plotTicks(tmp_filename, "X", "green", 4, 500, ticks=range_fpt, label="FPT: " + str(range_fpt))
     plotBoundsDistr(tmp_filename, final_distribution.distribution)
     plt.xlabel('Distribution Range')
@@ -188,7 +188,7 @@ def plot_error_analysis_PDF(abs_err, loadedGolden, abs_err_samples, abs_err_gold
 
     binLenDistr = 1000
     title = "PDF Error Analysis with PAF with gap: " + str(binLenDistr)
-    collectInfoAboutDistribution(summary_file, abs_err, title, abs_err.a, binLenDistr)
+    collectInfoAboutCDFDistributionNaive(summary_file, abs_err, title, abs_err.a, binLenDistr)
 
     sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
     vals, edges, patches = plt.hist(abs_err_samples, bins='auto', density=True, color="blue", label="Sampling model")
@@ -250,7 +250,7 @@ def plot_error_analysis_CDF(abs_err, loadedGolden, abs_err_samples, abs_err_gold
 
     binLenDistr = 1000
     title = "CDF Error Analysis with PAF with gap: " + str(binLenDistr)
-    collectInfoAboutDistribution(summary_file, abs_err, title, abs_err.a, binLenDistr)
+    collectInfoAboutCDFDistributionINV(summary_file, abs_err, title)
 
     sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
     not_norm_vals, not_norm_edges = np.histogram(abs_err_samples, bins='auto', density=True)
@@ -258,6 +258,7 @@ def plot_error_analysis_CDF(abs_err, loadedGolden, abs_err_samples, abs_err_gold
     binLenSamp = len(vals)
     title="CDF Error Analysis with Sampling model with num. bins: " + str(binLenSamp)
     collectInfoAboutSampling(sampling_file, vals, edges, title, pdf=False, golden_mode_index=0)
+
     sampling_file.close()
 
     title="CDF Measure Distances Error Analysis"
@@ -265,8 +266,9 @@ def plot_error_analysis_CDF(abs_err, loadedGolden, abs_err_samples, abs_err_gold
 
     plt.autoscale(enable=True, axis='both', tight=False)
     plt.ylim(bottom=-0.05, top=1.1)
-    x = np.linspace(abs_err.a, abs_err.b, 1000)
-    plt.plot(x, abs(abs_err.distribution.get_piecewise_cdf()(x)), linewidth=3, color="red")
+    #x = np.linspace(abs_err.a, abs_err.b, 1000)
+    #plt.plot(x, abs(abs_err.distribution.get_piecewise_cdf()(x)), linewidth=3, color="red")
+    abs_err.distribution.get_piecewise_cdf().plot(xmin=abs_err.a, xmax=abs_err.b, linewidth=3, color="red")
     plotTicks(tmp_name, "X", "green", 4, 500, ticks="[0.0, " + str(abs_fpt) + "]", label="FPT: " + str(abs_fpt))
     plotBoundsDistr(tmp_name, abs_err.distribution)
     plt.ticklabel_format(axis='both', style='sci', scilimits=(0, 0))

@@ -8,7 +8,7 @@ from error_model import HighPrecisionErrorModel, LowPrecisionErrorModel, FastTyp
     ErrorModelWrapper, TypicalErrorModel
 from model import UnaryOperation
 from operations import quantizedPointMass, BinOpDist, UnOpDist
-from setup_utils import loadIfExists, storage_path
+from setup_utils import loadIfExists, storage_path, global_interpolate
 from project_utils import printMPFRExactly, reset_default_precision, set_context_precision
 
 
