@@ -191,6 +191,13 @@ class BinOpDist:
         self.aSamp = self.distributionSamp.range_()[0]
         self.bSamp = self.distributionSamp.range_()[-1]
 
+    def _pbox_dependent_execution(self):
+        left_operand_discretization=self.leftoperand.get_discretization()
+        right_operand_discretization=self.leftoperand.get_discretization()
+        for left_op_int in left_operand_discretization:
+            for right_op_int in right_operand_discretization:
+                pass
+
     def _analytic_dependent_execution(self):
         """ Compute the dependent operation by integrating over all variables"""
         # find set of variables
@@ -264,8 +271,10 @@ class BinOpDist:
     def executeDependent(self):
         if self.dependent_mode == "full_mc":
             self._full_mc_dependent_execution()
-        # elif self.dependent_mode == "analytic":
-        #   self._analytic_dependent_execution()
+        elif self.dependent_mode == "analytic":
+            self._analytic_dependent_execution()
+        elif self.dependent_mode == "p-box":
+            self._pbox_dependent_execution()
 
     def execute(self):
         if self.distribution == None:
@@ -318,7 +327,7 @@ class UnOpDist:
             self.distribution = distributions.sin(operand.execute())
             self.distribution.get_piecewise_pdf()
         elif operation is "abs":
-            self.distribution = abs(operand.execute())
+            self.distribution = distributions.abs(operand.execute())
             self.distribution.get_piecewise_pdf()
         else:
             print("Unary operation not yet supported")
@@ -333,10 +342,11 @@ class UnOpDist:
         return self.distribution
 
     def resetSampleInit(self):
-        self.operand.sampleInit = True
+        self.distribution.sampleInit = True
 
     def getSampleSet(self, n=100000):
-        return self.operand.getSampleSet(n)
+        # it remembers values for future operations
+        return self.distribution.getSampleSet(n)
 
     def getName(self):
         return self.name

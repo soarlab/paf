@@ -1,15 +1,18 @@
 import copy
 
 import pacal
+from pacal import UniformDistr, ConstDistr, BetaDistr
 from pacal.distr import Distr
 from pacal.utils import wrap_pdf
 from pychebfun import chebfun
 from scipy.stats import truncnorm
 import numpy as np
+
+from pbox import createDSIfromDistribution
 from project_utils import MyFunDistr, normalizeDistribution
-from setup_utils import global_interpolate
+from setup_utils import global_interpolate, discretization_points
 from scipy import stats
-from pacal.segments import PiecewiseDistribution, Segment, ConstSegment
+from pacal.segments import PiecewiseDistribution, Segment, ConstSegment, ConstFun
 
 
 class NodeManager:
@@ -105,8 +108,9 @@ class TruncNormal(object):
     def __call__(self, t, *args, **kwargs):
         return self.interp_trunc_norm(t)
 
-class N:
+class N(stats.rv_continuous, Distr):
     def __init__(self,name,a,b):
+        super().__init__(a=a, b=b, name='TrucatedNormal')
         self.name = name
         self.sampleInit = True
         self.isScalar = False
@@ -114,12 +118,29 @@ class N:
         self.indipendent=True
         self.a = float(a)
         self.b = float(b)
-        self.distribution = MyFunDistr(TruncNormal(self.a,self.b,50), breakPoints =[self.a, self.b], interpolated=global_interpolate)
-        self.distribution.get_piecewise_pdf()
-        self.distribution=normalizeDistribution(self.distribution, init=True)
+        self.discretization = []
+        self.get_discretization()
+
+
+    def get_piecewise_pdf(self):
+        """return PDF function as a PiecewiseDistribution object"""
+        if self.piecewise_pdf is None:
+            self.init_piecewise_pdf()
+        return self.piecewise_pdf
+
+    def init_piecewise_pdf(self):
+        piecewise_pdf = PiecewiseDistribution([])
+        piecewise_pdf.addSegment(Segment(a=self.a, b=self.b,
+            f = MyFunDistr(TruncNormal(self.a,self.b,50), breakPoints =[self.a, self.b], interpolated=global_interpolate)))
+        self.piecewise_pdf = piecewise_pdf
+
+    def get_discretization(self):
+        if len(self.discretization)==0:
+            self.discretization = createDSIfromDistribution(self, n=discretization_points)
+        return self.discretization
 
     def execute(self):
-        return self.distribution
+        return self
 
     def getRepresentation(self):
         return "Standard Normal Truncated in range ["+str(self.a)+","+str(self.b)+"]"
@@ -132,19 +153,26 @@ class N:
             self.sampleInit = False
         return self.sampleSet
 
-class B:
+class B(BetaDistr):
     def __init__(self,name,a,b):
+        super().__init__(alpha=float(a), beta=float(b))
         self.name = name
-        self.distribution = pacal.BetaDistr(float(a),float(b))
-        self.a=self.distribution.range_()[0]
-        self.b=self.distribution.range_()[-1]
+        self.a=self.range_()[0]
+        self.b=self.range_()[-1]
         self.indipendent=True
         self.sampleInit = True
         self.isScalar = False
         self.sampleSet=[]
+        self.discretization = []
+        self.get_discretization()
 
     def execute(self):
-        return self.distribution
+        return self
+
+    def get_discretization(self):
+        if len(self.discretization)==0:
+            self.discretization = createDSIfromDistribution(self, n=discretization_points)
+        return self.discretization
 
     def getRepresentation(self):
         return "Beta ["+str(self.a)+","+str(self.b)+"]"
@@ -152,10 +180,9 @@ class B:
     def getSampleSet(self,n=100000):
         #it remembers values for future operations
         if self.sampleInit:
-            self.sampleSet = self.distribution.rand(n)
+            self.sampleSet = self.rand(n)
             self.sampleInit = False
         return self.sampleSet
-
 
 ''' 
 Class used to implement the Chebfun interpolation of the truncated normal
@@ -244,23 +271,22 @@ class CustomDistr(stats.rv_continuous, Distr):
         self.edges=edges
         self.area=area
         self.values=self.computeValues(edges,area)
-        #self.testpdf()
-        #self.testcdf()
-        #self.testicdf()
-        #self.distribution = MyFunDistr(CustomInterpolator(1000, self.edges, self.values), breakPoints =[self.a, self.b], interpolated=False)
-        #piecewise_pdf = PiecewiseDistribution([])
-        #for index,edge in enumerate(edges[:-1]):
-        #    piecewise_pdf.addSegment(Segment(edge, edges[index+1], self.values[index]))
-        #self.piecewise_pdf=piecewise_pdf
+        self.discretization = []
         self.init_piecewise_pdf()
         self.get_piecewise_cdf()
-        #self.distribution=normalizeDistribution(self.distribution, init=True)
+        self.get_discretization()
+
 
     def get_piecewise_pdf(self):
         """return PDF function as a PiecewiseDistribution object"""
         if self.piecewise_pdf is None:
             self.init_piecewise_pdf()
         return self.piecewise_pdf
+
+    def get_discretization(self):
+        if len(self.discretization)==0:
+            self.discretization = createDSIfromDistribution(self, n=discretization_points)
+        return self.discretization
 
     def init_piecewise_pdf(self):
         piecewise_pdf = PiecewiseDistribution([])
@@ -294,9 +320,6 @@ class CustomDistr(stats.rv_continuous, Distr):
 
     def rand_raw(self, n=None):  # None means return scalar
         return self._ppf(n)
-        #inv_cdf = self.get_piecewise_invcdf()
-        #u = np.random.uniform(size=n)
-        #return inv_cdf(u)
 
     def __call__(self, x):
         return self.pdf(self, x)
@@ -362,19 +385,27 @@ class CustomDistr(stats.rv_continuous, Distr):
             index=index-1
         return abs(self.values[index-1])
 
-class U:
+class U(UniformDistr):
     def __init__(self,name,a,b):
+        super().__init__(a=float(a), b=float(b))
         self.name = name
-        self.distribution = pacal.UniformDistr(float(a),float(b))
-        self.a=self.distribution.range_()[0]
-        self.b=self.distribution.range_()[-1]
+        self.a=self.range_()[0]
+        self.b=self.range_()[-1]
         self.indipendent = True
         self.sampleInit = True
         self.isScalar = False
         self.sampleSet=[]
+        self.discretization = []
+        self.get_discretization()
+
 
     def execute(self):
-        return self.distribution
+        return self
+
+    def get_discretization(self):
+        if len(self.discretization)==0:
+            self.discretization = createDSIfromDistribution(self, n=discretization_points)
+        return self.discretization
 
     def getRepresentation(self):
         return "Uniform ["+str(self.a)+","+str(self.b)+"]"
@@ -382,28 +413,28 @@ class U:
     def getSampleSet(self,n=100000):
         #it remembers values for future operations
         if self.sampleInit:
-            self.sampleSet = self.distribution.rand(n)
+            self.sampleSet = self.rand(n)
             self.sampleInit = False
         return self.sampleSet
 
-class Number:
+class Number(ConstDistr):
     def __init__(self, label):
+        super().__init__(c = self.value, name='Number')
         self.name = label
         self.value = float(label)
-        self.distribution = pacal.ConstDistr(c = self.value)
         self.isScalar=True
-        self.a=self.distribution.range_()[0]
-        self.b=self.distribution.range_()[-1]
+        self.a=self.range_()[0]
+        self.b=self.range_()[-1]
 
     def execute(self):
-        return self.distribution
+        return self
 
     def getRepresentation(self):
         return "Scalar("+str(self.value)+")"
 
     def getSampleSet(self,n=100000):
         #it remembers values for future operations
-        return self.distribution.rand(n)
+        return self.rand_raw(n)
 
 class Operation:
     def __init__(self, leftoperand, operator, rightoperand):

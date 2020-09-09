@@ -79,7 +79,7 @@ def collectInfoAboutCDFDistributionINV(f, finalDistr_wrapper, name):
     res=res+"Starting range analysis from: "+str(finalDistr_wrapper.a)+" \n\n\n"
     probs = [0.25, 0.5, 0.75, 0.85, 0.99, 0.999]
     try:
-        inv_fun = finalDistr_wrapper.execute().get_piecewise_invcdf()
+        inv_fun = finalDistr_wrapper.execute().get_piecewise_invcdf(use_interpolated=False)
         for i in probs:
             val = inv_fun(i)
             res = res + "Range: ["+str(finalDistr_wrapper.a)+"," + str(val) + "] contains " + str(i * 100) + "% of the distribution.\n\n"

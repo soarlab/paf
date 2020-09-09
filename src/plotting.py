@@ -36,8 +36,6 @@ def plotBoundsDistr(figureName, distribution):
 
 
 def plot_range_analysis_PDF(final_distribution, loadedGolden, r, golden_samples, paf_file, file_name, range_fpt):
-    a = final_distribution.a
-    b = final_distribution.b
 
     print("Generating Graphs Range Analysis PDF\n")
 
@@ -56,7 +54,7 @@ def plot_range_analysis_PDF(final_distribution, loadedGolden, r, golden_samples,
 
     golden_file = open(output_path + file_name + "/golden.txt", "a+")
     binLenGolden = len(vals_golden)
-    title="PDF Range Analysis with Golden distribution with num. bins: " + str(binLenGolden)
+    title="PDF Range Analysis with Golden with num. bins: " + str(binLenGolden)
     golden_mode, golden_ind = collectInfoAboutSampling(golden_file, vals_golden, edges_golden, title, pdf=True)
     golden_file.close()
 
@@ -128,18 +126,18 @@ def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_short, sam
 
     golden_file = open(output_path + file_name + "/golden.txt", "a+")
     binLenGolden = len(vals_golden)
-    title="CDF Range Analysis with Golden distribution with num. bins: " + str(binLenGolden)
+    title="CDF Range Analysis with Golden with num. bins: " + str(binLenGolden)
     collectInfoAboutCDFSampling(golden_file, not_norm_vals_golden, edges_golden, title)
     golden_file.close()
 
-    title = "CDF Range Analysis with PAF with gap using INV CDF "
+    title = "CDF Range Analysis with PAF using INV CDF "
     collectInfoAboutCDFDistributionINV(fileHook, final_distribution, title)
 
     sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
     notnorm_vals, notnorm_edges = np.histogram(samples_short, bins='auto', density=True)
     vals, edges = plotCDF(notnorm_edges, notnorm_vals, normalize=True, color="blue", label="Sampled distribution", linewidth=3)
     binLenSamp = len(vals)
-    title="CDF Range Analysis with Sampling model with num. bins: " + str(binLenSamp)
+    title="CDF Range Analysis with Sampling with num. bins: " + str(binLenSamp)
     collectInfoAboutCDFSampling(sampling_file, notnorm_vals, edges, title)
     sampling_file.close()
 
@@ -244,12 +242,11 @@ def plot_error_analysis_CDF(abs_err, loadedGolden, abs_err_samples, abs_err_gold
 
     golden_file = open(output_path + file_name + "/golden.txt", "a+")
     binLenGolden = len(vals_golden)
-    title="CDF Error Analysis with Golden distribution with num. bins: " + str(binLenGolden)
+    title="CDF Error Analysis with Golden with num. bins: " + str(binLenGolden)
     collectInfoAboutSampling(golden_file, vals_golden, edges_golden, title, pdf=False, golden_mode_index=0)
     golden_file.close()
 
-    binLenDistr = 1000
-    title = "CDF Error Analysis with PAF with gap: " + str(binLenDistr)
+    title = "CDF Error Analysis with PAF using INV CDF "
     collectInfoAboutCDFDistributionINV(summary_file, abs_err, title)
 
     sampling_file = open(output_path + file_name + "/sampling.txt", "a+")

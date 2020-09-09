@@ -6,7 +6,7 @@ import numpy
 from numpy import ceil, log, arccos, arcsin, float_power
 from numpy import finfo, float32
 from numpy import isposinf, isneginf, isfinite
-from pacal.distr import FuncNoninjectiveDistr
+from pacal.distr import FuncNoninjectiveDistr, AbsDistr
 from pacal.integration import _integrate_with_vartransform, integrate_fejer2
 from pacal.standard_distr import *
 from pacal.vartransforms import VarTransform
@@ -129,6 +129,14 @@ class ExpDistr(Distr):
         # Check whether the 1/t term causes a singularity at 0
         self.singularity_at_zero = self._detect_singularity()
         super(ExpDistr, self).__init__()
+        self.sampleInit = True
+
+    def getSampleSet(self,n=100000):
+        #it remembers values for future operations
+        if self.sampleInit:
+            self.sampleSet = self.rand_invcdf(n=n, use_interpolated=False)
+            self.sampleInit = False
+        return self.sampleSet
 
     def getName(self):
         return 'exp(' + self.base_distribution.getName() + ')'
@@ -226,6 +234,14 @@ class CosineDistr(FuncNoninjectiveDistr):
         self._get_intervals()
         self.pole_at_zero = False
         super(CosineDistr, self).__init__(d, fname="cos")
+        self.sampleInit = True
+
+    def getSampleSet(self,n=100000):
+        #it remembers values for future operations
+        if self.sampleInit:
+            self.sampleSet = self.rand_invcdf(n=n, use_interpolated=False)
+            self.sampleInit = False
+        return self.sampleSet
 
     def _get_intervals(self):
         """
@@ -278,6 +294,14 @@ class SineDistr(FuncNoninjectiveDistr):
         self._get_intervals()
         self.pole_at_zero = False
         super(SineDistr, self).__init__(d, fname="sin")
+        self.sampleInit = True
+
+    def getSampleSet(self,n=100000):
+        #it remembers values for future operations
+        if self.sampleInit:
+            self.sampleSet = self.rand_invcdf(n=n, use_interpolated=False)
+            self.sampleInit = False
+        return self.sampleSet
 
     def _get_intervals(self):
         """
@@ -318,6 +342,18 @@ class SineDistr(FuncNoninjectiveDistr):
             k += 1
             down = up
 
+class AbsDistr(AbsDistr):
+
+    def __init__(self, d):
+        super(AbsDistr, self).__init__([d])
+        self.sampleInit = True
+
+    def getSampleSet(self,n=100000):
+        #it remembers values for future operations
+        if self.sampleInit:
+            self.sampleSet = self.rand_invcdf(n=n, use_interpolated=False)
+            self.sampleInit = False
+        return self.sampleSet
 
 def sin(d):
     """Overload the sin function."""
@@ -325,6 +361,11 @@ def sin(d):
         return SineDistr(d)
     return numpy.sin(d)
 
+def abs(d):
+    """Overload the sin function."""
+    if isinstance(d, Distr):
+        return AbsDistr(d)
+    return numpy.abs(d)
 
 def cos(d):
     """Overload the sin function."""

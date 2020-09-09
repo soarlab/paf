@@ -24,6 +24,7 @@ fptaylor_path=home_directory_project+"FPTaylor/"
 output_path=home_directory_project+"results/"
 fptaylor_exe="/home/roki/GIT/FPTaylor/./fptaylor"
 pran_exe=""
+discretization_points=11
 golden_model_time=1
 global_interpolate=False
 loadIfExists=False
