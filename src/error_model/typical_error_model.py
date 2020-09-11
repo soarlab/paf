@@ -19,7 +19,7 @@ class TypicalErrorModel(AbstractErrorModel):
     """
     def __init__(self, input_distribution, precision, exponent, polynomial_precision=[0, 0], precision_correction=False):
         super(TypicalErrorModel, self).__init__(input_distribution, precision, exponent, polynomial_precision)
-        self.name = "TypicalErrorDistribution"
+        self.name = "TE_" + input_distribution.getName()
         self.precision_correction = precision_correction
         if self.precision is None:
             if self.precision_correction:

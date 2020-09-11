@@ -13,7 +13,7 @@ class TypErrInterp(object):
         self.lower=lower
         self.upper=upper
         self.interp_points=interp_points
-        self.name="TypErrorInter["+str(lower)+","+str(upper)+"]"
+        self.name="TypErrorInterpolator"
         self.interp_err_typ=chebfun(self.getTypical, domain=[self.lower, self.upper], N=self.interp_points)
 
     def getTypical(self, x):
@@ -63,8 +63,8 @@ class FastTypicalErrorModel(TypicalErrorModel):
     """
     def __init__(self, input_distribution, precision, exponent, polynomial_precision):
         super(FastTypicalErrorModel, self).__init__(input_distribution, precision, exponent, polynomial_precision)
-        self.name = "FastTypicalErrorDistribution"
         self.hidden_err_model = MyFunDistr(TypErrInterp(-1.0, 1.0, polynomial_precision), breakPoints =[-1.0, 1.0], interpolated=global_interpolate)
+        self.name="FTE_" + input_distribution.getName()
 
     def init_piecewise_pdf(self):
         self.piecewise_pdf=self.hidden_err_model.get_piecewise_pdf()

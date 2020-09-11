@@ -34,7 +34,8 @@ class LowPrecisionErrorModel(AbstractErrorModel):
         """
 
         super(LowPrecisionErrorModel, self).__init__(input_distribution, precision, exponent, polynomial_precision)
-        self.name = "LPError(" + input_distribution.getName() + ")"
+        #self.name = "LPError(" + input_distribution.getName() + ")"
+        self.name = "LPE_" + input_distribution.getName()
         set_context_precision(self.precision, self.exponent)
         self.inf_val = mpfr(str(self.input_distribution.range_()[0]))
         self.sup_val = mpfr(str(self.input_distribution.range_()[1]))

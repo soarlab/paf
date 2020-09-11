@@ -20,7 +20,8 @@ class HighPrecisionErrorModel(AbstractErrorModel):
             precision, exponent: gmpy2 precision environment
         """
         super(HighPrecisionErrorModel, self).__init__(input_distribution, precision, exponent, polynomial_precision)
-        self.name = "HPError(" + input_distribution.getName() + ")"
+        #self.name = "HPError(" + input_distribution.getName() + ")"
+        self.name = "HPE_" + input_distribution.getName()
         self.central_constant = None
         self._get_min_exponent()
         self._get_max_exponent()

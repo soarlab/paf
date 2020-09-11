@@ -1,4 +1,6 @@
 from error_model import HighPrecisionErrorModel, LowPrecisionErrorModel, TypicalErrorModel, FastTypicalErrorModel
+from pbox import createDSIfromDistribution
+from setup_utils import discretization_points
 
 
 class ErrorModelWrapper:
@@ -7,29 +9,20 @@ class ErrorModelWrapper:
     Input: an ErrorModel object and optionally the corresponding input distribution (to construct standardized name)
     """
 
-    def __init__(self, error_model, input_distribution_wrapper=None):
+    def __init__(self, error_model, input_distribution_name=None):
         self.distribution = error_model
         self.sampleInit = True
         self.unit_roundoff = error_model.unit_roundoff
-        if input_distribution_wrapper is not None:
-            self.input_name = input_distribution_wrapper.name
+        if input_distribution_name is not None:
+            self.input_name = input_distribution_name
         else:
             self.input_name = "N/A"
-        self.name = self.getName()
+        self.name = error_model.getName()
+        self.discretization=[]
+        self.get_discretization()
 
     def __str__(self):
         return self.name
-
-    def getName(self):
-        if isinstance(self.distribution, HighPrecisionErrorModel):
-            name = "HPError(" + self.input_name + ")"
-        elif isinstance(self.distribution, TypicalErrorModel):
-            name = "TypicalError"
-        elif isinstance(self.distribution, FastTypicalErrorModel):
-            name = "FastTypicalError"
-        elif isinstance(self.distribution, LowPrecisionErrorModel):
-            name = "LPError(" + self.input_name + ")"
-        return name
 
     def execute(self):
         return self.distribution
@@ -40,3 +33,8 @@ class ErrorModelWrapper:
             self.sampleSet = self.distribution.rand(n)
             self.sampleInit = False
         return self.sampleSet
+
+    def get_discretization(self):
+        if len(self.discretization)==0:
+            self.discretization = createDSIfromDistribution(self.distribution, n=discretization_points)
+        return self.discretization
