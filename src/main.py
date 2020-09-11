@@ -31,7 +31,7 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
         f.close()
         myYacc = FPRyacc(text, False)
         start_time = time.time()
-        T = TreeModel(myYacc, mantissa, exp, [40, 10], 100, 1000000, error_model="typical")
+        T = TreeModel(myYacc, mantissa, exp, [40, 10], 100, 1000000, error_model="typical", dependent_mode="p-box")
         end_time = time.time()
         print("Exe time --- %s seconds ---" % (end_time - start_time))
         finalTime = end_time - start_time
@@ -72,7 +72,7 @@ warnings.warn("Mantissa with implicit bit of sign. In gmpy2 set precision=p incl
 mantissa = 24
 exp = 8
 
-file = "./herbie/trid2.txt"
+file = "./test.txt"
 
 range_my_dict, abs_my_dict, rel_my_dict = getFPTaylorResults(fptaylor_exe, fptaylor_path)
 process_file(file, mantissa, exp, range_my_dict, abs_my_dict)
