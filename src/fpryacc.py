@@ -90,18 +90,18 @@ class FPRyacc:
         self.myPrint("Uniform", p)
 
     def p_Uniform1(self, p):
-        ''' Distribution : WORD COLON U LPAREN MINUS POSNUMBER COMMA POSNUMBER RPAREN
+        ''' Distribution : WORD COLON U LPAREN NEGNUMBER COMMA POSNUMBER RPAREN
 		'''
 
-        distr = U(str(p[1]), "-" + str(p[6]), str(p[8]))
+        distr = U(str(p[1]), str(p[5]), str(p[7]))
         self.addVariable(str(p[1]), distr)
         self.myPrint("Normal", p)
 
     def p_Uniform2(self, p):
-        ''' Distribution : WORD COLON U LPAREN MINUS POSNUMBER COMMA MINUS POSNUMBER RPAREN
+        ''' Distribution : WORD COLON U LPAREN NEGNUMBER COMMA NEGNUMBER RPAREN
 		'''
 
-        distr = U(str(p[1]), "-" + str(p[6]), "-" + str(p[9]))
+        distr = U(str(p[1]), str(p[5]), str(p[7]))
         self.addVariable(str(p[1]), distr)
         self.myPrint("Normal", p)
 
@@ -114,18 +114,18 @@ class FPRyacc:
         self.myPrint("Normal", p)
 
     def p_Normal1(self, p):
-        ''' Distribution : WORD COLON N LPAREN MINUS POSNUMBER COMMA POSNUMBER RPAREN
+        ''' Distribution : WORD COLON N LPAREN NEGNUMBER COMMA POSNUMBER RPAREN
 		'''
 
-        distr = N(str(p[1]), "-" + str(p[6]), str(p[8]))
+        distr = N(str(p[1]), str(p[5]), str(p[7]))
         self.addVariable(str(p[1]), distr)
         self.myPrint("Normal", p)
 
     def p_Normal2(self, p):
-        ''' Distribution : WORD COLON N LPAREN MINUS POSNUMBER COMMA MINUS POSNUMBER RPAREN
+        ''' Distribution : WORD COLON N LPAREN NEGNUMBER COMMA NEGNUMBER RPAREN
 		'''
 
-        distr = N(str(p[1]), "-" + str(p[6]), "-" + str(p[9]))
+        distr = N(str(p[1]), str(p[5]), str(p[7]))
         self.addVariable(str(p[1]), distr)
         self.myPrint("Normal", p)
 
