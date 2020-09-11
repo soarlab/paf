@@ -31,12 +31,6 @@ class AbstractErrorModel(Distr):
         """
         super(AbstractErrorModel, self).__init__()
         self.input_distribution = input_distribution
-        if input_distribution is None:
-            self.name = "ErrorModel"
-        else:
-            self.name = "Error(" + input_distribution.getName() + ")"
-            if self.input_distribution is None:
-                self.input_distribution.get_piecewise_pdf()
         # gmpy2 precision and precision:
         self.precision = precision
         self.exponent = exponent
@@ -50,6 +44,8 @@ class AbstractErrorModel(Distr):
             self.polynomial_precision = [0, 0]
         else:
             self.polynomial_precision = polynomial_precision
+        self.a=-self.eps
+        self.b=self.eps
 
     def _left_segment(self, x):
         """
@@ -118,7 +114,7 @@ class AbstractErrorModel(Distr):
         return self
 
     def rand_raw(self, n=None):  # None means return scalar
-        inv_cdf = self.get_piecewise_invcdf()
+        inv_cdf = self.get_piecewise_invcdf(use_interpolated=False)
         u = np.random.uniform(size=n)
         return inv_cdf(u)
 
