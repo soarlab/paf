@@ -1,9 +1,9 @@
 import math
 from pychebfun import *
+import model
 from regularizer import *
 from project_utils import *
 from gmpy2 import *
-import distributions
 
 from setup_utils import global_interpolate
 
@@ -95,12 +95,13 @@ class BinOpDist:
     Wrapper class for the result of an arithmetic operation on PaCal distributions
     """
 
-    def __init__(self, leftoperand, operator, rightoperand, poly_precision, samples_dep_op, regularize=True,
+    def __init__(self, leftoperand, operator, rightoperand, smt_triple, name, poly_precision, samples_dep_op, regularize=True,
                  convolution=True, dependent_mode="full_mc"):
         self.leftoperand = leftoperand
         self.operator = operator
         self.rightoperand = rightoperand
-        self.name = "(" + self.leftoperand.name + str(self.operator) + self.rightoperand.name + ")"
+        self.name = name
+        self.smt_triple=smt_triple
         self.poly_precision = poly_precision
         self.samples_dep_op = samples_dep_op
         self.regularize = regularize
@@ -180,7 +181,7 @@ class BinOpDist:
 
         breaks = [min(bins), max(bins)]
 
-        self.distributionSamp = MyFunDistr(DependentOperationExecutor(bins, n, self.poly_precision), breakPoints=breaks,
+        self.distributionSamp = MyFunDistr(self.name, DependentOperationExecutor(bins, n, self.poly_precision), breakPoints=breaks,
                                            interpolated=global_interpolate)
         self.distributionSamp.get_piecewise_pdf()
 
@@ -194,9 +195,15 @@ class BinOpDist:
     def _pbox_dependent_execution(self):
         left_operand_discretization=self.leftoperand.get_discretization()
         right_operand_discretization=self.leftoperand.get_discretization()
+        expression_left=self.smt_triple[0]
+        expression_right=self.smt_triple[1]
+        smt_manager = self.smt_triple[2]
         for left_op_int in left_operand_discretization:
             for right_op_int in right_operand_discretization:
-                pass
+                smt_manager.set_expression_left(expression_left, left_op_int.lower, left_op_int.upper )
+                smt_manager.set_expression_right(expression_right, right_op_int.lower, right_op_int.upper )
+                res=smt_manager.check()
+                print(res)
 
     def _analytic_dependent_execution(self):
         """ Compute the dependent operation by integrating over all variables"""
@@ -318,16 +325,16 @@ class UnOpDist:
         if operation is None:
             self.distribution = operand.execute()
         elif operation is "exp":
-            self.distribution = distributions.exp(operand.execute())
+            self.distribution = model.exp(operand.execute())
             self.distribution.get_piecewise_pdf()
         elif operation is "cos":
-            self.distribution = distributions.cos(operand.execute())
+            self.distribution = model.cos(operand.execute())
             self.distribution.get_piecewise_pdf()
         elif operation is "sin":
-            self.distribution = distributions.sin(operand.execute())
+            self.distribution = model.sin(operand.execute())
             self.distribution.get_piecewise_pdf()
         elif operation is "abs":
-            self.distribution = distributions.abs(operand.execute())
+            self.distribution = model.abs(operand.execute())
             self.distribution.get_piecewise_pdf()
         else:
             print("Unary operation not yet supported")
@@ -335,6 +342,8 @@ class UnOpDist:
 
         self.operand = operand
         self.name = name
+        self.operation=operation
+        self.sampleInit=True
         self.a = self.distribution.range_()[0]
         self.b = self.distribution.range_()[-1]
 
@@ -342,11 +351,26 @@ class UnOpDist:
         return self.distribution
 
     def resetSampleInit(self):
-        self.distribution.sampleInit = True
+        self.sampleInit = True
+        self.operand.resetSampleInit()
 
     def getSampleSet(self, n=100000):
         # it remembers values for future operations
-        return self.distribution.getSampleSet(n)
+        if self.sampleInit:
+            self.sampleSet = self.operand.getSampleSet(n)
+            self.sampleInit = False
+            if self.operation is "exp":
+                self.sampleSet = np.exp(self.sampleSet)
+            elif self.operation is "cos":
+                self.sampleSet = np.cos(self.sampleSet)
+            elif self.operation is "sin":
+                self.sampleSet = np.sin(self.sampleSet)
+            elif self.operation is "abs":
+                self.sampleSet = np.abs(self.sampleSet)
+        return self.sampleSet
 
     def getName(self):
         return self.name
+
+    def get_discretization(self):
+        return self.distribution.get_discretization()
