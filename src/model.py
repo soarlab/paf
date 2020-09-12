@@ -121,6 +121,9 @@ class N(stats.rv_continuous, Distr):
         self.discretization = []
         self.get_discretization()
 
+    def resetSampleInit(self):
+        self.sampleInit = True
+
     def getName(self):
         return self.name
 
@@ -181,6 +184,9 @@ class B(BetaDistr):
 
     def getRepresentation(self):
         return "Beta ["+str(self.a)+","+str(self.b)+"]"
+
+    def resetSampleInit(self):
+        self.sampleInit = True
 
     def getSampleSet(self,n=100000):
         #it remembers values for future operations
@@ -344,6 +350,9 @@ class CustomDistr(stats.rv_continuous, Distr):
             self.sampleInit = False
         return self.sampleSet
 
+    def resetSampleInit(self):
+        self.sampleInit = True
+
     def _ppf(self, q):
         if isinstance(q, float) or isinstance(q, int):
             return self._compute_ppf(q)
@@ -422,6 +431,9 @@ class U(UniformDistr):
             self.sampleSet = self.rand(n)
             self.sampleInit = False
         return self.sampleSet
+
+    def resetSampleInit(self):
+        self.sampleInit = True
 
 class Number(ConstDistr):
     def __init__(self, label):
@@ -573,20 +585,12 @@ class ExpDistr(Distr):
         # Check whether the 1/t term causes a singularity at 0
         self.singularity_at_zero = self._detect_singularity()
         super(ExpDistr, self).__init__()
-        self.sampleInit = True
         self.discretization=[]
 
     def get_discretization(self):
         if len(self.discretization)==0:
             self.discretization = createDSIfromDistribution(self, n=discretization_points)
         return self.discretization
-
-    def getSampleSet(self,n=100000):
-        #it remembers values for future operations
-        if self.sampleInit:
-            self.sampleSet = self.rand_invcdf(n=n, use_interpolated=False)
-            self.sampleInit = False
-        return self.sampleSet
 
     def getName(self):
         return 'exp(' + self.base_distribution.getName() + ')'
@@ -684,20 +688,12 @@ class CosineDistr(FuncNoninjectiveDistr):
         self._get_intervals()
         self.pole_at_zero = False
         super(CosineDistr, self).__init__(d, fname="cos")
-        self.sampleInit = True
         self.discretization=[]
 
     def get_discretization(self):
         if len(self.discretization)==0:
             self.discretization = createDSIfromDistribution(self, n=discretization_points)
         return self.discretization
-
-    def getSampleSet(self,n=100000):
-        #it remembers values for future operations
-        if self.sampleInit:
-            self.sampleSet = self.rand_invcdf(n=n, use_interpolated=False)
-            self.sampleInit = False
-        return self.sampleSet
 
     def _get_intervals(self):
         """
@@ -750,20 +746,12 @@ class SineDistr(FuncNoninjectiveDistr):
         self._get_intervals()
         self.pole_at_zero = False
         super(SineDistr, self).__init__(d, fname="sin")
-        self.sampleInit = True
         self.discretization=[]
 
     def get_discretization(self):
         if len(self.discretization)==0:
             self.discretization = createDSIfromDistribution(self, n=discretization_points)
         return self.discretization
-
-    def getSampleSet(self,n=100000):
-        #it remembers values for future operations
-        if self.sampleInit:
-            self.sampleSet = self.rand_invcdf(n=n, use_interpolated=False)
-            self.sampleInit = False
-        return self.sampleSet
 
     def _get_intervals(self):
         """
@@ -807,21 +795,14 @@ class SineDistr(FuncNoninjectiveDistr):
 class AbsDistr(AbsDistr):
 
     def __init__(self, d):
-        super(AbsDistr, self).__init__([d])
-        self.sampleInit = True
+        super(AbsDistr, self).__init__(d)
+        self.operand=d
         self.discretization=[]
 
     def get_discretization(self):
         if len(self.discretization)==0:
             self.discretization = createDSIfromDistribution(self, n=discretization_points)
         return self.discretization
-
-    def getSampleSet(self,n=100000):
-        #it remembers values for future operations
-        if self.sampleInit:
-            self.sampleSet = self.rand_invcdf(n=n, use_interpolated=False)
-            self.sampleInit = False
-        return self.sampleSet
 
 def sin(d):
     """Overload the sin function."""
