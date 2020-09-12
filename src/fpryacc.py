@@ -171,6 +171,16 @@ class FPRyacc:
         p[0] = node
         self.myPrint("UnaryArithOp-Exp", p)
 
+    def p_UnaryArithAbs(self, p):
+        '''AnnidateArithExpr : ABS LPAREN AnnidateArithExpr RPAREN
+    					    | ABS LPAREN BinaryArithExpr RPAREN
+    	'''
+
+        oper = UnaryOperation(p[3].value, "abs")
+        node = self.manager.createNode(oper, [p[3]])
+        p[0] = node
+        self.myPrint("UnaryArithOp-Exp", p)
+
     def p_UnaryArithCos(self, p):
         '''AnnidateArithExpr : COS LPAREN AnnidateArithExpr RPAREN
 							 | COS LPAREN BinaryArithExpr RPAREN

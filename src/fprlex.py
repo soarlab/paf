@@ -19,7 +19,8 @@ class FPRlex(object):
         'if': 'if',
         'exp': 'EXP',
         'cos': 'COS',
-        'sin': 'SIN'
+        'sin': 'SIN',
+        'abs': 'ABS'
     }
 
     tokens = list(dict.fromkeys([
@@ -32,6 +33,7 @@ class FPRlex(object):
                                     'DIVIDE',
                                     'COMMA',
                                     'EXP',
+                                    'ABS',
                                     'SIN',
                                     'COS',
                                     'LPAREN',
