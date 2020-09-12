@@ -4,6 +4,7 @@ from gmpy2 import mpfr
 import time
 import os
 
+import SMT_Interface
 from error_model import HighPrecisionErrorModel, LowPrecisionErrorModel, FastTypicalErrorModel, ErrorModelPointMass, \
     ErrorModelWrapper, TypicalErrorModel
 from model import UnaryOperation
@@ -60,7 +61,7 @@ class DistributionsManager:
             if wrapDist.name in self.errordictionary:
                 return self.errordictionary[wrapDist.name]
             else:
-                tmp = ErrorModelWrapper(FastTypicalErrorModel(wrapDist.distribution, precision, exp, 50))
+                tmp = ErrorModelWrapper(FastTypicalErrorModel(wrapDist.distribution, wrapDist.name, precision, exp, pol_prec))
                 #tmp = ErrorModelWrapper(TypicalErrorModel(precision=precision))
                 self.errordictionary[wrapDist.name] = tmp
                 return tmp
@@ -68,35 +69,34 @@ class DistributionsManager:
             if wrapDist.name in self.errordictionary:
                 return self.errordictionary[wrapDist.name]
             else:
-                tmp = ErrorModelWrapper(HighPrecisionErrorModel(wrapDist.distribution, precision, exp, pol_prec),
-                                        wrapDist)
+                tmp = ErrorModelWrapper(HighPrecisionErrorModel(wrapDist.distribution, wrapDist.name, precision, exp, pol_prec))
                 self.errordictionary[wrapDist.name] = tmp
                 return tmp
         elif error_model == "low_precision":
             if wrapDist.name in self.errordictionary:
                 return self.errordictionary[wrapDist.name]
             else:
-                tmp = ErrorModelWrapper(LowPrecisionErrorModel(wrapDist.distribution, precision, exp, pol_prec),
-                                        wrapDist)
+                tmp = ErrorModelWrapper(LowPrecisionErrorModel(wrapDist.distribution, wrapDist.name, precision, exp, pol_prec))
                 self.errordictionary[wrapDist.name] = tmp
                 return tmp
         else:
             raise ValueError('Invalid ErrorModel name.')
 
-    def createBinOperation(self, leftoperand, operator, rightoperand, interp_precision, regularize=True,
-                           convolution=True):
+    def createBinOperation(self, leftoperand, operator, rightoperand,
+                           interp_precision, smt_triple=None, regularize=True, convolution=True):
         name = "(" + leftoperand.name + str(operator) + rightoperand.name + ")"
         if name in self.distrdictionary:
             return self.distrdictionary[name]
         else:
-            tmp = BinOpDist(leftoperand, operator, rightoperand, interp_precision, self.samples_dep_op, regularize,
+            tmp = BinOpDist(leftoperand, operator, rightoperand, smt_triple, name,
+                            interp_precision, self.samples_dep_op, regularize,
                             convolution, self.dependent_mode)
             self.distrdictionary[name] = tmp
             return tmp
 
     def createUnaryOperation(self, operand, name, operation=None):
         if operation is not None:
-            tmp_name = name + "(" + operand.name + ")"
+            tmp_name = operation + "(" + operand.name + ")"
         else:
             tmp_name = name
         if tmp_name in self.distrdictionary:
@@ -117,7 +117,7 @@ class TreeModel:
                             "hybrid", "analytic" and "auto" (choice is made dynamically at each node)
     """
     def __init__(self, my_yacc, precision, exponent, poly_precision, interp_precision,
-                 samples_dep_op, initialize=True, error_model="typical", dependent_mode="full_mc"):
+                 samples_dep_op, initialize=True, error_model="typical", dependent_mode="p-box"):
         self.initialize = initialize
         self.precision = precision
         self.exponent = exponent
@@ -136,7 +136,7 @@ class TreeModel:
         self.final_exact_distr = self.tree.root_value[0]
 
         self.abs_err_distr = UnOpDist(BinOpDist(self.final_quantized_distr, "-",
-                                                self.final_exact_distr, 1000, self.samples_dep_op,
+                                                self.final_exact_distr, "err", 1000, self.samples_dep_op,
                                                 regularize=True, convolution=False), "abs_err", "abs")
         #self.relative_err_distr = UnOpDist(BinOpDist(self.abs_err_distr, "/",
         #                                             self.final_exact_distr, 1000, self.samples_dep_op,
@@ -148,61 +148,103 @@ class TreeModel:
         # Test if we're at a leaf
         if tree.root_value is not None:
             # Non-quantized distribution
+
             dist = self.manager.createUnaryOperation(tree.root_value, tree.root_name)
+            smt_manager=SMT_Interface.SMT_Instance()
+            smt_manager.add_var(tree.root_name,tree.root_value.a, tree.root_value.b)
+            dist_smt_query= SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(tree.root_name)
+
             # initialize=True means we quantize the inputs
             if self.initialize:
                 # Compute error model
                 if isPointMassDistr(dist):
                     error = ErrorModelPointMass(dist, self.precision, self.exponent)
                     quantized_distribution = quantizedPointMass(dist, self.precision, self.exponent)
+                    quantized_dist_smt_query = SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(quantized_distribution.distribution.getName())
                 else:
                     error = self.manager.createErrorModel(dist, self.precision, self.exponent, self.poly_precision,
                                                           self.error_model)
                     quantized_distribution = self.manager.createBinOperation(dist, "*+", error, self.interp_precision)
+                    error_name_SMT=SMT_Interface.clean_var_name_SMT(error.distribution.name)
+                    smt_manager.add_var(error_name_SMT, -error.distribution.eps, error.distribution.eps)
+                    quantized_dist_smt_query = SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(dist_smt_query, "*+", error_name_SMT)
             # Else we leave the leaf distribution unchanged
             else:
                 error = 0
                 quantized_distribution = dist
+                quantized_dist_smt_query = dist_smt_query
+
 
         # If not at a leaf we need to get the distribution and quantized distributions of the children nodes.
         # Then, check the operation. For each operation the template is the same:
         # dist will be the non-quantized operation the non-quantized children nodes
         # qdist will be the non-quantized operation on the quantized children nodes
         # quantized_distribution will be the quantized operation on the quantized children nodes
-
+        # Binary Operation (both left and right children are not None)
         elif tree.left is not None and tree.right is not None:
 
             self.evaluate(tree.left)
             self.evaluate(tree.right)
 
+            smt_manager=tree.left.root_value[5].merge_instance(tree.right.root_value[5])
+
+            smt_triple_dist = None
+            smt_triple_qdist = None
+            if not tree.convolution:
+                smt_triple_dist=(tree.left.root_value[3], tree.right.root_value[3], smt_manager)
+                smt_triple_qdist = (tree.left.root_value[4], tree.right.root_value[4], smt_manager)
+
             dist = self.manager.createBinOperation(tree.left.root_value[0], tree.root_name, tree.right.root_value[0],
-                                                   self.interp_precision, convolution=tree.convolution)
+                                                   self.interp_precision, smt_triple_dist, convolution=tree.convolution)
             qdist = self.manager.createBinOperation(tree.left.root_value[2], tree.root_name, tree.right.root_value[2],
-                                                    self.interp_precision, convolution=tree.convolution)
+                                                    self.interp_precision, smt_triple_qdist, convolution=tree.convolution)
+
+            dist_smt_query= SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(tree.left.root_value[3], tree.root_name, tree.right.root_value[3])
+            quantized_dist_smt_query= SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(tree.left.root_value[4], tree.root_name, tree.right.root_value[4])
+
 
             if isPointMassDistr(dist):
                 error = ErrorModelPointMass(qdist, self.precision, self.exponent)
                 quantized_distribution = quantizedPointMass(qdist, self.precision, self.exponent)
-
+                quantized_dist_smt_query = SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(
+                    quantized_distribution.distribution.getName())
             else:
                 error = self.manager.createErrorModel(qdist, self.precision, self.exponent, self.poly_precision,
                                                       self.error_model)
                 quantized_distribution = self.manager.createBinOperation(qdist, "*+", error, self.interp_precision)
+                error_name_SMT = SMT_Interface.clean_var_name_SMT(error.distribution.name)
+                smt_manager.add_var(error_name_SMT, -error.distribution.eps, error.distribution.eps)
+                quantized_dist_smt_query = SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(quantized_dist_smt_query, "*+",
+                                                                                                error_name_SMT)
+
+        # Unary Operation (exp, cos ,sin)
         else:
             self.evaluate(tree.left)
             dist = self.manager.createUnaryOperation(tree.left.root_value[0], tree.root_name, tree.root_name)
             qdist = self.manager.createUnaryOperation(tree.left.root_value[2], tree.root_name, tree.root_name)
 
+            dist_smt_query = SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(tree.left.root_value[3],
+                                                                                 tree.root_name)
+            quantized_dist_smt_query = SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(tree.left.root_value[4],
+                                                                                           tree.root_name)
+            smt_manager=SMT_Interface.SMT_Instance().merge_instance(tree.left.root_value[5])
+
             if isPointMassDistr(dist):
                 error = ErrorModelPointMass(qdist, self.precision, self.exponent)
                 quantized_distribution = quantizedPointMass(qdist, self.precision, self.exponent)
+                quantized_dist_smt_query = SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(
+                    quantized_distribution.distribution.getName())
             else:
                 error = self.manager.createErrorModel(qdist, self.precision, self.exponent, self.poly_precision,
                                                       self.error_model)
                 quantized_distribution = self.manager.createBinOperation(qdist, "*+", error, self.interp_precision)
+                error_name_SMT = SMT_Interface.clean_var_name_SMT(error.distribution.name)
+                smt_manager.add_var(error_name_SMT, -error.distribution.eps, error.distribution.eps)
+                quantized_dist_smt_query = SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(quantized_dist_smt_query, "*+",
+                                                                                                error_name_SMT)
 
         # We now populate the triple with distribution, error model, quantized distribution '''
-        tree.root_value = [dist, error, quantized_distribution]
+        tree.root_value = [dist, error, quantized_distribution, dist_smt_query, quantized_dist_smt_query, smt_manager]
 
     def resetInit(self, tree):
         if tree.left is not None or tree.right is not None:
@@ -264,6 +306,8 @@ class TreeModel:
                 return np.sin(sample_l), gmpy2.sin(mpfr(str(sample_l)))
             elif tree.root_name == "cos":
                 return np.cos(sample_l), gmpy2.cos(mpfr(str(sample_l)))
+            elif tree.root_name == "abs":
+                return np.abs(sample_l), abs(mpfr(str(sample_l)))
             else:
                 print("Operation not supported!")
                 exit(-1)
