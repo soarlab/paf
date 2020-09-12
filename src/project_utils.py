@@ -21,6 +21,10 @@ def reset_default_precision():
 class MyFunDistr(pacal.FunDistr):
     """General distribution defined as function with
     singularities at given breakPoints."""
+    def __init__(self, name, interpolator, breakPoints = None, interpolated = False):
+        self.name=name
+        super(MyFunDistr, self).__init__(interpolator, breakPoints=breakPoints, interpolated=interpolated)
+
     def rand_raw(self, n = 1):
         y = numpy.random.uniform(0, 1, n)
         tmp = self.get_piecewise_invcdf(use_interpolated=True)(y)
@@ -30,6 +34,9 @@ class MyFunDistr(pacal.FunDistr):
             for index, val in enumerate(y):
                 tmp[index] = invFun(val)
         return tmp
+
+    def getName(self):
+        return self.name
 
 def printMPFRExactly(a):
     return "{0:.50f}".format(a)
