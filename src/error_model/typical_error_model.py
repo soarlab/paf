@@ -17,9 +17,9 @@ class TypicalErrorModel(AbstractErrorModel):
     precision_correction: if True specified a correction will be applied. Only makes a notable difference at very
                           low precision (< 7 bits)
     """
-    def __init__(self, input_distribution, precision, exponent, polynomial_precision=[0, 0], precision_correction=False):
+    def __init__(self, input_distribution, input_name, precision, exponent, polynomial_precision=[0, 0], precision_correction=False):
         super(TypicalErrorModel, self).__init__(input_distribution, precision, exponent, polynomial_precision)
-        self.name = "TE_" + input_distribution.getName()
+        self.name = "TE_" + input_name
         self.precision_correction = precision_correction
         if self.precision is None:
             if self.precision_correction:

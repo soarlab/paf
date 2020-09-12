@@ -9,14 +9,10 @@ class ErrorModelWrapper:
     Input: an ErrorModel object and optionally the corresponding input distribution (to construct standardized name)
     """
 
-    def __init__(self, error_model, input_distribution_name=None):
+    def __init__(self, error_model):
         self.distribution = error_model
         self.sampleInit = True
         self.unit_roundoff = error_model.unit_roundoff
-        if input_distribution_name is not None:
-            self.input_name = input_distribution_name
-        else:
-            self.input_name = "N/A"
         self.name = error_model.getName()
         self.discretization=[]
         self.get_discretization()

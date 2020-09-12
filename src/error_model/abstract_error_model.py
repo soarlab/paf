@@ -44,8 +44,8 @@ class AbstractErrorModel(Distr):
             self.polynomial_precision = [0, 0]
         else:
             self.polynomial_precision = polynomial_precision
-        self.a=-self.eps
-        self.b=self.eps
+        self.a=-1.0
+        self.b=+1.0
         self.name="Abstract_Error_Model"
 
     def _left_segment(self, x):

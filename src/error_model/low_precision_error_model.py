@@ -12,7 +12,7 @@ from math import floor, log
 ###
 class LowPrecisionErrorModel(AbstractErrorModel):
 
-    def __init__(self, input_distribution, precision, exponent, polynomial_precision=[0, 0]):
+    def __init__(self, input_distribution, input_name, precision, exponent, polynomial_precision=[0, 0]):
         """
         Constructor interpolates the density function using Chebyshev interpolation
         then uses this interpolation to build a PaCal object:
@@ -35,7 +35,7 @@ class LowPrecisionErrorModel(AbstractErrorModel):
 
         super(LowPrecisionErrorModel, self).__init__(input_distribution, precision, exponent, polynomial_precision)
         #self.name = "LPError(" + input_distribution.getName() + ")"
-        self.name = "LPE_" + input_distribution.getName()
+        self.name = "LPE_" + input_name
         set_context_precision(self.precision, self.exponent)
         self.inf_val = mpfr(str(self.input_distribution.range_()[0]))
         self.sup_val = mpfr(str(self.input_distribution.range_()[1]))

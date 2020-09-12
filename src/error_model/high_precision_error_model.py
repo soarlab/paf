@@ -11,7 +11,7 @@ from project_utils import set_context_precision, reset_default_precision
 ###
 class HighPrecisionErrorModel(AbstractErrorModel):
 
-    def __init__(self, input_distribution, precision, exponent, polynomial_precision):
+    def __init__(self, input_distribution, input_name, precision, exponent, polynomial_precision):
         """
         The class implements the high-precision error distribution function.
         Inputs:
@@ -21,7 +21,7 @@ class HighPrecisionErrorModel(AbstractErrorModel):
         """
         super(HighPrecisionErrorModel, self).__init__(input_distribution, precision, exponent, polynomial_precision)
         #self.name = "HPError(" + input_distribution.getName() + ")"
-        self.name = "HPE_" + input_distribution.getName()
+        self.name = "HPE_" + input_name
         self.central_constant = None
         self._get_min_exponent()
         self._get_max_exponent()
