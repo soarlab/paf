@@ -1,11 +1,17 @@
 import math
 from pychebfun import *
+
+import IntervalArithmetic
 import model
+import pbox
+from linearprogramming import LP_Instance
+from pbox import createDSIfromDistribution, PBox
 from regularizer import *
 from project_utils import *
 from gmpy2 import *
+from interval import interval, inf, imath
 
-from setup_utils import global_interpolate
+from setup_utils import global_interpolate, discretization_points
 
 
 class quantizedPointMass:
@@ -111,6 +117,7 @@ class BinOpDist:
         self.distributionConv = None
         self.distributionSamp = None
         self.sampleInit = True
+        self.discretization=[]
         self.execute()
 
     def executeIndependent(self):
@@ -194,16 +201,38 @@ class BinOpDist:
 
     def _pbox_dependent_execution(self):
         left_operand_discretization=self.leftoperand.get_discretization()
-        right_operand_discretization=self.leftoperand.get_discretization()
+        right_operand_discretization=self.rightoperand.get_discretization()
         expression_left=self.smt_triple[0]
         expression_right=self.smt_triple[1]
         smt_manager = self.smt_triple[2]
-        for left_op_int in left_operand_discretization:
-            for right_op_int in right_operand_discretization:
+        insides=[]
+
+        for index_left, left_op_int in enumerate(left_operand_discretization):
+            for index_right, right_op_int in enumerate(right_operand_discretization):
+
                 smt_manager.set_expression_left(expression_left, left_op_int.lower, left_op_int.upper )
                 smt_manager.set_expression_right(expression_right, right_op_int.lower, right_op_int.upper )
-                res=smt_manager.check()
-                print(res)
+                low, sup=IntervalArithmetic.perform_interval_operation(left_op_int.lower,left_op_int.upper,self.operator,
+                                                              right_op_int.lower, right_op_int.upper)
+
+                if smt_manager.check():
+                    inside_box= PBox(low,sup,"prob")
+                    inside_box.is_marginal=False
+                    left_op_int.add_kid(inside_box)
+                    right_op_int.add_kid(inside_box)
+                    insides.append(inside_box)
+
+        lp_inst=LP_Instance(left_operand_discretization, right_operand_discretization, insides)
+        upper_bound_cdf_ind, upper_bound_cdf_val=lp_inst.optimize_max()
+        lower_bound_cdf_ind, lower_bound_cdf_val=lp_inst.optimize_min()
+        plt.figure()
+        plt.plot(lower_bound_cdf_ind, lower_bound_cdf_val, '-o', c="red")
+        plt.plot(upper_bound_cdf_ind, upper_bound_cdf_val, '-o', c="purple")
+        lower_bound_dst=pbox.createDiscreteDistrLower("lb",lower_bound_cdf_ind, lower_bound_cdf_val)
+        upper_bound_dst=pbox.createDiscreteDistrUpper("ub",upper_bound_cdf_ind, upper_bound_cdf_val)
+        lower_bound_dst.plot(color="purple")
+        upper_bound_dst.plot(color="red")
+        return
 
     def _analytic_dependent_execution(self):
         """ Compute the dependent operation by integrating over all variables"""
@@ -282,6 +311,7 @@ class BinOpDist:
             self._analytic_dependent_execution()
         elif self.dependent_mode == "p-box":
             self._pbox_dependent_execution()
+            self._full_mc_dependent_execution()
 
     def execute(self):
         if self.distribution == None:
@@ -300,6 +330,11 @@ class BinOpDist:
 
             self.distribution.get_piecewise_pdf()
         return self.distribution
+
+    def get_discretization(self):
+        if len(self.discretization)==0:
+            self.discretization = createDSIfromDistribution(self.distribution, n=discretization_points)
+        return self.discretization
 
     def getSampleSet(self, n=100000):
         # it remembers values for future operations

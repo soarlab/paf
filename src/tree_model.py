@@ -56,12 +56,12 @@ class DistributionsManager:
         self.errordictionary = {}
         self.distrdictionary = {}
 
-    def createErrorModel(self, wrapDist, precision, exp, pol_prec, error_model="typical"):
+    def createErrorModel(self, wrapDist, precision, exp, pol_prec, interp_precision, error_model):
         if error_model == "typical":
             if wrapDist.name in self.errordictionary:
                 return self.errordictionary[wrapDist.name]
             else:
-                tmp = ErrorModelWrapper(FastTypicalErrorModel(wrapDist.distribution, wrapDist.name, precision, exp, pol_prec))
+                tmp = ErrorModelWrapper(FastTypicalErrorModel(wrapDist.distribution, wrapDist.name, precision, exp, interp_precision))
                 #tmp = ErrorModelWrapper(TypicalErrorModel(precision=precision))
                 self.errordictionary[wrapDist.name] = tmp
                 return tmp
@@ -150,8 +150,11 @@ class TreeModel:
             # Non-quantized distribution
 
             dist = self.manager.createUnaryOperation(tree.root_value, tree.root_name)
-            smt_manager=SMT_Interface.SMT_Instance()
-            smt_manager.add_var(tree.root_name,tree.root_value.a, tree.root_value.b)
+            smt_manager_dist=SMT_Interface.SMT_Instance()
+            smt_manager_dist.add_var(tree.root_name,tree.root_value.a, tree.root_value.b)
+            smt_manager_qdist=SMT_Interface.SMT_Instance()
+            smt_manager_qdist.add_var(tree.root_name,tree.root_value.a, tree.root_value.b)
+
             dist_smt_query= SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(tree.root_name)
 
             # initialize=True means we quantize the inputs
@@ -160,19 +163,19 @@ class TreeModel:
                 if isPointMassDistr(dist):
                     error = ErrorModelPointMass(dist, self.precision, self.exponent)
                     quantized_distribution = quantizedPointMass(dist, self.precision, self.exponent)
-                    quantized_dist_smt_query = SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(quantized_distribution.distribution.getName())
+                    qdist_smt_query = SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(quantized_distribution.distribution.getName())
                 else:
-                    error = self.manager.createErrorModel(dist, self.precision, self.exponent, self.poly_precision,
+                    error = self.manager.createErrorModel(dist, self.precision, self.exponent, self.poly_precision, self.interp_precision,
                                                           self.error_model)
                     quantized_distribution = self.manager.createBinOperation(dist, "*+", error, self.interp_precision)
                     error_name_SMT=SMT_Interface.clean_var_name_SMT(error.distribution.name)
-                    smt_manager.add_var(error_name_SMT, -error.distribution.eps, error.distribution.eps)
-                    quantized_dist_smt_query = SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(dist_smt_query, "*+", error_name_SMT)
+                    smt_manager_qdist.add_var(error_name_SMT, -error.distribution.eps, error.distribution.eps)
+                    qdist_smt_query = SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(dist_smt_query, "*+", error_name_SMT)
             # Else we leave the leaf distribution unchanged
             else:
                 error = 0
                 quantized_distribution = dist
-                quantized_dist_smt_query = dist_smt_query
+                qdist_smt_query = dist_smt_query
 
 
         # If not at a leaf we need to get the distribution and quantized distributions of the children nodes.
@@ -186,13 +189,14 @@ class TreeModel:
             self.evaluate(tree.left)
             self.evaluate(tree.right)
 
-            smt_manager=tree.left.root_value[5].merge_instance(tree.right.root_value[5])
+            smt_manager_dist=tree.left.root_value[5].merge_instance(tree.right.root_value[5])
+            smt_manager_qdist=tree.left.root_value[6].merge_instance(tree.right.root_value[6])
 
             smt_triple_dist = None
             smt_triple_qdist = None
             if not tree.convolution:
-                smt_triple_dist=(tree.left.root_value[3], tree.right.root_value[3], smt_manager)
-                smt_triple_qdist = (tree.left.root_value[4], tree.right.root_value[4], smt_manager)
+                smt_triple_dist= (tree.left.root_value[3], tree.right.root_value[3], smt_manager_dist)
+                smt_triple_qdist = (tree.left.root_value[4], tree.right.root_value[4], smt_manager_qdist)
 
             dist = self.manager.createBinOperation(tree.left.root_value[0], tree.root_name, tree.right.root_value[0],
                                                    self.interp_precision, smt_triple_dist, convolution=tree.convolution)
@@ -200,21 +204,21 @@ class TreeModel:
                                                     self.interp_precision, smt_triple_qdist, convolution=tree.convolution)
 
             dist_smt_query= SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(tree.left.root_value[3], tree.root_name, tree.right.root_value[3])
-            quantized_dist_smt_query= SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(tree.left.root_value[4], tree.root_name, tree.right.root_value[4])
+            qdist_smt_query= SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(tree.left.root_value[4], tree.root_name, tree.right.root_value[4])
 
 
             if isPointMassDistr(dist):
                 error = ErrorModelPointMass(qdist, self.precision, self.exponent)
                 quantized_distribution = quantizedPointMass(qdist, self.precision, self.exponent)
-                quantized_dist_smt_query = SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(
+                qdist_smt_query = SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(
                     quantized_distribution.distribution.getName())
             else:
                 error = self.manager.createErrorModel(qdist, self.precision, self.exponent, self.poly_precision,
-                                                      self.error_model)
+                                                      self.interp_precision, self.error_model)
                 quantized_distribution = self.manager.createBinOperation(qdist, "*+", error, self.interp_precision)
                 error_name_SMT = SMT_Interface.clean_var_name_SMT(error.distribution.name)
-                smt_manager.add_var(error_name_SMT, -error.distribution.eps, error.distribution.eps)
-                quantized_dist_smt_query = SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(quantized_dist_smt_query, "*+",
+                smt_manager_qdist.add_var(error_name_SMT, -error.distribution.eps, error.distribution.eps)
+                qdist_smt_query = SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(qdist_smt_query, "*+",
                                                                                                 error_name_SMT)
 
         # Unary Operation (exp, cos ,sin)
@@ -225,26 +229,27 @@ class TreeModel:
 
             dist_smt_query = SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(tree.left.root_value[3],
                                                                                  tree.root_name)
-            quantized_dist_smt_query = SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(tree.left.root_value[4],
+            qdist_smt_query = SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(tree.left.root_value[4],
                                                                                            tree.root_name)
-            smt_manager=SMT_Interface.SMT_Instance().merge_instance(tree.left.root_value[5])
+            smt_manager_dist =SMT_Interface.SMT_Instance().merge_instance(tree.left.root_value[5])
+            smt_manager_qdist = SMT_Interface.SMT_Instance().merge_instance(tree.left.root_value[6])
 
             if isPointMassDistr(dist):
                 error = ErrorModelPointMass(qdist, self.precision, self.exponent)
                 quantized_distribution = quantizedPointMass(qdist, self.precision, self.exponent)
-                quantized_dist_smt_query = SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(
+                qdist_smt_query = SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(
                     quantized_distribution.distribution.getName())
             else:
                 error = self.manager.createErrorModel(qdist, self.precision, self.exponent, self.poly_precision,
-                                                      self.error_model)
+                                                      self.interp_precision, self.error_model)
                 quantized_distribution = self.manager.createBinOperation(qdist, "*+", error, self.interp_precision)
                 error_name_SMT = SMT_Interface.clean_var_name_SMT(error.distribution.name)
-                smt_manager.add_var(error_name_SMT, -error.distribution.eps, error.distribution.eps)
-                quantized_dist_smt_query = SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(quantized_dist_smt_query, "*+",
+                smt_manager_qdist.add_var(error_name_SMT, -error.distribution.eps, error.distribution.eps)
+                qdist_smt_query = SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(qdist_smt_query, "*+",
                                                                                                 error_name_SMT)
 
         # We now populate the triple with distribution, error model, quantized distribution '''
-        tree.root_value = [dist, error, quantized_distribution, dist_smt_query, quantized_dist_smt_query, smt_manager]
+        tree.root_value = [dist, error, quantized_distribution, dist_smt_query, qdist_smt_query, smt_manager_dist, smt_manager_qdist]
 
     def resetInit(self, tree):
         if tree.left is not None or tree.right is not None:

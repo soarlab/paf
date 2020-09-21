@@ -62,7 +62,7 @@ class FastTypicalErrorModel(TypicalErrorModel):
     An implementation of the (fast) typical error distribution with three segments
     """
     def __init__(self, input_distribution, input_name, precision, exponent, polynomial_precision):
-        super(FastTypicalErrorModel, self).__init__(input_distribution, precision, exponent, polynomial_precision)
+        super(FastTypicalErrorModel, self).__init__(input_distribution, input_name, precision, exponent, polynomial_precision)
         self.hidden_err_model = MyFunDistr("Hidden_Error_Model", TypErrInterp(-1.0, 1.0, polynomial_precision), breakPoints =[-1.0, 1.0], interpolated=global_interpolate)
         self.name="FTE_" + input_name
 

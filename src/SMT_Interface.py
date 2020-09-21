@@ -37,8 +37,10 @@ class SMT_Instance():
         res = res + "\n"
         return res
 
-    def check(self):
+    def check(self, debug=False):
         query=self.encode()
+        if debug:
+            print(query)
         z3_query="z3 -in"
         proc_run = subprocess.Popen(shlex.split(z3_query),
                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
