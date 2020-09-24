@@ -1,3 +1,6 @@
+import decimal
+from decimal import Decimal
+
 import numpy as np
 from scipy.optimize import linprog
 
@@ -30,21 +33,20 @@ class LP_Instance:
             for kid in pbox.kids:
                 vect[self.association[kid]]=1
             self.constraints.append(vect)
-            self.values.append(pbox.prob)
+            self.values.append([Decimal(pbox.prob).quantize(Decimal('0.0000'), rounding=decimal.ROUND_DOWN),
+                                Decimal(pbox.prob).quantize(Decimal('0.0000'), rounding=decimal.ROUND_UP)])
         for pbox in self.marginal_right:
             vect=np.zeros(len(self.association))
             for kid in pbox.kids:
                 vect[self.association[kid]]=1
             self.constraints.append(vect)
-            self.values.append(pbox.prob)
+            self.values.append([Decimal(pbox.prob).quantize(Decimal('0.0000'), rounding=decimal.ROUND_DOWN),
+                                Decimal(pbox.prob).quantize(Decimal('0.0000'), rounding=decimal.ROUND_UP)])
 
     def compute_evaluation_points(self):
         for pbox in self.internals:
             self.evaluation_points.add(pbox.lower)
             self.evaluation_points.add(pbox.upper)
-        #for pbox in self.marginal_right:
-        #    self.evaluation_points.add(pbox.lower)
-        #    self.evaluation_points.add(pbox.upper)
         self.evaluation_points=sorted(self.evaluation_points)
 
     def optimize_max(self):
@@ -59,11 +61,12 @@ class LP_Instance:
             tmp_b=[]
             unique_constraints, index_constraints = np.unique(self.constraints, axis=0, return_index=True)
             for ind, val in enumerate(unique_constraints):
+                tmp_constraints.append(-val)
+                tmp_b.append(-self.values[index_constraints[ind]][0])
                 tmp_constraints.append(val)
-                tmp_b.append(self.values[index_constraints[ind]])
+                tmp_b.append(self.values[index_constraints[ind]][1])
 
-            print("Evaluation Point", ev_point)
-            res = linprog(-vect, A_eq=np.array(tmp_constraints), b_eq=np.array(tmp_b), bounds=(0, None))
+            res = linprog(-vect, A_ub=np.array(tmp_constraints), b_ub=np.array(tmp_b), bounds=(0, None))
             edge_cdf.append(ev_point)
             val_cdf.append(-res.fun)
         return edge_cdf, val_cdf
@@ -80,11 +83,12 @@ class LP_Instance:
             tmp_b=[]
             unique_constraints, index_constraints = np.unique(self.constraints, axis=0, return_index=True)
             for ind, val in enumerate(unique_constraints):
+                tmp_constraints.append(-val)
+                tmp_b.append(-self.values[index_constraints[ind]][0])
                 tmp_constraints.append(val)
-                tmp_b.append(self.values[index_constraints[ind]])
+                tmp_b.append(self.values[index_constraints[ind]][1])
 
-            print("Evaluation Point", ev_point)
-            res = linprog(vect, A_eq=np.array(tmp_constraints), b_eq=np.array(tmp_b), bounds=(0, None))
+            res = linprog(vect, A_ub=np.array(tmp_constraints), b_ub=np.array(tmp_b), bounds=(0, None))
             edge_cdf.append(ev_point)
             val_cdf.append(res.fun)
         return edge_cdf, val_cdf
