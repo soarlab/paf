@@ -1,3 +1,4 @@
+import copy
 import math
 from pychebfun import *
 
@@ -9,7 +10,6 @@ from pbox import createDSIfromDistribution, PBox
 from regularizer import *
 from project_utils import *
 from gmpy2 import *
-from interval import interval, inf, imath
 
 from setup_utils import global_interpolate, discretization_points
 
@@ -200,38 +200,61 @@ class BinOpDist:
         self.bSamp = self.distributionSamp.range_()[-1]
 
     def _pbox_dependent_execution(self):
-        left_operand_discretization=self.leftoperand.get_discretization()
-        right_operand_discretization=self.rightoperand.get_discretization()
+        left_operand_discr_SMT=copy.deepcopy(self.leftoperand.get_discretization())
+        right_operand_discr_SMT=copy.deepcopy(self.rightoperand.get_discretization())
+
+        left_operand_discr_INT=copy.deepcopy(self.leftoperand.get_discretization())
+        right_operand_discr_INT=copy.deepcopy(self.rightoperand.get_discretization())
+
         expression_left=self.smt_triple[0]
         expression_right=self.smt_triple[1]
         smt_manager = self.smt_triple[2]
-        insides=[]
 
-        for index_left, left_op_int in enumerate(left_operand_discretization):
-            for index_right, right_op_int in enumerate(right_operand_discretization):
+        insides_SMT = []
+        insides_INT = []
 
-                smt_manager.set_expression_left(expression_left, left_op_int.lower, left_op_int.upper )
-                smt_manager.set_expression_right(expression_right, right_op_int.lower, right_op_int.upper )
-                low, sup=IntervalArithmetic.perform_interval_operation(left_op_int.lower,left_op_int.upper,self.operator,
-                                                              right_op_int.lower, right_op_int.upper)
+        for index_left, left_op_box_SMT in enumerate(left_operand_discr_SMT):
+            for index_right, right_op_box_SMT in enumerate(right_operand_discr_SMT):
 
-                if smt_manager.check():
-                    inside_box= PBox(low,sup,"prob")
-                    inside_box.is_marginal=False
-                    left_op_int.add_kid(inside_box)
-                    right_op_int.add_kid(inside_box)
-                    insides.append(inside_box)
+                smt_manager.set_expression_left(expression_left, left_op_box_SMT.lower, left_op_box_SMT.upper )
+                smt_manager.set_expression_right(expression_right, right_op_box_SMT.lower, right_op_box_SMT.upper )
+                low, sup=IntervalArithmetic.perform_interval_operation(left_op_box_SMT.lower, left_op_box_SMT.upper, self.operator,
+                                                              right_op_box_SMT.lower, right_op_box_SMT.upper)
 
-        lp_inst=LP_Instance(left_operand_discretization, right_operand_discretization, insides)
-        upper_bound_cdf_ind, upper_bound_cdf_val=lp_inst.optimize_max()
-        lower_bound_cdf_ind, lower_bound_cdf_val=lp_inst.optimize_min()
+                if smt_manager.check(debug=True):
+                    inside_box_SMT= PBox(low,sup,"prob")
+                    inside_box_SMT.is_marginal=False
+                    left_op_box_SMT.add_kid(inside_box_SMT)
+                    right_op_box_SMT.add_kid(inside_box_SMT)
+                    insides_SMT.append(inside_box_SMT)
+
+                inside_box_INT = PBox(low, sup, "prob")
+                inside_box_INT.is_marginal = False
+                left_operand_discr_INT[index_left].add_kid(inside_box_INT)
+                right_operand_discr_INT[index_right].add_kid(inside_box_INT)
+                insides_INT.append(inside_box_INT)
+
+        lp_inst_SMT=LP_Instance(left_operand_discr_SMT, right_operand_discr_SMT, insides_SMT)
+        upper_bound_cdf_ind_SMT, upper_bound_cdf_val_SMT=lp_inst_SMT.optimize_max()
+        lower_bound_cdf_ind_SMT, lower_bound_cdf_val_SMT=lp_inst_SMT.optimize_min()
+
+        lp_inst_INT=LP_Instance(left_operand_discr_INT, right_operand_discr_INT, insides_INT)
+        upper_bound_cdf_ind_INT, upper_bound_cdf_val_INT=lp_inst_INT.optimize_max()
+        lower_bound_cdf_ind_INT, lower_bound_cdf_val_INT=lp_inst_INT.optimize_min()
+
         plt.figure()
-        plt.plot(lower_bound_cdf_ind, lower_bound_cdf_val, '-o', c="red")
-        plt.plot(upper_bound_cdf_ind, upper_bound_cdf_val, '-o', c="purple")
-        lower_bound_dst=pbox.createDiscreteDistrLower("lb",lower_bound_cdf_ind, lower_bound_cdf_val)
-        upper_bound_dst=pbox.createDiscreteDistrUpper("ub",upper_bound_cdf_ind, upper_bound_cdf_val)
-        lower_bound_dst.plot(color="purple")
-        upper_bound_dst.plot(color="red")
+        plt.plot(lower_bound_cdf_ind_SMT, lower_bound_cdf_val_SMT, '-o', c="red", label="lower_bound_SMT")
+        plt.plot(upper_bound_cdf_ind_SMT, upper_bound_cdf_val_SMT, '-o', c="purple", label="upper_bound_SMT")
+
+        plt.plot(upper_bound_cdf_ind_INT, upper_bound_cdf_val_INT, '-o', c="blue", label="lower_bound_INT")
+        plt.plot(lower_bound_cdf_ind_INT, lower_bound_cdf_val_INT, '-o', c="black", label="upper_bound_INT")
+
+        plt.legend()
+        plt.show()
+
+        lower_bound_dst=pbox.createDiscreteDistrLower("lb",lower_bound_cdf_ind_SMT, lower_bound_cdf_val_SMT)
+        upper_bound_dst=pbox.createDiscreteDistrUpper("ub",upper_bound_cdf_ind_SMT, upper_bound_cdf_val_SMT)
+
         return
 
     def _analytic_dependent_execution(self):
@@ -310,8 +333,8 @@ class BinOpDist:
         elif self.dependent_mode == "analytic":
             self._analytic_dependent_execution()
         elif self.dependent_mode == "p-box":
-            self._pbox_dependent_execution()
             self._full_mc_dependent_execution()
+            self._pbox_dependent_execution()
 
     def execute(self):
         if self.distribution == None:
