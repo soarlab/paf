@@ -15,6 +15,9 @@ class PBox:
     def add_kid(self, kid):
         self.kids.add(kid)
 
+    def clear_kids(self):
+        self.kids.clear()
+
 def createDSIfromDistribution(distribution, n=50):
     lin_space = np.linspace(distribution.range_()[0], distribution.range_()[1], num=n)
     cdf_distr=distribution.get_piecewise_cdf()
