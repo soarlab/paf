@@ -64,15 +64,17 @@ Note the setState and getState methods. Pacal performs convolution using multipr
 library, so the interpolation has to be pickable.
 '''
 class TruncNormal(object):
-    def __init__(self, lower, upper, interp_points):
+    def __init__(self, lower, upper, mean, sigma, interp_points):
         self.lower=lower
         self.upper=upper
+        self.mean=mean
+        self.sigma=sigma
         self.interp_points=interp_points
         self.name="Stand. Norm["+str(lower)+","+str(upper)+"]"
         self.interp_trunc_norm=chebfun(self.truncatedNormal, domain=[self.lower, self.upper], N=self.interp_points)
 
     def truncatedNormal(self, x):
-        tmp = pacal.NormalDistr(0, 1)
+        tmp = pacal.NormalDistr(self.mean, self.sigma)
         if isinstance(x, float) or isinstance(x, int) or len(x) == 1:
             if x < self.lower or x > self.upper:
                 return 0
@@ -99,6 +101,8 @@ class TruncNormal(object):
     def __setstate__(self, dict):
         self.lower = dict["lower"]
         self.upper = dict["upper"]
+        self.mean = dict["mean"]
+        self.sigma = dict["sigma"]
         self.name = dict["name"]
         self.interp_points = dict["interp_points"]
         if 'interp_trunc_norm' not in dict:
@@ -118,7 +122,11 @@ class N(stats.rv_continuous, Distr):
         self.indipendent=True
         self.a = float(a)
         self.b = float(b)
+        self.mean=0
+        self.sigma=0.01
+        self.interpolation_points=500
         self.discretization = []
+        self.init_piecewise_pdf()
         self.get_discretization()
 
     def resetSampleInit(self):
@@ -135,8 +143,10 @@ class N(stats.rv_continuous, Distr):
 
     def init_piecewise_pdf(self):
         piecewise_pdf = PiecewiseDistribution([])
-        piecewise_pdf.addSegment(Segment(a=self.a, b=self.b,
-            f = MyFunDistr(TruncNormal(self.a,self.b,50), breakPoints =[self.a, self.b], interpolated=global_interpolate)))
+        not_norm_hidden_pdf=MyFunDistr("Truncated-Normal", TruncNormal(self.a, self.b, self.mean, self.sigma, self.interpolation_points), breakPoints=[self.a, self.b],
+                   interpolated=global_interpolate)
+        hidden_pdf=normalizeDistribution(not_norm_hidden_pdf, init=True)
+        piecewise_pdf.addSegment(Segment(a=self.a, b=self.b,f =hidden_pdf.get_piecewise_pdf()))
         self.piecewise_pdf = piecewise_pdf
 
     def get_discretization(self):
@@ -153,7 +163,9 @@ class N(stats.rv_continuous, Distr):
     def getSampleSet(self,n=100000):
         #it remembers values for future operations
         if self.sampleInit:
-            tmp_dist = truncnorm(self.a, self.b)
+            a_trans= (self.a - self.mean) / self.sigma
+            b_trans= (self.b - self.mean) / self.sigma
+            tmp_dist = truncnorm(a_trans, b_trans)
             self.sampleSet = tmp_dist.rvs(size=n)
             self.sampleInit = False
         return self.sampleSet
