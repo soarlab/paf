@@ -1,33 +1,43 @@
 import copy
+import functools
 import math
+import bisect
+from decimal import Decimal
+from itertools import compress
+
+from pacal import ConstDistr
 from pychebfun import *
 
-import IntervalArithmetic
+from IntervalArithmeticLibrary import Interval, empty_interval_domain
 import model
-import pbox
-from linearprogramming import LP_Instance
-from pbox import createDSIfromDistribution, PBox
+from SMT_Interface import create_exp_for_BinaryOperation_SMT_LIB
+from linearprogramming import LP_Instance, LP_with_SMT
+from mixedarithmetic import MixedArithmetic, PBox, from_PDFS_PBox_to_DSI, from_DSI_to_PBox, from_DSI_to_PBox_with_Delta, \
+    from_CDFS_PBox_to_DSI
+from plotting import plot_operation
+from pruning import clean_co_domain
 from regularizer import *
 from project_utils import *
 from gmpy2 import *
 
-from setup_utils import global_interpolate, discretization_points
+from setup_utils import global_interpolate, digits_for_cdf, discretization_points
 
 
 class quantizedPointMass:
 
     def __init__(self, wrapperInputDistribution, precision, exp):
         self.wrapperInputDistribution = wrapperInputDistribution
-        self.inputdistribution = self.wrapperInputDistribution.execute()
         self.precision = precision
         self.exp = exp
         set_context_precision(self.precision, self.exp)
-        qValue = printMPFRExactly(mpfr(str(self.inputdistribution.rand(1)[0])))
+        self.qValue = printMPFRExactly(mpfr(self.wrapperInputDistribution.discretization.affine.center.lower))
         reset_default_precision()
-        self.name = self.inputdistribution.getName()
+        self.name = self.qValue
         self.sampleInit = True
-        self.distribution = ConstDistr(float(qValue))
+        self.distribution = ConstDistr(float(self.qValue))
         self.distribution.get_piecewise_pdf()
+        self.discretization=None
+        self.get_discretization()
         self.a = self.distribution.range_()[0]
         self.b = self.distribution.range_()[-1]
 
@@ -47,6 +57,20 @@ class quantizedPointMass:
     def getName(self):
         return self.name
 
+    def get_discretization(self):
+        if self.discretization==None:
+            self.discretization=self.create_discretization()
+        return self.discretization
+
+    def create_discretization(self):
+        lower=self.wrapperInputDistribution.discretization.intervals[0].interval.lower
+        upper=self.wrapperInputDistribution.discretization.intervals[-1].interval.upper
+        with gmpy2.local_context(set_context_precision(self.precision, self.exp), round=gmpy2.RoundDown) as ctx:
+            lower=round_number_down_to_digits(mpfr(lower),digits_for_discretization)
+        with gmpy2.local_context(set_context_precision(self.precision, self.exp), round=gmpy2.RoundUp) as ctx:
+            upper=round_number_up_to_digits(mpfr(upper),digits_for_discretization)
+        return MixedArithmetic(lower,upper,
+                               [PBox(Interval(lower,upper,True,True,digits_for_discretization),"0.0","1.0")])
 
 class DependentOperationExecutor(object):
     def __init__(self, bins, n, interp_points):
@@ -102,7 +126,7 @@ class BinOpDist:
     """
 
     def __init__(self, leftoperand, operator, rightoperand, smt_triple, name, poly_precision, samples_dep_op, regularize=True,
-                 convolution=True, dependent_mode="full_mc"):
+                 convolution=True, dependent_mode="full_mc", is_error_computation=False):
         self.leftoperand = leftoperand
         self.operator = operator
         self.rightoperand = rightoperand
@@ -111,16 +135,17 @@ class BinOpDist:
         self.poly_precision = poly_precision
         self.samples_dep_op = samples_dep_op
         self.regularize = regularize
+        self.is_error_computation=is_error_computation
         self.convolution = convolution
         self.dependent_mode = dependent_mode
         self.distribution = None
         self.distributionConv = None
         self.distributionSamp = None
         self.sampleInit = True
-        self.discretization=[]
+        self.discretization=None
         self.execute()
 
-    def executeIndependent(self):
+    def executeConvolution(self):
         if self.operator == "+":
             self.distributionConv = self.leftoperand.execute() + self.rightoperand.execute()
         elif self.operator == "-":
@@ -178,24 +203,15 @@ class BinOpDist:
 
     def _full_mc_dependent_execution(self):
         tmp_res = self.distributionValues
-        bin_nb = int(math.ceil(math.sqrt(len(tmp_res))))
-
-        # !!!!!!!!!!!!!!!!!!!!!!!!!!
-        # Try also with bins=AUTO !!!
-        # !!!!!!!!!!!!!!!!!!!!!!!!!!
-
+        plt.figure()
         n, bins, patches = plt.hist(tmp_res, bins='auto', density=True)
-
         breaks = [min(bins), max(bins)]
-
         self.distributionSamp = MyFunDistr(self.name, DependentOperationExecutor(bins, n, self.poly_precision), breakPoints=breaks,
                                            interpolated=global_interpolate)
         self.distributionSamp.get_piecewise_pdf()
-
         if self.regularize:
             self.distributionSamp = chebfunInterpDistr(self.distributionSamp, 10)
             self.distributionSamp = normalizeDistribution(self.distributionSamp, init=True)
-
         self.aSamp = self.distributionSamp.range_()[0]
         self.bSamp = self.distributionSamp.range_()[-1]
 
@@ -203,129 +219,72 @@ class BinOpDist:
         left_operand_discr_SMT=copy.deepcopy(self.leftoperand.get_discretization())
         right_operand_discr_SMT=copy.deepcopy(self.rightoperand.get_discretization())
 
-        left_operand_discr_INT=copy.deepcopy(self.leftoperand.get_discretization())
-        right_operand_discr_INT=copy.deepcopy(self.rightoperand.get_discretization())
+        #if self.is_error_computation:
+        #    left_evaluation_points=set()
+        #    right_evaluation_points=set()
+        #    for left_internal in left_operand_discr_SMT.intervals:
+        #        left_evaluation_points.add(Decimal(left_internal.interval.lower))
+        #        left_evaluation_points.add(Decimal(left_internal.interval.upper))
+        #    for right_internal in right_operand_discr_SMT.intervals:
+        #        right_evaluation_points.add(Decimal(right_internal.interval.lower))
+        #        right_evaluation_points.add(Decimal(right_internal.interval.upper))
+        #    left_edge_cdf, left_val_cdf_low, left_val_cdf_up=from_CDFS_PBox_to_DSI(left_operand_discr_SMT.intervals, left_evaluation_points)
+        #    right_edge_cdf, right_val_cdf_low, right_val_cdf_up=from_CDFS_PBox_to_DSI(right_operand_discr_SMT.intervals, right_evaluation_points)
+        #    left_operand_discr_SMT.intervals=from_DSI_to_PBox_with_Delta(left_edge_cdf, left_val_cdf_low, left_edge_cdf, left_val_cdf_up)
+        #    right_operand_discr_SMT.intervals=from_DSI_to_PBox_with_Delta(right_edge_cdf, right_val_cdf_low, right_edge_cdf, right_val_cdf_up)
 
         expression_left=self.smt_triple[0]
         expression_right=self.smt_triple[1]
         smt_manager = self.smt_triple[2]
 
+        expression_center= create_exp_for_BinaryOperation_SMT_LIB(expression_left,self.operator,expression_right)
+        domain_affine_SMT=left_operand_discr_SMT.affine.perform_affine_operation(self.operator,right_operand_discr_SMT.affine)
         insides_SMT = []
-        insides_INT = []
+        evaluation_points=set()
+        print(self.leftoperand.name,self.operator,self.rightoperand.name)
+        print("Pruning dependent operation...")
 
-        for index_left, left_op_box_SMT in enumerate(left_operand_discr_SMT):
-            for index_right, right_op_box_SMT in enumerate(right_operand_discr_SMT):
+        for index_left, left_op_box_SMT in enumerate(left_operand_discr_SMT.intervals):
+            for index_right, right_op_box_SMT in enumerate(right_operand_discr_SMT.intervals):
 
-                smt_manager.set_expression_left(expression_left, left_op_box_SMT.lower, left_op_box_SMT.upper )
-                smt_manager.set_expression_right(expression_right, right_op_box_SMT.lower, right_op_box_SMT.upper )
-                low, sup=IntervalArithmetic.perform_interval_operation(left_op_box_SMT.lower, left_op_box_SMT.upper, self.operator,
-                                                              right_op_box_SMT.lower, right_op_box_SMT.upper)
+                smt_manager.set_expression_left(expression_left, left_op_box_SMT.interval)
+                smt_manager.set_expression_right(expression_right, right_op_box_SMT.interval)
+                domain_interval=left_op_box_SMT.interval.perform_interval_operation(self.operator,right_op_box_SMT.interval)
+                intersection_interval = domain_interval.intersection(domain_affine_SMT.interval)
+                if not intersection_interval == empty_interval_domain:
+                    if smt_manager.check(debug=False, dReal=False):
+                        #now we can clean the domain
+                        clean_intersection_interval = \
+                            clean_co_domain(intersection_interval,smt_manager,expression_center,
+                                            start_recursion_limit=0, dReal=not self.is_error_computation)
+                        inside_box_SMT = PBox(clean_intersection_interval,"prob","prob")
+                        evaluation_points.add(Decimal(clean_intersection_interval.lower))
+                        evaluation_points.add(Decimal(clean_intersection_interval.upper))
+                        left_op_box_SMT.add_kid(inside_box_SMT)
+                        right_op_box_SMT.add_kid(inside_box_SMT)
+                        insides_SMT.append(inside_box_SMT)
+                        smt_manager.clean_expressions()
 
-                if smt_manager.check(debug=True):
-                    inside_box_SMT= PBox(low,sup,"prob")
-                    inside_box_SMT.is_marginal=False
-                    left_op_box_SMT.add_kid(inside_box_SMT)
-                    right_op_box_SMT.add_kid(inside_box_SMT)
-                    insides_SMT.append(inside_box_SMT)
-
-                inside_box_INT = PBox(low, sup, "prob")
-                inside_box_INT.is_marginal = False
-                left_operand_discr_INT[index_left].add_kid(inside_box_INT)
-                right_operand_discr_INT[index_right].add_kid(inside_box_INT)
-                insides_INT.append(inside_box_INT)
-
-        lp_inst_SMT=LP_Instance(left_operand_discr_SMT, right_operand_discr_SMT, insides_SMT)
+        evaluation_points = sorted(evaluation_points)
+        if len(evaluation_points)>discretization_points and not self.is_error_computation:
+            step = round(len(evaluation_points) / discretization_points)
+            step = max(1,step)
+            evaluation_points = sorted(set(evaluation_points[::step]+[evaluation_points[-1]]))
+        lp_inst_SMT=LP_with_SMT(self.leftoperand.name,self.rightoperand.name,
+                    left_operand_discr_SMT.intervals,right_operand_discr_SMT.intervals,insides_SMT,evaluation_points)
         upper_bound_cdf_ind_SMT, upper_bound_cdf_val_SMT=lp_inst_SMT.optimize_max()
         lower_bound_cdf_ind_SMT, lower_bound_cdf_val_SMT=lp_inst_SMT.optimize_min()
 
-        lp_inst_INT=LP_Instance(left_operand_discr_INT, right_operand_discr_INT, insides_INT)
-        upper_bound_cdf_ind_INT, upper_bound_cdf_val_INT=lp_inst_INT.optimize_max()
-        lower_bound_cdf_ind_INT, lower_bound_cdf_val_INT=lp_inst_INT.optimize_min()
 
-        plt.figure()
-        plt.plot(lower_bound_cdf_ind_SMT, lower_bound_cdf_val_SMT, '-o', c="red", label="lower_bound_SMT")
-        plt.plot(upper_bound_cdf_ind_SMT, upper_bound_cdf_val_SMT, '-o', c="purple", label="upper_bound_SMT")
+        if not lower_bound_cdf_ind_SMT == upper_bound_cdf_ind_SMT:
+            print("Lists should be identical")
+            exit(-1)
 
-        plt.plot(upper_bound_cdf_ind_INT, upper_bound_cdf_val_INT, '-o', c="blue", label="lower_bound_INT")
-        plt.plot(lower_bound_cdf_ind_INT, lower_bound_cdf_val_INT, '-o', c="black", label="upper_bound_INT")
-
-        plt.legend()
-        plt.show()
-
-        lower_bound_dst=pbox.createDiscreteDistrLower("lb",lower_bound_cdf_ind_SMT, lower_bound_cdf_val_SMT)
-        upper_bound_dst=pbox.createDiscreteDistrUpper("ub",upper_bound_cdf_ind_SMT, upper_bound_cdf_val_SMT)
-
-        return
-
-    def _analytic_dependent_execution(self):
-        """ Compute the dependent operation by integrating over all variables"""
-        # find set of variables
-        self.variable_dictionary = {}
-        self._populate_variable_dictionary(self.leftoperand)
-        self._populate_variable_dictionary(self.rightoperand)
-        # this is only guaranteed to work from Python 3.7
-        variable_tuple = list(self.variable_dictionary)
-        variable_nb = len(variable_tuple)
-        # find integration bounds
-        lower_bound = np.full(variable_nb, np.NINF)
-        upper_bound = np.full(variable_nb, np.inf)
-        for i in range(variable_nb):
-            lower_bound[i] = self.variable_dictionary[variable_tuple[i]].range_()[0]
-            upper_bound[i] = self.variable_dictionary[variable_tuple[i]].range_()[1]
-        # perform multidimensional integration
-
-    def _nd_trap(self, f, range_array, value_array, auxiliary_array):
-        """ Recursively performs an n-dimensional integration using the trapezoidal rule
-            If f is integrated along n dimensions, then at any call to _nd_trap the array range_array will have
-            dimension 1 <= m < n and value_array will have dimension n-m.
-            auxiliary_array is the list of inputs of f which are not integrated against (can be empty!).
-        """
-        integral = 0
-        nb_steps = 10.0
-        if len(range_array) == 0:
-            return integral
-        h = (range_array[0][1] - range_array[0][0]) / nb_steps
-        if len(range_array) == 1:
-            x = value_array
-            x.append(range_array[0][0])
-            integral += 0.5 * f(x, auxiliary_array)
-            for i in range(1, nb_steps):
-                x = x[:-1]
-                x.append(range_array[0][0] + (i * h))
-                integral += f(x, auxiliary_array)
-            x = x[:-1]
-            x.append(range_array[0][1])
-            integral += 0.5 * f(x, auxiliary_array)
-            return h * integral
-        else:
-            x = value_array
-            x.append(range_array[0][0])
-            integral += 0.5 * self._nd_trap(self, f, range_array[1:], x, auxiliary_array)
-            for i in range(0, nb_steps):
-                x = x[:-1]
-                x.append(range_array[0][0] + (i * h))
-                integral += self._nd_trap(self, f, range_array[1:], x, auxiliary_array)
-            x = x[:-1]
-            x.append(range_array[0][1])
-            integral += 0.5 * self._nd_trap(self, f, range_array[1:], x, auxiliary_array)
-            return h * integral
-
-    def _evaluate_tree(self, input_tuple, t):
-        """ Function to be integrated in the analytic method """
-
-    def _populate_variable_dictionary(self, tree, variable_dictionary):
-        if tree is not None:
-            # test if tree is a leaf
-            if tree.left is None:
-                # test if it contains a variable
-                if not tree.root_value.isScalar:
-                    # test if it is already contained in the set
-                    if tree.root_name not in variable_dictionary:
-                        variable_dictionary[tree.root_name] = tree.root_value.distribution
-            # else recursively call _populate_variable_set
-            else:
-                self._populate_variable_dictionary(tree.left, variable_dictionary)
-                self._populate_variable_dictionary(tree.right, variable_dictionary)
+        edge_cdf=lower_bound_cdf_ind_SMT
+        val_cdf_low=lower_bound_cdf_val_SMT
+        val_cdf_up=upper_bound_cdf_val_SMT
+        pboxes=from_DSI_to_PBox(edge_cdf, val_cdf_low, edge_cdf, val_cdf_up)
+        self.discretization =MixedArithmetic.clone_MixedArith_from_Args(domain_affine_SMT, pboxes)
 
     def executeDependent(self):
         if self.dependent_mode == "full_mc":
@@ -335,6 +294,56 @@ class BinOpDist:
         elif self.dependent_mode == "p-box":
             self._full_mc_dependent_execution()
             self._pbox_dependent_execution()
+
+    def executeIndependent(self):
+        self.executeConvolution()
+        self.executeIndPBox()
+
+    def executeIndPBox(self):
+        left_op=copy.deepcopy(self.leftoperand.get_discretization())
+        right_op=copy.deepcopy(self.rightoperand.get_discretization())
+        domain_affine = left_op.affine.perform_affine_operation(self.operator, right_op.affine)
+        insiders=[]
+        evaluation_points=set()
+        print(self.leftoperand.name,self.operator,self.rightoperand.name)
+
+        print("Left:\n", self.probability_in_insiders(self.leftoperand.discretization.intervals))
+        print("Right:\n", self.probability_in_insiders(self.rightoperand.discretization.intervals))
+
+        for index_left, left_op_box in enumerate(left_op.intervals):
+            pdf_left = Decimal(left_op_box.cdf_up)-Decimal(left_op_box.cdf_low)
+            for index_right, right_op_box in enumerate(right_op.intervals):
+                pdf_right = Decimal(right_op_box.cdf_up) - Decimal(right_op_box.cdf_low)
+                domain_interval=left_op_box.interval.perform_interval_operation(self.operator,right_op_box.interval)
+                probability=pdf_left*pdf_right
+                #probability=round_near(probability,digits_for_cdf)
+                inside_box = PBox(domain_interval, dec2Str(probability), dec2Str(probability))
+                insiders.append(inside_box)
+                evaluation_points.add(Decimal(domain_interval.lower))
+                evaluation_points.add(Decimal(domain_interval.upper))
+
+        print("Result:\n", self.probability_in_insiders(insiders))
+
+        evaluation_points = sorted(evaluation_points)
+        if len(evaluation_points)>discretization_points and not self.is_error_computation:
+            step = round(len(evaluation_points) / discretization_points)
+            step = max(1,step)
+            evaluation_points = sorted(set(evaluation_points[::step]+[evaluation_points[-1]]))
+
+        edge_cdf, val_cdf_low, val_cdf_up=from_PDFS_PBox_to_DSI(insiders, evaluation_points)
+        pboxes = from_DSI_to_PBox(edge_cdf, val_cdf_low, edge_cdf, val_cdf_up)
+
+        self.discretization = MixedArithmetic.clone_MixedArith_from_Args(domain_affine, pboxes)
+
+    def probability_in_insiders(self, insiders):
+        res_left= Decimal("0")
+        res_right = Decimal("0")
+        for inside in insiders:
+            res_left=res_left+Decimal(inside.cdf_low)
+            res_right=res_right+Decimal(inside.cdf_up)
+        ret="Total probability in insiders low: "+dec2Str(res_left)+"\n"
+        ret = ret+"Total probability in insiders up: " + dec2Str(res_right)
+        return ret
 
     def execute(self):
         if self.distribution == None:
@@ -355,8 +364,8 @@ class BinOpDist:
         return self.distribution
 
     def get_discretization(self):
-        if len(self.discretization)==0:
-            self.discretization = createDSIfromDistribution(self.distribution, n=discretization_points)
+        if self.discretization==None:
+            self.execute()
         return self.discretization
 
     def getSampleSet(self, n=100000):
@@ -392,7 +401,7 @@ class UnOpDist:
             self.distribution = model.sin(operand.execute())
             self.distribution.get_piecewise_pdf()
         elif operation is "abs":
-            self.distribution = model.abs(operand.execute())
+            self.distribution = model.abs(operand)
             self.distribution.get_piecewise_pdf()
         else:
             print("Unary operation not yet supported")
@@ -404,6 +413,8 @@ class UnOpDist:
         self.sampleInit=True
         self.a = self.distribution.range_()[0]
         self.b = self.distribution.range_()[-1]
+        self.discretization=None
+        self.get_discretization()
 
     def execute(self):
         return self.distribution
@@ -431,4 +442,6 @@ class UnOpDist:
         return self.name
 
     def get_discretization(self):
-        return self.distribution.get_discretization()
+        if self.discretization==None:
+            self.discretization =self.distribution.get_discretization()
+        return self.discretization
