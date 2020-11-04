@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import numpy as np
 import statsmodels.stats
 import scipy.stats
@@ -89,6 +91,35 @@ def collectInfoAboutCDFDistributionINV(f, finalDistr_wrapper, name):
         f.flush()
         return collectInfoAboutCDFDistributionNaive(f, finalDistr_wrapper, name, finalDistr_wrapper.a, 1000)
     res=res+"Range: ["+str(finalDistr_wrapper.a)+","+str(finalDistr_wrapper.b)+"] contains "+str(100)+"% of the distribution.\n\n"
+    res = res+"###########################################\n\n"
+    f.write(res)
+    return
+
+def collectInfoAboutCDFDistributionPBox(f, finalDistr_wrapper, name):
+    res="###### Info about "+name+"#######:\n\n"
+    discretization=finalDistr_wrapper.discretization
+    res=res+"Starting range analysis from: "+str(discretization.intervals[0].interval.lower)+" \n\n\n"
+    probs = ["0.25", "0.5", "0.75", "0.85", "0.99", "0.999"]
+
+    upper_discretization = sorted(discretization.intervals,
+                                  key=lambda x: Decimal(x.cdf_up), reverse=False)
+    lower_discretization = sorted(discretization.intervals,
+                                  key=lambda x: Decimal(x.cdf_low), reverse=False)
+
+    for prob in probs:
+        for pbox in upper_discretization:
+            if Decimal(pbox.cdf_up) >= Decimal(prob):
+                res = res + "Range: [" + str(discretization.intervals[0].interval.lower) + "," + str(pbox.interval.upper) \
+                                    + "] contains less than " + str(Decimal(prob) * 100) + "% of the distribution (with 100% prob).\n\n"
+                break
+
+    for prob in probs:
+        for pbox in lower_discretization:
+            if Decimal(pbox.cdf_low) >= Decimal(prob):
+                res = res + "Range: [" + str(discretization.intervals[0].interval.lower) + "," + str(pbox.interval.upper) \
+                                    + "] contains at least " + str(Decimal(prob) * 100) + "% of the distribution  (with 100% prob).\n\n"
+                break
+    res=res+"Range: ["+str(discretization.intervals[0].interval.lower)+","+str(discretization.intervals[-1].interval.upper)+"] contains 100% of the distribution.\n\n"
     res = res+"###########################################\n\n"
     f.write(res)
     return
