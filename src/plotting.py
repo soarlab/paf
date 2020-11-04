@@ -1,10 +1,13 @@
+from decimal import Decimal
 import matplotlib.pyplot as plt
 import numpy as np
-from setup_utils import output_path, benchmarks_path
-from storage import load_histograms_error_from_disk, load_histograms_error_from_disk, \
+from matplotlib.patches import Rectangle
+
+from setup_utils import output_path
+from storage import load_histograms_error_from_disk, \
     load_histograms_range_from_disk, store_histograms_error, store_histograms_range
 from evaluation import collectInfoAboutSampling, collectInfoAboutCDFDistributionINV, measureDistances, \
-    collectInfoAboutCDFDistributionNaive, collectInfoAboutCDFSampling
+    collectInfoAboutCDFDistributionNaive, collectInfoAboutCDFSampling, collectInfoAboutCDFDistributionPBox
 
 plt.rcParams.update({'font.size': 30})
 plt.rcParams.update({'figure.autolayout': True})
@@ -104,6 +107,62 @@ def plotCDF(edges, vals, normalize, **kwargs):
     plt.plot(edges, cdf_tmp , **kwargs)
     return cdf_tmp, edges
 
+def plotCDFdiscretization(insiders):
+    plot_boxing(insiders)
+
+    evaluation_points=set()
+    for pbox in insiders:
+        evaluation_points.add(Decimal(pbox.interval.lower))
+        evaluation_points.add(Decimal(pbox.interval.upper))
+    evaluation_points = sorted(evaluation_points)
+
+    edge_cdf = []
+    val_cdf_low = []
+    val_cdf_up = []
+
+    res_ub = Decimal("-inf")  # Interval("0.0", "0.0", True, True, digits_for_cdf)
+    res_lb = Decimal("+inf")  # Interval("0.0", "0.0", True, True, digits_for_cdf)
+
+    for ev_point in evaluation_points:
+        if ev_point==Decimal(insiders[0].interval.lower):
+            edge_cdf.append(float(ev_point))
+            val_cdf_low.append(0)
+            val_cdf_up.append(0)
+        elif ev_point == Decimal(insiders[-1].interval.upper):
+            edge_cdf.append(float(ev_point))
+            val_cdf_low.append(1)
+            val_cdf_up.append(1)
+        else:
+            for inside in insiders:
+                if Decimal(inside.interval.lower) < ev_point < Decimal(inside.interval.upper):
+                    res_ub=max(res_ub, Decimal(inside.cdf_up)) #.addition(Interval(inside.cdf_low,inside.cdf_up,True,True, digits_for_cdf))
+                    res_lb=min(res_lb, Decimal(inside.cdf_low))
+                elif Decimal(inside.interval.lower) == ev_point and inside.interval.include_lower:
+                    res_ub=max(res_ub, Decimal(inside.cdf_up)) #res_ub.addition(Interval(inside.cdf_low,inside.cdf_up,True,True, digits_for_cdf))
+                    res_lb=min(res_lb, Decimal(inside.cdf_low))
+                elif Decimal(inside.interval.upper) == ev_point and inside.interval.include_upper:
+                    res_ub=max(res_ub, Decimal(inside.cdf_up)) #res_ub.addition(Interval(inside.cdf_low,inside.cdf_up,True,True, digits_for_cdf))
+                    res_lb=min(res_lb, Decimal(inside.cdf_low))
+            edge_cdf.append(float(ev_point))
+            val_cdf_low.append(float(res_lb))
+            val_cdf_up.append(float(res_ub))
+            res_ub = Decimal("-inf")
+            res_lb = Decimal("+inf")
+    plt.plot(edge_cdf, val_cdf_low, 'X', c="black")
+    plt.plot(edge_cdf, val_cdf_up, 'o', c="blue")
+    plt.show(block=False)
+
+def plot_boxing(ret_list):
+    ax = plt.gca()
+    plt.show(block=False)
+    for val in ret_list:
+        ax.add_patch(Rectangle((float(val.interval.lower), float(val.cdf_low)),
+                               float(val.interval.upper)-float(val.interval.lower),
+                               float(val.cdf_up)-float(val.cdf_low), color='black',
+                               fill = False, label=("Paving" if val==ret_list[0] else "")))
+    plt.legend()
+    return
+
 def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_short, samples_golden, fileHook, file_name, range_fpt):
     a = final_distribution.a
     b = final_distribution.b
@@ -133,6 +192,9 @@ def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_short, sam
     title = "CDF Range Analysis with PAF using INV CDF "
     collectInfoAboutCDFDistributionINV(fileHook, final_distribution, title)
 
+    title = "CDF Range Analysis with PAF using PBox Discretization"
+    collectInfoAboutCDFDistributionPBox(fileHook, final_distribution, title)
+
     sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
     notnorm_vals, notnorm_edges = np.histogram(samples_short, bins='auto', density=True)
     vals, edges = plotCDF(notnorm_edges, notnorm_vals, normalize=True, color="blue", label="Sampled distribution", linewidth=3)
@@ -149,6 +211,9 @@ def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_short, sam
     #x = np.linspace(a, b, 1000)
     #plt.plot(x, abs(final_distribution.distribution.get_piecewise_cdf()(x)), linewidth=3, color="red")
     final_distribution.distribution.get_piecewise_cdf().plot(xmin=a, xmax=b, linewidth=3, color="red")
+
+    plotCDFdiscretization(final_distribution.discretization.intervals)
+
     plotTicks(tmp_filename, "X", "green", 4, 500, ticks=range_fpt, label="FPT: " + str(range_fpt))
     plotBoundsDistr(tmp_filename, final_distribution.distribution)
     plt.xlabel('Distribution Range')
@@ -249,6 +314,9 @@ def plot_error_analysis_CDF(abs_err, loadedGolden, abs_err_samples, abs_err_gold
     title = "CDF Error Analysis with PAF using INV CDF "
     collectInfoAboutCDFDistributionINV(summary_file, abs_err, title)
 
+    title = "CDF Error Analysis with PAF using PBox Discretization"
+    collectInfoAboutCDFDistributionPBox(summary_file, abs_err, title)
+
     sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
     not_norm_vals, not_norm_edges = np.histogram(abs_err_samples, bins='auto', density=True)
     vals, edges = plotCDF(not_norm_edges, not_norm_vals, normalize=True, linewidth=3, color="blue",label="Sampled distribution")
@@ -266,6 +334,9 @@ def plot_error_analysis_CDF(abs_err, loadedGolden, abs_err_samples, abs_err_gold
     #x = np.linspace(abs_err.a, abs_err.b, 1000)
     #plt.plot(x, abs(abs_err.distribution.get_piecewise_cdf()(x)), linewidth=3, color="red")
     abs_err.distribution.get_piecewise_cdf().plot(xmin=abs_err.a, xmax=abs_err.b, linewidth=3, color="red")
+
+    plotCDFdiscretization(abs_err.discretization.intervals)
+
     plotTicks(tmp_name, "X", "green", 4, 500, ticks="[0.0, " + str(abs_fpt) + "]", label="FPT: " + str(abs_fpt))
     plotBoundsDistr(tmp_name, abs_err.distribution)
     plt.ticklabel_format(axis='both', style='sci', scilimits=(0, 0))
@@ -276,3 +347,10 @@ def plot_error_analysis_CDF(abs_err, loadedGolden, abs_err_samples, abs_err_gold
     plt.savefig(output_path + file_name + "/" + tmp_name)
     plt.clf()
     plt.close()
+
+def plot_operation(edge_cdf,val_cdf_low,val_cdf_up):
+    plt.figure()
+    plt.plot([float(a) for a in edge_cdf], [float(a) for a in val_cdf_low], 'o', c="red", label="lower_bound_SMT")
+    plt.plot([float(a) for a in edge_cdf], [float(a) for a in val_cdf_up], 'x', c="purple", label="upper_bound_SMT")
+    plt.ticklabel_format(axis='both', style='sci')
+    plt.legend()
