@@ -1,18 +1,19 @@
 import copy
+from decimal import Decimal
 
 import pacal
 from pacal import UniformDistr, ConstDistr, BetaDistr
 from pacal.distr import Distr
-from pacal.utils import wrap_pdf
 from pychebfun import chebfun
 from scipy.stats import truncnorm
-import numpy as np
 
-from pbox import createDSIfromDistribution
+from IntervalArithmeticLibrary import Interval
+from operations import BinOpDist
+from mixedarithmetic import createDSIfromDistribution, MixedArithmetic, dec2Str, PBox, from_PDFS_PBox_to_DSI, \
+    from_DSI_to_PBox
 from project_utils import MyFunDistr, normalizeDistribution
-from setup_utils import global_interpolate, discretization_points
+from setup_utils import global_interpolate, discretization_points, digits_for_discretization
 from scipy import stats
-from pacal.segments import PiecewiseDistribution, Segment, ConstSegment, ConstFun
 
 
 class NodeManager:
@@ -125,7 +126,7 @@ class N(stats.rv_continuous, Distr):
         self.mean=0
         self.sigma=0.01
         self.interpolation_points=500
-        self.discretization = []
+        self.discretization = None
         self.init_piecewise_pdf()
         self.get_discretization()
 
@@ -150,7 +151,7 @@ class N(stats.rv_continuous, Distr):
         self.piecewise_pdf = piecewise_pdf
 
     def get_discretization(self):
-        if len(self.discretization)==0:
+        if self.discretization==None:
             self.discretization = createDSIfromDistribution(self, n=discretization_points)
         return self.discretization
 
@@ -180,7 +181,7 @@ class B(BetaDistr):
         self.sampleInit = True
         self.isScalar = False
         self.sampleSet=[]
-        self.discretization = []
+        self.discretization = None
         self.get_discretization()
 
     def getName(self):
@@ -190,7 +191,7 @@ class B(BetaDistr):
         return self
 
     def get_discretization(self):
-        if len(self.discretization)==0:
+        if self.discretization==None:
             self.discretization = createDSIfromDistribution(self, n=discretization_points)
         return self.discretization
 
@@ -306,7 +307,7 @@ class CustomDistr(stats.rv_continuous, Distr):
         return self.piecewise_pdf
 
     def get_discretization(self):
-        if len(self.discretization)==0:
+        if self.discretization==None:
             self.discretization = createDSIfromDistribution(self, n=discretization_points)
         return self.discretization
 
@@ -420,7 +421,7 @@ class U(UniformDistr):
         self.sampleInit = True
         self.isScalar = False
         self.sampleSet=[]
-        self.discretization = []
+        self.discretization = None
         self.get_discretization()
 
     def execute(self):
@@ -430,7 +431,7 @@ class U(UniformDistr):
         return self.name
 
     def get_discretization(self):
-        if len(self.discretization)==0:
+        if self.discretization==None:
             self.discretization = createDSIfromDistribution(self, n=discretization_points)
         return self.discretization
 
@@ -449,12 +450,14 @@ class U(UniformDistr):
 
 class Number(ConstDistr):
     def __init__(self, label):
-        super().__init__(c = self.value, name='Number')
+        super().__init__(c = float(label))
         self.name = label
         self.value = float(label)
         self.isScalar=True
         self.a=self.range_()[0]
         self.b=self.range_()[-1]
+        self.discretization=None
+
 
     def execute(self):
         return self
@@ -466,8 +469,19 @@ class Number(ConstDistr):
         #it remembers values for future operations
         return self.rand_raw(n)
 
-# Classes which re-implement or customize PaCal classes
+    def resetSampleInit(self):
+        pass
 
+    def get_discretization(self):
+        if self.discretization==None:
+            self.discretization=self.create_discretization()
+        return self.discretization
+
+    def create_discretization(self):
+        return MixedArithmetic(self.name,self.name,
+                               [PBox(Interval(self.name,self.name,True,True,digits_for_discretization),"0.0","1.0")])
+
+# Classes which re-implement or customize PaCal classes
 import warnings
 
 import numpy
@@ -597,10 +611,10 @@ class ExpDistr(Distr):
         # Check whether the 1/t term causes a singularity at 0
         self.singularity_at_zero = self._detect_singularity()
         super(ExpDistr, self).__init__()
-        self.discretization=[]
+        self.discretization=None
 
     def get_discretization(self):
-        if len(self.discretization)==0:
+        if self.discretization==None:
             self.discretization = createDSIfromDistribution(self, n=discretization_points)
         return self.discretization
 
@@ -700,10 +714,10 @@ class CosineDistr(FuncNoninjectiveDistr):
         self._get_intervals()
         self.pole_at_zero = False
         super(CosineDistr, self).__init__(d, fname="cos")
-        self.discretization=[]
+        self.discretization=None
 
     def get_discretization(self):
-        if len(self.discretization)==0:
+        if self.discretization==None:
             self.discretization = createDSIfromDistribution(self, n=discretization_points)
         return self.discretization
 
@@ -758,10 +772,10 @@ class SineDistr(FuncNoninjectiveDistr):
         self._get_intervals()
         self.pole_at_zero = False
         super(SineDistr, self).__init__(d, fname="sin")
-        self.discretization=[]
+        self.discretization=None
 
     def get_discretization(self):
-        if len(self.discretization)==0:
+        if self.discretization==None:
             self.discretization = createDSIfromDistribution(self, n=discretization_points)
         return self.discretization
 
@@ -806,15 +820,63 @@ class SineDistr(FuncNoninjectiveDistr):
 
 class AbsDistr(AbsDistr):
 
-    def __init__(self, d):
+    def __init__(self, d, discretization, is_error_computation):
         super(AbsDistr, self).__init__(d)
         self.operand=d
-        self.discretization=[]
+        self.discretization=discretization
+        self.is_error_computation=is_error_computation
+        self.elaborate_discretization()
 
     def get_discretization(self):
-        if len(self.discretization)==0:
-            self.discretization = createDSIfromDistribution(self, n=discretization_points)
         return self.discretization
+
+    def elaborate_discretization(self):
+        if self.discretization==None:
+            self.discretization = createDSIfromDistribution(self, n=discretization_points)
+        else:
+            evaluation_points=set()
+            discretization=copy.deepcopy(self.discretization)
+            for pbox in discretization.intervals:
+                if Decimal(pbox.interval.lower)<Decimal("0.0")<Decimal(pbox.interval.upper):
+                    pbox.interval.lower="0.0"
+                    pbox.interval.upper=dec2Str(max(Decimal(pbox.interval.lower).copy_abs(),Decimal(pbox.interval.upper).copy_abs()))
+                else:
+                    pbox.interval.lower = dec2Str(min(Decimal(pbox.interval.lower).copy_abs(), Decimal(pbox.interval.upper).copy_abs()))
+                    pbox.interval.upper = dec2Str(max(Decimal(pbox.interval.lower).copy_abs(), Decimal(pbox.interval.upper).copy_abs()))
+                pdf=dec2Str(Decimal(pbox.cdf_up)-Decimal(pbox.cdf_low))
+                pbox.cdf_up=pdf
+                pbox.cdf_low=pdf
+                evaluation_points.add(Decimal(pbox.interval.lower))
+                evaluation_points.add(Decimal(pbox.interval.upper))
+            evaluation_points=sorted(evaluation_points)
+            if not self.is_error_computation:
+                step = round(len(evaluation_points) / (discretization_points/2.0))
+                evaluation_points = sorted(set(evaluation_points[::step]+[evaluation_points[-1]]))
+            #here you have to do abs(affine)
+            edge_cdf, val_cdf_low, val_cdf_up = from_PDFS_PBox_to_DSI(discretization.intervals, evaluation_points)
+            pboxes = from_DSI_to_PBox(edge_cdf, val_cdf_low, edge_cdf, val_cdf_up)
+
+            self.discretization=MixedArithmetic.clone_MixedArith_from_Args(discretization.affine,pboxes)
+            return
+
+def lookForCDFValueInDiscretization(val, intervals):
+    if val<Decimal(intervals[0].interval.lower):
+        return 0,0
+    if val>Decimal(intervals[-1].interval.upper):
+        return 1,1
+    res_ub = Decimal("-inf")
+    res_lb = Decimal("+inf")
+    for inside in intervals:
+        if Decimal(inside.interval.lower) < val < Decimal(inside.interval.upper):
+            res_ub = max(res_ub, Decimal(inside.cdf_up))
+            res_lb = min(res_lb, Decimal(inside.cdf_low))
+        elif Decimal(inside.interval.lower) == val and inside.interval.include_lower:
+            res_ub = max(res_ub, Decimal(inside.cdf_up))
+            res_lb = min(res_lb, Decimal(inside.cdf_low))
+        elif Decimal(inside.interval.upper) == val and inside.interval.include_upper:
+            res_ub = max(res_ub, Decimal(inside.cdf_up))
+            res_lb = min(res_lb, Decimal(inside.cdf_low))
+    return res_lb, res_ub
 
 def sin(d):
     """Overload the sin function."""
@@ -826,6 +888,12 @@ def abs(d):
     """Overload the sin function."""
     if isinstance(d, Distr):
         return AbsDistr(d)
+    elif isinstance(d, BinOpDist):
+        d.execute()
+        return AbsDistr(d.distribution, d.discretization, d.is_error_computation)
+    elif isinstance(d, UnaryOperation):
+        d.execute()
+        return AbsDistr(d.distribution, d.discretization)
     return numpy.abs(d)
 
 def cos(d):
