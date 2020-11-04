@@ -2,7 +2,7 @@ import copy
 
 from pychebfun import chebfun
 
-from project_utils import MyFunDistr
+from project_utils import MyFunDistr, normalizeDistribution
 from .typical_error_model import TypicalErrorModel
 from setup_utils import global_interpolate
 
@@ -64,6 +64,7 @@ class FastTypicalErrorModel(TypicalErrorModel):
     def __init__(self, input_distribution, input_name, precision, exponent, polynomial_precision):
         super(FastTypicalErrorModel, self).__init__(input_distribution, input_name, precision, exponent, polynomial_precision)
         self.hidden_err_model = MyFunDistr("Hidden_Error_Model", TypErrInterp(-1.0, 1.0, polynomial_precision), breakPoints =[-1.0, 1.0], interpolated=global_interpolate)
+        self.hidden_err_model = normalizeDistribution(self.hidden_err_model, init=True)
         self.name="FTE_" + input_name
 
     def init_piecewise_pdf(self):
