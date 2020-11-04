@@ -3,7 +3,7 @@
 import ply.yacc as yacc
 
 from fprlex import *
-from model import *
+from model import NodeManager, CustomDistr, U, N, B, Operation, Number, UnaryOperation
 
 uniqueLexer = FPRlex()
 
