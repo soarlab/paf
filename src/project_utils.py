@@ -1,10 +1,33 @@
 import warnings
+from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING, ROUND_HALF_EVEN
 
 import gmpy2
-import matplotlib.pyplot as plt
 import numpy
 import pacal
-from pacal import *
+
+from setup_utils import digits_for_discretization
+
+
+def round_number_up_to_digits(number, digits):
+    return ("{0:."+str(digits)+"Uf}").format(number)
+
+def round_number_down_to_digits(number, digits):
+    return ("{0:."+str(digits)+"Df}").format(number)
+
+def round_number_nearest_to_digits(number, digits):
+    return ("{0:."+str(digits)+"Nf}").format(number)
+
+def round_down(number, digits):
+    return Decimal(number).quantize(Decimal("."+("".zfill(digits))), rounding=ROUND_FLOOR)
+
+def round_up(number, digits):
+    return Decimal(number).quantize(Decimal("."+("".zfill(digits))), rounding=ROUND_CEILING)
+
+def round_near(number, digits):
+    return Decimal(number).quantize(Decimal("."+("".zfill(digits))), rounding=ROUND_HALF_EVEN)
+
+def dec2Str(dec):
+    return '{0:f}'.format(dec)
 
 
 def set_context_precision(mantissa, exponent):
@@ -12,11 +35,17 @@ def set_context_precision(mantissa, exponent):
     ctx.precision = mantissa
     ctx.emax = 2 ** (exponent - 1)
     ctx.emin = 1 - ctx.emax
-
+    return ctx
 
 def reset_default_precision():
     gmpy2.set_context(gmpy2.context())
 
+def isNumeric(n):
+    try:
+        float(n)
+        return True
+    except:
+        return False
 
 class MyFunDistr(pacal.FunDistr):
     """General distribution defined as function with
@@ -39,7 +68,7 @@ class MyFunDistr(pacal.FunDistr):
         return self.name
 
 def printMPFRExactly(a):
-    return "{0:.50f}".format(a)
+    return "{0:.100f}".format(a)
 
 def computeLargestPositiveNumber(mantissa, exponent):
     assert "mantissa includes sign bit!"
@@ -82,3 +111,22 @@ def getBoundsWhenOutOfRange(distribution, mantissa, exponent):
     maxVal = max(distribution.get_piecewise_pdf().breaks)
     res=checkBoundsOutOfRange(minVal, maxVal,mantissa,exponent)
     return res
+
+def linear_space_with_decimals(low, up, inc_low, inc_up, n):
+    vals=numpy.linspace(float(low), float(up), endpoint=True, num=n+1)
+    if vals[0]==vals[-1]:
+        return []
+    tmp=[]
+    ret=[]
+    for val in vals:
+        if not (round_near(Decimal(val),digits_for_discretization), True) in tmp:
+            tmp.append((round_near(Decimal(val),digits_for_discretization), True))
+    tmp[0]= (Decimal(low), inc_low)
+    tmp[-1]=(Decimal(up), inc_up)
+    for ind, val in enumerate(tmp[:-1]):
+        if val[0]>=tmp[ind+1][0]:
+            print("\n\nAccuracy problem with interval linspace\n\n")
+            #exit(-1)
+    for ind, val in enumerate(tmp[:-1]):
+        ret.append([val,tmp[ind+1],False])
+    return ret
