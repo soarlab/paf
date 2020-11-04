@@ -85,35 +85,3 @@ def clean_non_linearity_affine(left_coefficients, right_coefficients, value):
     codomain=Interval(dec2Str(value.copy_negate()), dec2Str(value), True, True, digits_for_discretization)
     ret_box=clean_co_domain(codomain, SMT_pruning, central)
     return ret_box.lower, ret_box.upper
-    #codomain_intervals = linear_space_with_decimals(dec2Str(value.copy_negate()), dec2Str(value), True, True, smt_cleaning_points)
-    #exists_true=False
-    #for piece in codomain_intervals:
-    #    SMT_pruning.set_expression_central(central, SMT_Interface.PBoxSolver(piece[0][0], piece[1][0], piece[0][1], piece[1][1]))
-    #    if SMT_pruning.check(debug=True):
-    #        piece[2] = True
-    #        exists_true = True
-    #    else:
-    #        if exists_true:
-    #            break
-    #double_check=False
-    #for interval in codomain_intervals:
-    #    if interval[2]:
-    #        double_check=True
-    #        break
-    #if not double_check:
-    #    print("Problem with cleaning")
-    #    exit(-1)
-    #for ind, interval in enumerate(codomain_intervals[:-1]):
-    #    if not interval[2]:
-    #        low = dec2Str(codomain_intervals[ind + 1][0][0])
-    #        inc_low = codomain_intervals[ind + 1][0][1]
-    #    else:
-    #        break
-    #reversed_codomain=codomain_intervals[::-1]
-    #for ind, interval in enumerate(reversed_codomain[:-1]):
-    #    if not interval[2]:
-    #        sup = dec2Str(reversed_codomain[ind + 1][1][0])
-    #        inc_sup = reversed_codomain[ind + 1][1][1]
-    #    else:
-    #        break
-    #return low, sup
