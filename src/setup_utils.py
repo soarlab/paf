@@ -4,6 +4,9 @@ import os
 par=1
 os.environ["OPENBLAS_NUM_THREADS"] = str(par)
 
+from decimal import getcontext
+getcontext().prec = 100
+
 import multiprocessing
 from multiprocessing import pool
 import pacal
@@ -24,9 +27,19 @@ fptaylor_path=home_directory_project+"FPTaylor/"
 output_path=home_directory_project+"results/"
 fptaylor_exe="/home/roki/GIT/FPTaylor/./fptaylor"
 pran_exe=""
-discretization_points=5
-golden_model_time=1
-global_interpolate=False
+digits_for_discretization=25
+digits_for_cdf=4
+discretization_points=50
+hard_timeout= 5
+soft_timeout= hard_timeout * 1000
+eps_for_LP= 2**-20
+divisions_SMT_pruning=5
+valid_for_exit_SMT_pruning=3
+gap_cdf_regularizer = 1.0/discretization_points
+golden_model_time=10
+recursion_limit_for_pruning=10
+delta_error_computation=10*(2**-24)
+global_interpolate=True
 loadIfExists=False
 storeIfDoesnExist=False
 
