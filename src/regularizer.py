@@ -1,8 +1,11 @@
+from decimal import Decimal
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pacal
 import pychebfun as cheb
 import scipy.integrate as integrate
+
 
 newSegments=[]
 def regularizeDistribution(D, approxLimit, jumpLimit, deltavLimit):
@@ -24,17 +27,6 @@ def regularizeDistribution(D, approxLimit, jumpLimit, deltavLimit):
             else:
                 for k in range(i, j+1):
                     newSegments.append(f.segments[k])
-            '''
-            try:
-                dist = computeDistance(merged, f, f.segments[i].a, f.segments[j].b)
-            except:
-                # Quality control is undetermined, keep all segments
-                for k in range(i, j):
-                    newSegments.append(f.segments[k])
-            if dist < approxLimit:
-            
-            # Quality control has failed, keep all segments
-            '''
         else:
             newSegments.append(merged)
         i = j + 1
@@ -158,4 +150,3 @@ def chebfunInterpDistr(distr, limitSegments):
         deltavLimit =  np.finfo(np.float32).eps * 10000.0#
         return regularizeDistribution(distr, approxLimit, jumpLimit, deltavLimit)
     return distr
-
