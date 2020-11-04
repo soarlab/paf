@@ -1,5 +1,5 @@
 from error_model import HighPrecisionErrorModel, LowPrecisionErrorModel, TypicalErrorModel, FastTypicalErrorModel
-from pbox import createDSIfromDistribution
+from mixedarithmetic import createDSIfromDistribution
 from setup_utils import discretization_points
 
 
@@ -14,7 +14,7 @@ class ErrorModelWrapper:
         self.sampleInit = True
         self.unit_roundoff = error_model.unit_roundoff
         self.name = error_model.getName()
-        self.discretization=[]
+        self.discretization=None
         self.get_discretization()
 
     def __str__(self):
@@ -31,6 +31,6 @@ class ErrorModelWrapper:
         return self.sampleSet
 
     def get_discretization(self):
-        if len(self.discretization)==0:
-            self.discretization = createDSIfromDistribution(self.distribution, n=discretization_points)
+        if self.discretization==None:
+            self.discretization = createDSIfromDistribution(self.distribution*self.unit_roundoff, n=discretization_points)
         return self.discretization
