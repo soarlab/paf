@@ -350,7 +350,7 @@ def plot_error_analysis_CDF(abs_err, loadedGolden, abs_err_samples, abs_err_gold
 
 def plot_operation(edge_cdf,val_cdf_low,val_cdf_up):
     plt.figure()
-    plt.plot([float(a) for a in edge_cdf], [float(a) for a in val_cdf_low], 'o', c="red", label="lower_bound_SMT")
-    plt.plot([float(a) for a in edge_cdf], [float(a) for a in val_cdf_up], 'x', c="purple", label="upper_bound_SMT")
+    plt.plot([float(a) for a in edge_cdf], [float(a) for a in val_cdf_low], 'o', markersize=15, c="red", label="lower_bound_SMT")
+    plt.plot([float(a) for a in edge_cdf], [float(a) for a in val_cdf_up], 'x', markersize=15, c="purple", label="upper_bound_SMT")
     plt.ticklabel_format(axis='both', style='sci')
     plt.legend()
