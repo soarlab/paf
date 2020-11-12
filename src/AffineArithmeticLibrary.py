@@ -114,7 +114,7 @@ class AffineInstance:
             new_coefficients[key]=res_int
         return AffineInstance(new_center, new_coefficients)
 
-    def multiplication(self, affine):
+    def multiplication(self, affine, dReal):
         new_center = self.center.multiplication(affine.center)
         new_coefficients = {}
         keys = set().union(self.coefficients, affine.coefficients)
@@ -127,7 +127,7 @@ class AffineInstance:
         affine_non_linear=Interval(affine.add_all_coefficients_lower_abs(), affine.add_all_coefficients_upper_abs(),True,True,digits_for_discretization)
         res=self_non_linear.multiplication(affine_non_linear)
         value=max(Decimal(res.lower).copy_abs(), Decimal(res.upper).copy_abs())
-        low_value, up_value=clean_non_linearity_affine(self.coefficients, affine.coefficients, value)
+        low_value, up_value=clean_non_linearity_affine(self.coefficients, affine.coefficients, value, dReal=dReal)
         middle_point_non_linear=AffineManager.compute_middle_point_given_interval(low_value,up_value)
         uncertainty_non_linear=AffineManager.compute_uncertainty_given_interval(low_value,up_value)
         new_center=new_center.addition(middle_point_non_linear)
@@ -185,8 +185,8 @@ class AffineInstance:
         #res.coefficients[err_radius]=radius
         return res
 
-    def division(self, affine):
-        return self.multiplication(affine.inverse())
+    def division(self, affine, dReal):
+        return self.multiplication(affine.inverse(), dReal)
 
     def clean_affine_operation(self):
         keys=[]
@@ -199,18 +199,18 @@ class AffineInstance:
         self.compute_interval()
         return self
 
-    def perform_affine_operation(self, operator, affine):
+    def perform_affine_operation(self, operator, affine, dReal=True):
         if operator=="+":
             affine_result=self.addition(affine)
         elif operator=="-":
             affine_result=self.subtraction(affine)
         elif operator == "*":
-            affine_result=self.multiplication(affine)
+            affine_result=self.multiplication(affine, dReal)
         elif operator == "/":
-            affine_result=self.division(affine)
+            affine_result=self.division(affine, dReal)
         elif operator =="*+":
             plus_one=affine.add_constant_string("1.0")
-            affine_result=self.multiplication(plus_one)
+            affine_result=self.multiplication(plus_one, dReal)
         else:
             print("Interval Operation not supported")
             exit(-1)
