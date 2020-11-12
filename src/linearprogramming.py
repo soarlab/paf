@@ -78,16 +78,19 @@ class LP_with_SMT():
         print("LP problem Minimize, num evaluation points= " + str(len(self.evaluation_points)))
         for index_lp, ev_point in enumerate(self.evaluation_points):
             print("Problem: "+str(index_lp))
-            res_values = [intern for intern in self.insiders if (Decimal(intern.interval.lower) <= ev_point)]
-            encode="\n\n(minimize "+self.encode_recursive_addition(res_values)+")"
-            query=self.query+encode+"\n(check-sat)\n(get-objectives)\n"
-            solver_query = "z3 pp.decimal=true -in"
-            proc_run = subprocess.Popen(shlex.split(solver_query),
+            res_values = [intern for intern in self.insiders if (Decimal(intern.interval.upper) <= ev_point)]
+            if len(res_values)>0:
+                encode="\n\n(minimize "+self.encode_recursive_addition(res_values)+")"
+                query=self.query+encode+"\n(check-sat)\n(get-objectives)\n"
+                solver_query = "z3 pp.decimal=true -in"
+                proc_run = subprocess.Popen(shlex.split(solver_query),
                                         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            out, err = proc_run.communicate(input=str.encode(query))
-            if not err.decode() == "":
-                print("Problem in the solver!")
-            res=self.clean_result_of_optimization(out)
+                out, err = proc_run.communicate(input=str.encode(query))
+                if not err.decode() == "":
+                    print("Problem in the solver!")
+                res=self.clean_result_of_optimization(out)
+            else:
+                res="0.0"
             edge_cdf.append(dec2Str(ev_point))
             val_cdf.append(round_near(Decimal(res), digits_for_cdf))
         return edge_cdf, val_cdf
