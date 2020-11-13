@@ -1,5 +1,5 @@
 from error_model import HighPrecisionErrorModel, LowPrecisionErrorModel, TypicalErrorModel, FastTypicalErrorModel
-from mixedarithmetic import createDSIfromDistribution, createAffineErrorFromDistribution
+from mixedarithmetic import createDSIfromDistribution, createAffineErrorForLeaf
 from setup_utils import discretization_points
 
 
@@ -34,6 +34,6 @@ class ErrorModelWrapper:
     def get_discretization(self):
         if self.discretization==None and self.affine_error==None:
             self.discretization = createDSIfromDistribution(self.distribution*self.unit_roundoff, n=discretization_points)
-            self.affine_error= createAffineErrorFromDistribution()
+            self.affine_error= createAffineErrorForLeaf()
         return self.discretization
 
