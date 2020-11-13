@@ -3,16 +3,16 @@ from decimal import Decimal
 import SMT_Interface
 from IntervalArithmeticLibrary import Interval
 from project_utils import dec2Str, linear_space_with_decimals
-from setup_utils import divisions_SMT_pruning, valid_for_exit_SMT_pruning, digits_for_discretization, \
-    recursion_limit_for_pruning
+from setup_utils import digits_for_discretization, divisions_SMT_pruning_operation, valid_for_exit_SMT_pruning_operation
 
 
-def clean_co_domain(pbox, smt_manager, expression_center, start_recursion_limit=0, dReal=True):
+def clean_co_domain(pbox, smt_manager, expression_center, divisions_SMT,
+                    valid_for_exit_pruning, recursion_limit_for_pruning, start_recursion_limit=0, dReal=True):
     low, sup, inc_low, inc_sup=pbox.lower,pbox.upper,pbox.include_lower,pbox.include_upper
     if Decimal(low)==Decimal(sup):
         return pbox
 
-    codomain_intervals = linear_space_with_decimals(low, sup, inc_low, inc_sup, divisions_SMT_pruning)
+    codomain_intervals = linear_space_with_decimals(low, sup, inc_low, inc_sup, divisions_SMT)
 
     if len(codomain_intervals)==0:
         return pbox
@@ -29,8 +29,8 @@ def clean_co_domain(pbox, smt_manager, expression_center, start_recursion_limit=
             interval[2] = True
             exists_true = exists_true+1
 
-    if len(codomain_intervals)<divisions_SMT_pruning:
-        exists_true = valid_for_exit_SMT_pruning + 1
+    if len(codomain_intervals)<divisions_SMT:
+        exists_true = valid_for_exit_pruning + 1
 
     double_check=False
     for interval in codomain_intervals:
@@ -56,14 +56,18 @@ def clean_co_domain(pbox, smt_manager, expression_center, start_recursion_limit=
             break
     ret_box=Interval(low,sup,inc_low,inc_sup,digits_for_discretization)
     if start_recursion_limit>recursion_limit_for_pruning:
-        print("Hit the recursion limit for pruning!!\n")
+        print("Hit the recursion limit for pruning!!")
+        print("Limit:"+str(recursion_limit_for_pruning))
         print("Low,Sup",low,sup)
-    if exists_true<=valid_for_exit_SMT_pruning and start_recursion_limit<=recursion_limit_for_pruning:
-        return clean_co_domain(ret_box, smt_manager, expression_center, start_recursion_limit=start_recursion_limit + 1, dReal=dReal)
+    if exists_true<=valid_for_exit_pruning and start_recursion_limit<=recursion_limit_for_pruning:
+        return clean_co_domain(ret_box, smt_manager, expression_center,
+                               divisions_SMT, valid_for_exit_pruning,
+                               recursion_limit_for_pruning,
+                               start_recursion_limit=start_recursion_limit + 1, dReal=dReal)
     return ret_box
 
 
-def clean_non_linearity_affine(left_coefficients, right_coefficients, value):
+def clean_non_linearity_affine(left_coefficients, right_coefficients, value, recursion_limit_for_pruning, dReal):
     keys = set().union(left_coefficients, right_coefficients)
     SMT_pruning = SMT_Interface.SMT_Instance()
     name_dictionary_left = {}
@@ -83,5 +87,7 @@ def clean_non_linearity_affine(left_coefficients, right_coefficients, value):
     central = SMT_Interface.create_expression_for_multiplication(name_dictionary_left, name_dictionary_right)
 
     codomain=Interval(dec2Str(value.copy_negate()), dec2Str(value), True, True, digits_for_discretization)
-    ret_box=clean_co_domain(codomain, SMT_pruning, central)
+    ret_box=clean_co_domain(codomain, SMT_pruning, central,
+                            divisions_SMT_pruning_operation, valid_for_exit_SMT_pruning_operation,
+                            recursion_limit_for_pruning, start_recursion_limit=0, dReal=dReal)
     return ret_box.lower, ret_box.upper
