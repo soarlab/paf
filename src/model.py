@@ -7,10 +7,11 @@ from pacal.distr import Distr
 from pychebfun import chebfun
 from scipy.stats import truncnorm
 
+from AffineArithmeticLibrary import AffineInstance, AffineManager
 from IntervalArithmeticLibrary import Interval
 from operations import BinOpDist
 from mixedarithmetic import createDSIfromDistribution, MixedArithmetic, dec2Str, PBox, from_PDFS_PBox_to_DSI, \
-    from_DSI_to_PBox
+    from_DSI_to_PBox, createAffineErrorForLeaf
 from project_utils import MyFunDistr, normalizeDistribution
 from setup_utils import global_interpolate, discretization_points, digits_for_discretization
 from scipy import stats
@@ -127,6 +128,7 @@ class N(stats.rv_continuous, Distr):
         self.sigma=0.01
         self.interpolation_points=500
         self.discretization = None
+        self.affine_error = None
         self.init_piecewise_pdf()
         self.get_discretization()
 
@@ -151,8 +153,9 @@ class N(stats.rv_continuous, Distr):
         self.piecewise_pdf = piecewise_pdf
 
     def get_discretization(self):
-        if self.discretization==None:
+        if self.discretization==None and self.affine_error==None:
             self.discretization = createDSIfromDistribution(self, n=discretization_points)
+            self.affine_error= createAffineErrorForLeaf()
         return self.discretization
 
     def execute(self):
@@ -411,6 +414,7 @@ class CustomDistr(stats.rv_continuous, Distr):
             index=index-1
         return abs(self.values[index-1])
 
+
 class U(UniformDistr):
     def __init__(self,name,a,b):
         super().__init__(a=float(a), b=float(b))
@@ -422,6 +426,7 @@ class U(UniformDistr):
         self.isScalar = False
         self.sampleSet=[]
         self.discretization = None
+        self.affine_error=None
         self.get_discretization()
 
     def execute(self):
@@ -431,8 +436,9 @@ class U(UniformDistr):
         return self.name
 
     def get_discretization(self):
-        if self.discretization==None:
+        if self.discretization==None and self.affine_error==None:
             self.discretization = createDSIfromDistribution(self, n=discretization_points)
+            self.affine_error= createAffineErrorForLeaf()
         return self.discretization
 
     def getRepresentation(self):
@@ -457,6 +463,7 @@ class Number(ConstDistr):
         self.a=self.range_()[0]
         self.b=self.range_()[-1]
         self.discretization=None
+        self.affine_error=None
 
 
     def execute(self):
@@ -475,6 +482,8 @@ class Number(ConstDistr):
     def get_discretization(self):
         if self.discretization==None:
             self.discretization=self.create_discretization()
+            self.affine_error= createAffineErrorForLeaf()
+
         return self.discretization
 
     def create_discretization(self):
@@ -820,10 +829,11 @@ class SineDistr(FuncNoninjectiveDistr):
 
 class AbsDistr(AbsDistr):
 
-    def __init__(self, d, discretization, is_error_computation):
+    def __init__(self, d, discretization, affine_error, is_error_computation):
         super(AbsDistr, self).__init__(d)
         self.operand=d
         self.discretization=discretization
+        self.affine_error=affine_error
         self.is_error_computation=is_error_computation
         self.elaborate_discretization()
 
@@ -838,11 +848,13 @@ class AbsDistr(AbsDistr):
             discretization=copy.deepcopy(self.discretization)
             for pbox in discretization.intervals:
                 if Decimal(pbox.interval.lower)<Decimal("0.0")<Decimal(pbox.interval.upper):
-                    pbox.interval.lower="0.0"
                     pbox.interval.upper=dec2Str(max(Decimal(pbox.interval.lower).copy_abs(),Decimal(pbox.interval.upper).copy_abs()))
+                    pbox.interval.lower="0.0"
                 else:
-                    pbox.interval.lower = dec2Str(min(Decimal(pbox.interval.lower).copy_abs(), Decimal(pbox.interval.upper).copy_abs()))
-                    pbox.interval.upper = dec2Str(max(Decimal(pbox.interval.lower).copy_abs(), Decimal(pbox.interval.upper).copy_abs()))
+                    tmp_lower=pbox.interval.lower
+                    tmp_upper=pbox.interval.upper
+                    pbox.interval.lower = dec2Str(min(Decimal(tmp_lower).copy_abs(), Decimal(tmp_upper).copy_abs()))
+                    pbox.interval.upper = dec2Str(max(Decimal(tmp_lower).copy_abs(), Decimal(tmp_upper).copy_abs()))
                 pdf=dec2Str(Decimal(pbox.cdf_up)-Decimal(pbox.cdf_low))
                 pbox.cdf_up=pdf
                 pbox.cdf_low=pdf
@@ -855,9 +867,7 @@ class AbsDistr(AbsDistr):
             #here you have to do abs(affine)
             edge_cdf, val_cdf_low, val_cdf_up = from_PDFS_PBox_to_DSI(discretization.intervals, evaluation_points)
             pboxes = from_DSI_to_PBox(edge_cdf, val_cdf_low, edge_cdf, val_cdf_up)
-
             self.discretization=MixedArithmetic.clone_MixedArith_from_Args(discretization.affine,pboxes)
-            return
 
 def lookForCDFValueInDiscretization(val, intervals):
     if val<Decimal(intervals[0].interval.lower):
@@ -890,7 +900,7 @@ def abs(d):
         return AbsDistr(d)
     elif isinstance(d, BinOpDist):
         d.execute()
-        return AbsDistr(d.distribution, d.discretization, d.is_error_computation)
+        return AbsDistr(d.distribution, d.discretization, d.affine_error, d.is_error_computation)
     elif isinstance(d, UnaryOperation):
         d.execute()
         return AbsDistr(d.distribution, d.discretization)
