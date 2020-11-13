@@ -8,7 +8,7 @@ import SMT_Interface
 from error_model import HighPrecisionErrorModel, LowPrecisionErrorModel, FastTypicalErrorModel, ErrorModelPointMass, \
     ErrorModelWrapper, TypicalErrorModel
 from model import UnaryOperation
-from operations import quantizedPointMass, BinOpDist, UnOpDist
+from operations import quantizedPointMass, BinOpDist, UnOpDist, pacal, plt
 from setup_utils import loadIfExists, storage_path, global_interpolate
 from project_utils import printMPFRExactly, reset_default_precision, set_context_precision, isNumeric
 
@@ -83,14 +83,14 @@ class DistributionsManager:
             raise ValueError('Invalid ErrorModel name.')
 
     def createBinOperation(self, leftoperand, operator, rightoperand,
-                           interp_precision, smt_triple=None, regularize=True, convolution=True):
+                           interp_precision, exact_affine_forms=None, smt_triple=None, regularize=True, convolution=True):
         name = "(" + leftoperand.name + str(operator) + rightoperand.name + ")"
         if name in self.distrdictionary:
             return self.distrdictionary[name]
         else:
             tmp = BinOpDist(leftoperand, operator, rightoperand, smt_triple, name,
-                            interp_precision, self.samples_dep_op, regularize,
-                            convolution, self.dependent_mode)
+                            interp_precision, self.samples_dep_op, exact_affine_forms,
+                            regularize, convolution, self.dependent_mode)
             self.distrdictionary[name] = tmp
             return tmp
 
@@ -143,13 +143,38 @@ class TreeModel:
 
         smt_triple = (self.tree.root_value[3], self.tree.root_value[4], smt_manager)
 
-        #self.abs_err_distr = UnOpDist(BinOpDist(self.final_exact_distr, "-",
-        #                                        self.final_quantized_distr, smt_triple, "err_pbox", 100, self.samples_dep_op,
-        #                                        regularize=True, convolution=False, dependent_mode="p-box", is_error_computation=True), "abs_err_pbox", "abs")
+        self.abs_err_distr = UnOpDist(BinOpDist(self.final_exact_distr, "-",
+                                                self.final_quantized_distr, smt_triple, "err_pbox", 100, self.samples_dep_op,
+                                                regularize=True, convolution=False, dependent_mode="p-box", is_error_computation=True), "abs_err_pbox", "abs")
 
+        #self.lower_error_affine, self.upper_error_affine=self.compute_lower_upper_affine_error()
+        #self.lower_error_affine.get_piecewise_cdf()
+        #self.upper_error_affine.get_piecewise_cdf()
         #self.relative_err_distr = UnOpDist(BinOpDist(self.abs_err_distr, "/",
         #                                             self.final_exact_distr, 1000, self.samples_dep_op,
         #                                             regularize=True, convolution=False), "rel_err", "abs")
+
+    def compute_lower_upper_affine_error(self):
+        affine_error=self.abs_err_distr.affine_error
+        center=pacal.ConstDistr(float(affine_error.center.lower))
+        res_lower = center
+        for name, error in affine_error.coefficients.items():
+            if float(error.lower)>10**-15:
+                coeff=pacal.ConstDistr(float(error.lower))
+                err_distr=FastTypicalErrorModel(self.abs_err_distr,"F_T_E_M",self.precision,self.exponent,self.interp_precision)
+                res_lower=res_lower+coeff*err_distr
+                res_lower.get_piecewise_pdf()
+        center=pacal.ConstDistr(float(affine_error.center.upper))
+        res_upper = center
+        for name, error in affine_error.coefficients.items():
+            if float(error.upper) > 10 ** -15:
+                coeff=pacal.ConstDistr(float(error.upper))
+                err_distr=FastTypicalErrorModel(self.abs_err_distr,"F_T_E_M",self.precision,self.exponent,self.interp_precision)
+                res_upper=res_upper+coeff*err_distr
+                res_upper.get_piecewise_pdf()
+        res_lower=abs(res_lower)
+        res_upper=abs(res_upper)
+        return res_lower,res_upper
 
     def evaluate(self, tree):
         """ Recursively populate the Tree with the triples
@@ -176,7 +201,8 @@ class TreeModel:
                 else:
                     error = self.manager.createErrorModel(dist, self.precision, self.exponent, self.poly_precision, self.interp_precision,
                                                           self.error_model)
-                    quantized_distribution = self.manager.createBinOperation(dist, "*+", error, self.interp_precision)
+                    exact_affine_forms=[dist.discretization.affine, None]
+                    quantized_distribution = self.manager.createBinOperation(dist, "*+", error, self.interp_precision, exact_affine_forms=exact_affine_forms)
                     error_name_SMT=SMT_Interface.clean_var_name_SMT(error.distribution.name)
                     smt_manager_qdist.add_var(error_name_SMT, error.discretization.lower, error.discretization.upper)
                     qdist_smt_query = SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(dist_smt_query, "*+", error_name_SMT)
@@ -205,10 +231,14 @@ class TreeModel:
             smt_triple_dist= (tree.left.root_value[3], tree.right.root_value[3], smt_manager_dist)
             smt_triple_qdist = (tree.left.root_value[4], tree.right.root_value[4], smt_manager_qdist)
 
+            exact_affine_forms=[tree.left.root_value[0].discretization.affine,
+                                tree.right.root_value[0].discretization.affine]
+
             dist = self.manager.createBinOperation(tree.left.root_value[0], tree.root_name, tree.right.root_value[0],
-                                                   self.interp_precision, smt_triple_dist, convolution=tree.convolution)
+                                                   self.interp_precision, exact_affine_forms, smt_triple_dist, convolution=tree.convolution)
+
             qdist = self.manager.createBinOperation(tree.left.root_value[2], tree.root_name, tree.right.root_value[2],
-                                                    self.interp_precision, smt_triple_qdist, convolution=tree.convolution)
+                                                    self.interp_precision, exact_affine_forms, smt_triple_qdist, convolution=tree.convolution)
 
             dist_smt_query= SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(tree.left.root_value[3], tree.root_name, tree.right.root_value[3])
             qdist_smt_query= SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(tree.left.root_value[4], tree.root_name, tree.right.root_value[4])
@@ -222,7 +252,9 @@ class TreeModel:
             else:
                 error = self.manager.createErrorModel(qdist, self.precision, self.exponent, self.poly_precision,
                                                       self.interp_precision, self.error_model)
-                quantized_distribution = self.manager.createBinOperation(qdist, "*+", error, self.interp_precision)
+                exact_affine_forms = [dist.discretization.affine, None]
+                quantized_distribution = self.manager.createBinOperation(qdist, "*+", error,
+                                                                         self.interp_precision, exact_affine_forms)
                 error_name_SMT = SMT_Interface.clean_var_name_SMT(error.distribution.name)
                 smt_manager_qdist.add_var(error_name_SMT, error.discretization.lower, error.discretization.upper)
                 qdist_smt_query = SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(qdist_smt_query, "*+",
@@ -249,7 +281,8 @@ class TreeModel:
             else:
                 error = self.manager.createErrorModel(qdist, self.precision, self.exponent, self.poly_precision,
                                                       self.interp_precision, self.error_model)
-                quantized_distribution = self.manager.createBinOperation(qdist, "*+", error, self.interp_precision)
+                exact_affine_forms=[tree.left.root_value[0].discretization.affine, None]
+                quantized_distribution = self.manager.createBinOperation(qdist, "*+", error, self.interp_precision, exact_affine_forms=exact_affine_forms)
                 error_name_SMT = SMT_Interface.clean_var_name_SMT(error.distribution.name)
                 smt_manager_qdist.add_var(error_name_SMT, error.discretization.lower, error.discretization.upper)
                 qdist_smt_query = SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(qdist_smt_query, "*+",
