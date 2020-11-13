@@ -29,15 +29,20 @@ fptaylor_exe="/home/roki/GIT/FPTaylor/./fptaylor"
 pran_exe=""
 digits_for_discretization=25
 digits_for_cdf=4
-discretization_points=50
+discretization_points=25
 hard_timeout= 5
 soft_timeout= hard_timeout * 1000
 eps_for_LP= 2**-20
-divisions_SMT_pruning=5
-valid_for_exit_SMT_pruning=3
+divisions_SMT_pruning_operation=3
+valid_for_exit_SMT_pruning_operation=2
+divisions_SMT_pruning_error=10
+valid_for_exit_SMT_pruning_error=9
 gap_cdf_regularizer = 1.0/discretization_points
 golden_model_time=10
-recursion_limit_for_pruning=10
+
+recursion_limit_for_pruning_operation=5
+recursion_limit_for_pruning_error=20
+
 delta_error_computation=10*(2**-24)
 global_interpolate=True
 loadIfExists=False
