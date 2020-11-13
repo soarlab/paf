@@ -30,6 +30,7 @@ class PBox:
         tmp=Interval(self.cdf_low, self.cdf_up, True, True)\
             .addition(Interval(pbox.cdf_low, pbox.cdf_up, True, True))
         return PBox(None, tmp.lower, tmp.upper)
+
 '''
 In MixedArithmetic we combine Rigorous Interval Arithmetic with Rigorous Affine Arithmetic.
 '''
@@ -90,6 +91,11 @@ def createDSIfromDistribution(distribution, n=50):
     ret_list[-1].interval.include_upper = True
     mixarith=MixedArithmetic(ret_list[0].interval.lower,ret_list[-1].interval.upper,ret_list)
     return mixarith
+
+
+def createAffineErrorForLeaf():
+    return AffineInstance(AffineManager.compute_middle_point_given_interval("0", "0"),
+                                 AffineManager.compute_uncertainty_given_interval("0", "0"))
 
 def createPairsFromBounds(values):
     ret=[]
@@ -207,6 +213,8 @@ def from_DSI_to_PBox(edges_lower, values_lower, edges_upper, values_upper):
     values_lower=convertListToDecimals(values_lower)
     edges_upper=convertListToDecimals(edges_upper)
     values_upper=convertListToDecimals(values_upper)
+
+    #plot_operation(edges_lower,values_lower,values_upper)
 
     ret_list=[]
     if not edges_lower==edges_upper:
