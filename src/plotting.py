@@ -285,8 +285,9 @@ def plot_error_analysis_PDF(abs_err, loadedGolden, abs_err_samples, abs_err_gold
     plt.close()
 
 
-def plot_error_analysis_CDF(abs_err, loadedGolden, abs_err_samples, abs_err_golden, summary_file
+def plot_error_analysis_CDF(tree, loadedGolden, abs_err_samples, abs_err_golden, summary_file
                             ,file_name, abs_fpt, rel_fpt):
+    abs_err=tree.abs_err_distr
 
     print("Generating Graphs Error Analysis CDF\n")
 
@@ -334,6 +335,9 @@ def plot_error_analysis_CDF(abs_err, loadedGolden, abs_err_samples, abs_err_gold
     #x = np.linspace(abs_err.a, abs_err.b, 1000)
     #plt.plot(x, abs(abs_err.distribution.get_piecewise_cdf()(x)), linewidth=3, color="red")
     abs_err.distribution.get_piecewise_cdf().plot(xmin=abs_err.a, xmax=abs_err.b, linewidth=3, color="red")
+
+    #tree.lower_error_affine.get_piecewise_cdf().plot(xmin=0, xmax=tree.lower_error_affine.range_()[-1], linewidth=3, color="green")
+    #tree.upper_error_affine.get_piecewise_cdf().plot(xmin=0, xmax=tree.upper_error_affine.range_()[-1], linewidth=3, color="green")
 
     plotCDFdiscretization(abs_err.discretization.intervals)
 
