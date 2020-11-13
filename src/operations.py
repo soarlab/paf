@@ -1,9 +1,4 @@
 import copy
-import functools
-import math
-import bisect
-from decimal import Decimal
-from itertools import compress
 
 from pacal import ConstDistr
 from pychebfun import *
@@ -20,7 +15,9 @@ from regularizer import *
 from project_utils import *
 from gmpy2 import *
 
-from setup_utils import global_interpolate, digits_for_cdf, discretization_points
+from setup_utils import global_interpolate, digits_for_cdf, discretization_points, divisions_SMT_pruning_error, \
+    valid_for_exit_SMT_pruning_error, divisions_SMT_pruning_operation, valid_for_exit_SMT_pruning_operation, \
+    recursion_limit_for_pruning_error, recursion_limit_for_pruning_operation
 
 
 class quantizedPointMass:
@@ -60,7 +57,13 @@ class quantizedPointMass:
     def get_discretization(self):
         if self.discretization==None:
             self.discretization=self.create_discretization()
+            self.affine_error= self.createAffineErrorForValue()
         return self.discretization
+
+    def createAffineErrorForValue(self):
+        error=self.wrapperInputDistribution.discretization.affine.\
+            perform_affine_operation("-", self.discretization.affine, dReal=False)
+        return error
 
     def create_discretization(self):
         lower=self.wrapperInputDistribution.discretization.intervals[0].interval.lower
@@ -125,7 +128,8 @@ class BinOpDist:
     Wrapper class for the result of an arithmetic operation on PaCal distributions
     """
 
-    def __init__(self, leftoperand, operator, rightoperand, smt_triple, name, poly_precision, samples_dep_op, regularize=True,
+    def __init__(self, leftoperand, operator, rightoperand, smt_triple, name, poly_precision, samples_dep_op,
+                 exact_affine_forms=None, regularize=True,
                  convolution=True, dependent_mode="full_mc", is_error_computation=False):
         self.leftoperand = leftoperand
         self.operator = operator
@@ -138,11 +142,13 @@ class BinOpDist:
         self.is_error_computation=is_error_computation
         self.convolution = convolution
         self.dependent_mode = dependent_mode
+        self.exact_affines_forms=exact_affine_forms
         self.distribution = None
         self.distributionConv = None
         self.distributionSamp = None
         self.sampleInit = True
         self.discretization=None
+        self.affine_error=None
         self.execute()
 
     def executeConvolution(self):
@@ -203,8 +209,8 @@ class BinOpDist:
 
     def _full_mc_dependent_execution(self):
         tmp_res = self.distributionValues
-        plt.figure()
-        n, bins, patches = plt.hist(tmp_res, bins='auto', density=True)
+        #plt.figure()
+        n, bins = np.histogram(tmp_res, bins='auto', density=True)
         breaks = [min(bins), max(bins)]
         self.distributionSamp = MyFunDistr(self.name, DependentOperationExecutor(bins, n, self.poly_precision), breakPoints=breaks,
                                            interpolated=global_interpolate)
@@ -219,26 +225,26 @@ class BinOpDist:
         left_operand_discr_SMT=copy.deepcopy(self.leftoperand.get_discretization())
         right_operand_discr_SMT=copy.deepcopy(self.rightoperand.get_discretization())
 
-        #if self.is_error_computation:
-        #    left_evaluation_points=set()
-        #    right_evaluation_points=set()
-        #    for left_internal in left_operand_discr_SMT.intervals:
-        #        left_evaluation_points.add(Decimal(left_internal.interval.lower))
-        #        left_evaluation_points.add(Decimal(left_internal.interval.upper))
-        #    for right_internal in right_operand_discr_SMT.intervals:
-        #        right_evaluation_points.add(Decimal(right_internal.interval.lower))
-        #        right_evaluation_points.add(Decimal(right_internal.interval.upper))
-        #    left_edge_cdf, left_val_cdf_low, left_val_cdf_up=from_CDFS_PBox_to_DSI(left_operand_discr_SMT.intervals, left_evaluation_points)
-        #    right_edge_cdf, right_val_cdf_low, right_val_cdf_up=from_CDFS_PBox_to_DSI(right_operand_discr_SMT.intervals, right_evaluation_points)
-        #    left_operand_discr_SMT.intervals=from_DSI_to_PBox_with_Delta(left_edge_cdf, left_val_cdf_low, left_edge_cdf, left_val_cdf_up)
-        #    right_operand_discr_SMT.intervals=from_DSI_to_PBox_with_Delta(right_edge_cdf, right_val_cdf_low, right_edge_cdf, right_val_cdf_up)
-
         expression_left=self.smt_triple[0]
         expression_right=self.smt_triple[1]
         smt_manager = self.smt_triple[2]
 
         expression_center= create_exp_for_BinaryOperation_SMT_LIB(expression_left,self.operator,expression_right)
-        domain_affine_SMT=left_operand_discr_SMT.affine.perform_affine_operation(self.operator,right_operand_discr_SMT.affine)
+
+        if self.is_error_computation:
+            domain_affine_SMT = self.affine_error
+            smt_manager.set_expression_left(expression_left, Interval(left_operand_discr_SMT.lower,left_operand_discr_SMT.upper,True,True, digits_for_discretization))
+            smt_manager.set_expression_right(expression_right, Interval(right_operand_discr_SMT.lower,right_operand_discr_SMT.upper,True,True, digits_for_discretization))
+            domain_affine_SMT.interval=\
+                clean_co_domain(domain_affine_SMT.interval, smt_manager, expression_center,
+                                divisions_SMT_pruning_error, valid_for_exit_SMT_pruning_error,
+                                recursion_limit_for_pruning=recursion_limit_for_pruning_error,
+                                start_recursion_limit=0, dReal=False)
+            smt_manager.clean_expressions()
+        else:
+            domain_affine_SMT = left_operand_discr_SMT.affine.perform_affine_operation(self.operator,
+                                                                                       right_operand_discr_SMT.affine)
+
         insides_SMT = []
         evaluation_points=set()
         print(self.leftoperand.name,self.operator,self.rightoperand.name)
@@ -256,6 +262,9 @@ class BinOpDist:
                         #now we can clean the domain
                         clean_intersection_interval = \
                             clean_co_domain(intersection_interval,smt_manager,expression_center,
+                                            (divisions_SMT_pruning_error if self.is_error_computation else divisions_SMT_pruning_operation),
+                                            (valid_for_exit_SMT_pruning_error if self.is_error_computation else valid_for_exit_SMT_pruning_operation),
+                                            recursion_limit_for_pruning=(recursion_limit_for_pruning_error if self.is_error_computation else recursion_limit_for_pruning_operation),
                                             start_recursion_limit=0, dReal=not self.is_error_computation)
                         inside_box_SMT = PBox(clean_intersection_interval,"prob","prob")
                         evaluation_points.add(Decimal(clean_intersection_interval.lower))
@@ -347,6 +356,10 @@ class BinOpDist:
 
     def execute(self):
         if self.distribution == None:
+            if self.is_error_computation:
+                self.affine_error=self.rightoperand.affine_error
+            else:
+                self.compute_error_affine_form()
             if self.convolution:
                 self.executeIndependent()
                 self.distributionValues = self.operationDependent(elaborateBorders=False)
@@ -362,6 +375,47 @@ class BinOpDist:
 
             self.distribution.get_piecewise_pdf()
         return self.distribution
+
+    def compute_error_affine_form(self):
+        if self.operator == "+":
+            self.affine_error = self.leftoperand.affine_error.perform_affine_operation\
+                ("+",self.rightoperand.affine_error)
+        elif self.operator == "-":
+            self.affine_error = self.leftoperand.affine_error.perform_affine_operation \
+                ("-", self.rightoperand.affine_error)
+        elif self.operator == "*":
+            x_erry = self.exact_affines_forms[0].\
+                perform_affine_operation("*", self.rightoperand.affine_error,
+                                         recursion_limit_for_pruning=recursion_limit_for_pruning_error, dReal=False)
+            y_errx=self.exact_affines_forms[1].\
+                perform_affine_operation("*", self.leftoperand.affine_error,
+                                         recursion_limit_for_pruning=recursion_limit_for_pruning_error, dReal=False)
+            errx_erry=self.leftoperand.affine_error.\
+                perform_affine_operation("*", self.rightoperand.affine_error,
+                                         recursion_limit_for_pruning=recursion_limit_for_pruning_error, dReal=False)
+            self.affine_error=x_erry.perform_affine_operation("+",
+                              y_errx.perform_affine_operation("+", errx_erry))
+        elif self.operator == "/":
+            x_erry = self.exact_affines_forms[0].\
+                perform_affine_operation("/", self.rightoperand.affine_error,
+                                         recursion_limit_for_pruning=recursion_limit_for_pruning_error, dReal=False)
+            y_errx = self.exact_affines_forms[1].\
+                perform_affine_operation("/", self.leftoperand.affine_error,
+                                         recursion_limit_for_pruning=recursion_limit_for_pruning_error, dReal=False)
+            errx_erry = self.leftoperand.affine_error.\
+                perform_affine_operation("/", self.rightoperand.affine_error,
+                                         recursion_limit_for_pruning=recursion_limit_for_pruning_error, dReal=False)
+            self.affine_error = x_erry.perform_arithmetic_operation("+",
+                                y_errx.perform_arithmetic_operation("+", errx_erry))
+
+        elif self.operator == "*+":
+            self.affine_error = self.leftoperand.affine_error.\
+                perform_affine_operation("+",
+                        self.exact_affines_forms[0].perform_affine_operation("+", self.leftoperand.affine_error).
+                        perform_affine_operation("*",self.rightoperand.discretization.affine))
+        else:
+            print("Operation not supported!")
+            exit(-1)
 
     def get_discretization(self):
         if self.discretization==None:
@@ -414,6 +468,7 @@ class UnOpDist:
         self.a = self.distribution.range_()[0]
         self.b = self.distribution.range_()[-1]
         self.discretization=None
+        self.affine_error=None
         self.get_discretization()
 
     def execute(self):
@@ -442,6 +497,10 @@ class UnOpDist:
         return self.name
 
     def get_discretization(self):
-        if self.discretization==None:
-            self.discretization =self.distribution.get_discretization()
+        if self.discretization==None and self.affine_error == None:
+            self.discretization = self.distribution.get_discretization()
+            self.affine_error = self.distribution.affine_error
         return self.discretization
+
+    #if self.discretization == None and self.affine_error == None:
+    #    self.discretization = createDSIfromDistribution(self, n=discretization_points)
