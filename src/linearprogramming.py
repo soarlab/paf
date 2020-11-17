@@ -3,7 +3,9 @@ import subprocess
 from decimal import Decimal
 import shlex
 import sys
-sys.setrecursionlimit(10000)
+from multiprocessing.pool import Pool
+
+sys.setrecursionlimit(100000)
 
 import numpy as np
 from scipy.optimize import linprog
@@ -11,7 +13,7 @@ from scipy.optimize import linprog
 from SMT_Interface import clean_var_name_SMT
 from mixedarithmetic import dec2Str
 from project_utils import round_near
-from setup_utils import eps_for_LP, digits_for_cdf
+from setup_utils import eps_for_LP, digits_for_cdf, num_processes_dependent_operation
 
 
 def add_minus_to_number_str(numstr):
@@ -22,6 +24,37 @@ def add_minus_to_number_str(numstr):
         return "-"+tmp[1:]
     else:
         return "-"+tmp
+
+def min_instance(index_lp, ev_point, insiders, query):
+    print("Problem: " + str(index_lp))
+    res_values = [intern for intern in insiders if (Decimal(intern.interval.upper) <= ev_point)]
+    if len(res_values) > 0:
+        encode = "\n\n(minimize " + LP_with_SMT.encode_recursive_addition(res_values) + ")"
+        query = query + encode + "\n(check-sat)\n(get-objectives)\n"
+        solver_query = "z3 pp.decimal=true -in"
+        proc_run = subprocess.Popen(shlex.split(solver_query),
+                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = proc_run.communicate(input=str.encode(query))
+        if not err.decode() == "":
+            print("Problem in the solver!")
+        res = out
+    else:
+        res = "0.0"
+    return [ev_point, res]
+
+def max_instance(index_lp, ev_point, insiders, query):
+    print("Problem: " + str(index_lp))
+    res_values = [intern for intern in insiders if (Decimal(intern.interval.lower) <= ev_point)]
+    encode = "\n\n(maximize " + LP_with_SMT.encode_recursive_addition(res_values) + ")"
+    query = query + encode + "\n(check-sat)\n(get-objectives)\n"
+    solver_query = "z3 pp.decimal=true -in"
+    proc_run = subprocess.Popen(shlex.split(solver_query),
+                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = proc_run.communicate(input=str.encode(query))
+    if not err.decode() == "":
+        print("Problem in the solver!")
+        exit(-1)
+    return [ev_point, out]
 
 '''
 LP with Z3
@@ -44,7 +77,8 @@ class LP_with_SMT():
     '''
     Get the number from the output of Z3
     '''
-    def clean_result_of_optimization(self, out):
+    @staticmethod
+    def clean_result_of_optimization(out):
         res = out.decode().strip()
         new_line_clean=res.replace("\n","")
         par_res = new_line_clean.split("))")[0]
@@ -52,47 +86,70 @@ class LP_with_SMT():
         marks_clean=space_res.replace("?","")
         return str(float(marks_clean))
 
+    @staticmethod
+    def single_max_instance(name, insiders, ev_point, query):
+        print("Problem: " + str(name))
+        res_values = [intern for intern in insiders if (Decimal(intern.interval.lower) <= ev_point)]
+        encode = "\n\n(maximize " + LP_Instance.encode_recursive_addition(res_values) + ")"
+        query = query + encode + "\n(check-sat)\n(get-objectives)\n"
+        solver_query = "z3 pp.decimal=true -in"
+        proc_run = subprocess.Popen(shlex.split(solver_query),
+                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = proc_run.communicate(input=str.encode(query))
+        if not err.decode() == "":
+            print("Problem in the solver!")
+        res = LP_Instance.clean_result_of_optimization(out)
+        return [dec2Str(ev_point), round_near(Decimal(res), digits_for_cdf)]
+
     def optimize_max(self):
         edge_cdf=[]
         val_cdf = []
         print("LP problem Maximize, num evaluation points= " + str(len(self.evaluation_points)))
+
+        pool = Pool(processes=num_processes_dependent_operation, maxtasksperchild=3)
+        tmp_results=[]
+        results=[]
+
         for index_lp, ev_point in enumerate(self.evaluation_points):
-            print("Problem: "+str(index_lp))
-            res_values = [intern for intern in self.insiders if (Decimal(intern.interval.lower) <= ev_point)]
-            encode="\n\n(maximize "+self.encode_recursive_addition(res_values)+")"
-            query=self.query+encode+"\n(check-sat)\n(get-objectives)\n"
-            solver_query = "z3 pp.decimal=true -in"
-            proc_run = subprocess.Popen(shlex.split(solver_query),
-                                        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            out, err = proc_run.communicate(input=str.encode(query))
-            if not err.decode() == "":
-                print("Problem in the solver!")
-            res=self.clean_result_of_optimization(out)
-            edge_cdf.append(dec2Str(ev_point))
+            tmp_results.append(pool.apply_async(max_instance,
+                                        args=[index_lp,ev_point,self.insiders,self.query],
+                                        callback=results.append))
+
+        pool.close()
+        pool.join()
+
+        for pair in sorted(results, key=lambda x: x[0]):
+            res=self.clean_result_of_optimization(pair[1])
+            edge_cdf.append(dec2Str(pair[0]))
             val_cdf.append(round_near(Decimal(res), digits_for_cdf))
+
         return edge_cdf, val_cdf
 
     def optimize_min(self):
         edge_cdf=[]
         val_cdf = []
         print("LP problem Minimize, num evaluation points= " + str(len(self.evaluation_points)))
+
+        pool = Pool(processes=num_processes_dependent_operation, maxtasksperchild=3)
+        tmp_results = []
+        results = []
+
         for index_lp, ev_point in enumerate(self.evaluation_points):
-            print("Problem: "+str(index_lp))
-            res_values = [intern for intern in self.insiders if (Decimal(intern.interval.upper) <= ev_point)]
-            if len(res_values)>0:
-                encode="\n\n(minimize "+self.encode_recursive_addition(res_values)+")"
-                query=self.query+encode+"\n(check-sat)\n(get-objectives)\n"
-                solver_query = "z3 pp.decimal=true -in"
-                proc_run = subprocess.Popen(shlex.split(solver_query),
-                                        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                out, err = proc_run.communicate(input=str.encode(query))
-                if not err.decode() == "":
-                    print("Problem in the solver!")
-                res=self.clean_result_of_optimization(out)
-            else:
+            tmp_results.append(pool.apply_async(min_instance,
+                                        args=[index_lp,ev_point,self.insiders,self.query],
+                                        callback=results.append))
+
+        pool.close()
+        pool.join()
+
+        for pair in sorted(results, key=lambda x: x[0]):
+            if pair[1]=="0.0":
                 res="0.0"
-            edge_cdf.append(dec2Str(ev_point))
+            else:
+                res = self.clean_result_of_optimization(pair[1])
+            edge_cdf.append(dec2Str(pair[0]))
             val_cdf.append(round_near(Decimal(res), digits_for_cdf))
+
         return edge_cdf, val_cdf
 
     def encode_variables(self):
@@ -123,11 +180,12 @@ class LP_with_SMT():
         declare_vars = declare_vars + "\n\n"
         return declare_vars
 
-    def encode_recursive_addition(self, list):
-        if len(list)==1:
-            return list[0].name
+    @staticmethod
+    def encode_recursive_addition(tmp_list):
+        if len(tmp_list)==1:
+            return tmp_list[0].name
         else:
-            return "(+ "+list[0].name+" "+self.encode_recursive_addition(list[1:])+" "+")"
+            return "(+ " + tmp_list[0].name + " " + LP_with_SMT.encode_recursive_addition(tmp_list[1:]) + " " + ")"
 
     '''
     Insiders have to sum up to the marginal
