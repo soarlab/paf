@@ -182,12 +182,20 @@ def clean_var_name_SMT(name):
     return clean_name
 
 def make_expression_for_dict(dict):
-    res="0"
-    for entry in dict:
-        res= "(+ (* "+dict[entry]+" "+entry+") "+res+")"
-    return res
+    if len(dict) == 1:
+        key = list(dict.keys())[0]
+        val = dict[key]
+        return "(* "+key+" "+val+")"
+    else:
+        tmp=list(dict.items())
+        res="(* "+tmp[0][0]+" "+tmp[0][1]+")"
+        for entry in tmp[1:]:
+            res = "(+ (* " + entry[0] + " " + entry[1] + ") " + res + ")"
+        return res
 
 def create_expression_for_multiplication(name_dictionary_left, name_dictionary_right):
+    if len(name_dictionary_left)==0 or len(name_dictionary_right)==0:
+        return "0.0"
     left=make_expression_for_dict(name_dictionary_left)
     right=make_expression_for_dict(name_dictionary_right)
     return "(* "+left+" "+right+")"
