@@ -177,6 +177,15 @@ class Interval:
 
         return Interval(min,max,include_min,include_max, self.digits)
 
+    def __eq__(self, other):
+        if not isinstance(other, Interval):
+            return False
+        return (self.lower == other.lower and
+                self.upper == other.upper and
+                self.include_upper == other.include_upper and
+                self.include_lower == other.include_lower and
+                self.digits == other.digits)
+
     def perform_interval_operation(self, operator, interval):
         reset_default_precision()
         if operator=="+":
