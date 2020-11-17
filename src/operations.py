@@ -1,4 +1,6 @@
 import copy
+import multiprocessing as mp
+from multiprocessing.pool import Pool
 
 from pacal import ConstDistr
 from pychebfun import *
@@ -17,8 +19,31 @@ from gmpy2 import *
 
 from setup_utils import global_interpolate, digits_for_cdf, discretization_points, divisions_SMT_pruning_error, \
     valid_for_exit_SMT_pruning_error, divisions_SMT_pruning_operation, valid_for_exit_SMT_pruning_operation, \
-    recursion_limit_for_pruning_error, recursion_limit_for_pruning_operation
+    recursion_limit_for_pruning_error, recursion_limit_for_pruning_operation, num_processes, \
+    num_processes_dependent_operation
 
+
+def dependentIteration(index_left, index_right, smt_manager, expression_left, expression_center, expression_right,
+                       operator, left_op_box_SMT, right_op_box_SMT, domain_affine_SMT, error_computation):
+    #print("Start Square_"+str(index_left)+"_"+str(index_right))
+    smt_manager = copy.deepcopy(smt_manager)
+    smt_manager.set_expression_left(expression_left, left_op_box_SMT.interval)
+    smt_manager.set_expression_right(expression_right, right_op_box_SMT.interval)
+    domain_interval = left_op_box_SMT.interval.perform_interval_operation(operator, right_op_box_SMT.interval)
+    intersection_interval = domain_interval.intersection(domain_affine_SMT.interval)
+    if not intersection_interval == empty_interval_domain:
+        if smt_manager.check(debug=False, dReal=False):
+            # now we can clean the domain
+            clean_intersection_interval = \
+                clean_co_domain(intersection_interval, smt_manager, expression_center,
+                                (divisions_SMT_pruning_error if error_computation else divisions_SMT_pruning_operation),
+                                (valid_for_exit_SMT_pruning_error if error_computation else valid_for_exit_SMT_pruning_operation),
+                                recursion_limit_for_pruning=(recursion_limit_for_pruning_error if error_computation else recursion_limit_for_pruning_operation),
+                                start_recursion_limit=0, dReal=not error_computation)
+            #print("Done Pruning Square_" + str(index_left) + "_" + str(index_right))
+            return [index_left,index_right,clean_intersection_interval]
+    #print("Done Affine Square_" + str(index_left) + "_" + str(index_right))
+    return [None, None, empty_interval_domain]
 
 class quantizedPointMass:
 
@@ -246,39 +271,45 @@ class BinOpDist:
                                                                                        right_operand_discr_SMT.affine)
 
         insides_SMT = []
+        tmp_insides_SMT = []
+
         evaluation_points=set()
         print(self.leftoperand.name,self.operator,self.rightoperand.name)
+        print("Left-Intervals: "+str(len(left_operand_discr_SMT.intervals)))
+        print("Right-Intervals: "+str(len(right_operand_discr_SMT.intervals)))
         print("Pruning dependent operation...")
+
+        pool = Pool(processes=num_processes_dependent_operation)#, maxtasksperchild=3)
+        tmp_results=[]
 
         for index_left, left_op_box_SMT in enumerate(left_operand_discr_SMT.intervals):
             for index_right, right_op_box_SMT in enumerate(right_operand_discr_SMT.intervals):
+                tmp_results.append(pool.apply_async(dependentIteration,
+                                 args=[index_left, index_right, smt_manager, expression_left,
+                                       expression_center, expression_right, self.operator, left_op_box_SMT,
+                                       right_op_box_SMT, domain_affine_SMT, self.is_error_computation],
+                                 callback=tmp_insides_SMT.append))
 
-                smt_manager.set_expression_left(expression_left, left_op_box_SMT.interval)
-                smt_manager.set_expression_right(expression_right, right_op_box_SMT.interval)
-                domain_interval=left_op_box_SMT.interval.perform_interval_operation(self.operator,right_op_box_SMT.interval)
-                intersection_interval = domain_interval.intersection(domain_affine_SMT.interval)
-                if not intersection_interval == empty_interval_domain:
-                    if smt_manager.check(debug=False, dReal=False):
-                        #now we can clean the domain
-                        clean_intersection_interval = \
-                            clean_co_domain(intersection_interval,smt_manager,expression_center,
-                                            (divisions_SMT_pruning_error if self.is_error_computation else divisions_SMT_pruning_operation),
-                                            (valid_for_exit_SMT_pruning_error if self.is_error_computation else valid_for_exit_SMT_pruning_operation),
-                                            recursion_limit_for_pruning=(recursion_limit_for_pruning_error if self.is_error_computation else recursion_limit_for_pruning_operation),
-                                            start_recursion_limit=0, dReal=not self.is_error_computation)
-                        inside_box_SMT = PBox(clean_intersection_interval,"prob","prob")
-                        evaluation_points.add(Decimal(clean_intersection_interval.lower))
-                        evaluation_points.add(Decimal(clean_intersection_interval.upper))
-                        left_op_box_SMT.add_kid(inside_box_SMT)
-                        right_op_box_SMT.add_kid(inside_box_SMT)
-                        insides_SMT.append(inside_box_SMT)
-                        smt_manager.clean_expressions()
+        pool.close()
+        pool.join()
+        print("\nDone with dependent operation\n")
+
+        for triple in tmp_insides_SMT:
+            if not triple[2]==empty_interval_domain:
+                inside_box_SMT = PBox(triple[2], "prob", "prob")
+                insides_SMT.append(inside_box_SMT)
+                left_operand_discr_SMT.intervals[triple[0]].add_kid(inside_box_SMT)
+                right_operand_discr_SMT.intervals[triple[1]].add_kid(inside_box_SMT)
+                evaluation_points.add(Decimal(inside_box_SMT.interval.lower))
+                evaluation_points.add(Decimal(inside_box_SMT.interval.upper))
 
         evaluation_points = sorted(evaluation_points)
+
         if len(evaluation_points)>discretization_points and not self.is_error_computation:
             step = round(len(evaluation_points) / discretization_points)
             step = max(1,step)
             evaluation_points = sorted(set(evaluation_points[::step]+[evaluation_points[-1]]))
+
         lp_inst_SMT=LP_with_SMT(self.leftoperand.name,self.rightoperand.name,
                     left_operand_discr_SMT.intervals,right_operand_discr_SMT.intervals,insides_SMT,evaluation_points)
         upper_bound_cdf_ind_SMT, upper_bound_cdf_val_SMT=lp_inst_SMT.optimize_max()
@@ -294,6 +325,8 @@ class BinOpDist:
         val_cdf_up=upper_bound_cdf_val_SMT
         pboxes=from_DSI_to_PBox(edge_cdf, val_cdf_low, edge_cdf, val_cdf_up)
         self.discretization =MixedArithmetic.clone_MixedArith_from_Args(domain_affine_SMT, pboxes)
+
+
 
     def executeDependent(self):
         if self.dependent_mode == "full_mc":
