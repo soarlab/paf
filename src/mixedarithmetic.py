@@ -14,11 +14,15 @@ from setup_utils import digits_for_discretization, digits_for_cdf, delta_error_c
 A PBox consists in a domain interval associated with a probability (CDF) interval
 '''
 class PBox:
-    def __init__(self, interval, cdf_low, cdf_up):
+    def __init__(self, interval, cdf_low, cdf_up):#, input_variables):
         self.interval=interval
         self.cdf_low=cdf_low
         self.cdf_up=cdf_up
+        #self.input_variables=input_variables
         self.kids=set()
+
+    #def merge_input_variables(self, pbox):
+    #    self.input_variables.update(pbox.input_variables)
 
     def add_kid(self, kid):
         self.kids.add(kid)
@@ -82,11 +86,13 @@ def createDSIfromDistribution(distribution, n=50):
         with gmpy2.local_context(gmpy2.context()) as ctx:
             lower=round_number_down_to_digits(gmpy2.mpfr(lin_space[i]), digits_for_discretization)
             upper=round_number_down_to_digits(gmpy2.mpfr(lin_space[i+1]), digits_for_discretization)
+            #input_variables = {}
+            #input_variables[distribution.name]=[lower,upper]
             cdf_low_bound=min(1.0, max(0.0, cdf_distr(lin_space[i])))
             cdf_up_bound=min(1.0, max(0.0, cdf_distr(lin_space[i+1])))
             pbox = PBox(Interval(lower,upper,True,False, digits_for_discretization),
                       dec2Str(round_near(cdf_low_bound, digits_for_cdf)),
-                      dec2Str(round_near(cdf_up_bound, digits_for_cdf)))
+                      dec2Str(round_near(cdf_up_bound, digits_for_cdf)))#, input_variables)
             ret_list.append(pbox)
     ret_list[-1].interval.include_upper = True
     mixarith=MixedArithmetic(ret_list[0].interval.lower,ret_list[-1].interval.upper,ret_list)
