@@ -8,6 +8,7 @@ from pychebfun import *
 from IntervalArithmeticLibrary import Interval, empty_interval_domain
 import model
 from SMT_Interface import create_exp_for_BinaryOperation_SMT_LIB
+from SymbolicAffineArithmetic import SymbolicAffineInstance, SymbolicAffineManager, SymExpression
 from linearprogramming import LP_Instance, LP_with_SMT
 from mixedarithmetic import MixedArithmetic, PBox, from_PDFS_PBox_to_DSI, from_DSI_to_PBox, from_DSI_to_PBox_with_Delta, \
     from_CDFS_PBox_to_DSI
@@ -24,13 +25,16 @@ from setup_utils import global_interpolate, digits_for_cdf, discretization_point
 
 
 def dependentIteration(index_left, index_right, smt_manager, expression_left, expression_center, expression_right,
-                       operator, left_op_box_SMT, right_op_box_SMT, domain_affine_SMT, error_computation):
+                       operator, left_op_box_SMT, right_op_box_SMT, domain_affine_SMT, error_computation,
+                       symbolic_affine, symbolic_interval):
     #print("Start Square_"+str(index_left)+"_"+str(index_right))
     smt_manager = copy.deepcopy(smt_manager)
     smt_manager.set_expression_left(expression_left, left_op_box_SMT.interval)
     smt_manager.set_expression_right(expression_right, right_op_box_SMT.interval)
     domain_interval = left_op_box_SMT.interval.perform_interval_operation(operator, right_op_box_SMT.interval)
     intersection_interval = domain_interval.intersection(domain_affine_SMT.interval)
+    if error_computation:
+        intersection_interval = intersection_interval.intersection(symbolic_interval)
     if not intersection_interval == empty_interval_domain:
         if smt_manager.check(debug=False, dReal=False):
             # now we can clean the domain
@@ -59,6 +63,9 @@ class quantizedPointMass:
         self.distribution = ConstDistr(float(self.qValue))
         self.distribution.get_piecewise_pdf()
         self.discretization=None
+        self.affine_error =None
+        self.symbolic_error = None
+        self.symbolic_affine=None
         self.get_discretization()
         self.a = self.distribution.range_()[0]
         self.b = self.distribution.range_()[-1]
@@ -81,9 +88,16 @@ class quantizedPointMass:
 
     def get_discretization(self):
         if self.discretization==None:
-            self.discretization=self.create_discretization()
-            self.affine_error= self.createAffineErrorForValue()
+            self.discretization =self.create_discretization()
+            self.affine_error = self.createAffineErrorForValue()
+            self.symbolic_affine = self.createSymbolicAffineInstance()
+            self.symbolic_error = self.wrapperInputDistribution.symbolic_affine.\
+                perform_affine_operation("-", self.symbolic_affine, dReal=False)
         return self.discretization
+
+    def createSymbolicAffineInstance(self):
+        sym_term=SymExpression("["+self.discretization.lower+","+self.discretization.upper+"]")
+        return SymbolicAffineInstance(sym_term, {}, {})
 
     def createAffineErrorForValue(self):
         error=self.wrapperInputDistribution.discretization.affine.\
@@ -174,6 +188,8 @@ class BinOpDist:
         self.sampleInit = True
         self.discretization=None
         self.affine_error=None
+        self.symbolic_affine = None
+        self.symbolic_error = None
         self.execute()
 
     def executeConvolution(self):
@@ -202,34 +218,16 @@ class BinOpDist:
         self.aConv = self.distributionConv.range_()[0]
         self.bConv = self.distributionConv.range_()[-1]
 
-    def operationDependent(self, elaborateBorders):
+    def operationDependent(self):
         leftOp = self.leftoperand.getSampleSet(self.samples_dep_op)
         rightOp = self.rightoperand.getSampleSet(self.samples_dep_op)
 
         if self.operator == "*+":
             res = np.array(leftOp) * (1 + (self.rightoperand.unit_roundoff * np.array(rightOp)))
-            if elaborateBorders:
-                res = self.elaborateBorders(leftOp, self.operator,
-                                            (1 + (self.rightoperand.unit_roundoff * np.array(rightOp))),
-                                            res)
+
         else:
             res = eval("np.array(leftOp)" + self.operator + "np.array(rightOp)")
-            if elaborateBorders:
-                res = self.elaborateBorders(leftOp, self.operator, rightOp, res)
 
-        return res
-
-    def elaborateBorders(self, leftOp, operator, rightOp, res):
-        x1 = min(leftOp)
-        x2 = max(leftOp)
-        y1 = min(rightOp)
-        y2 = max(rightOp)
-        tmp_res = []
-        for tmp_1 in [x1, x2]:
-            for tmp_2 in [y1, y2]:
-                tmp_res.append(eval(str(tmp_1) + operator + str(tmp_2)))
-        res[-1] = min(tmp_res)
-        res[-2] = max(tmp_res)
         return res
 
     def _full_mc_dependent_execution(self):
@@ -266,10 +264,15 @@ class BinOpDist:
                                 recursion_limit_for_pruning=recursion_limit_for_pruning_error,
                                 start_recursion_limit=0, dReal=False)
             smt_manager.clean_expressions()
+            #domain_symbolic_interval=self.symbolic_error.compute_interval()
+            #domain_affine_SMT=domain_affine_SMT.interval.intersection(domain_symbolic_interval)
+            self.symbolic_affine = self.symbolic_error
         else:
             domain_affine_SMT = left_operand_discr_SMT.affine.perform_affine_operation(self.operator,
                                                                                        right_operand_discr_SMT.affine)
-
+            self.symbolic_affine = self.leftoperand.symbolic_affine.perform_affine_operation(self.operator,
+                                                                                    self.rightoperand.symbolic_affine)
+        domain_symbolic_interval = self.symbolic_error.compute_interval()
         insides_SMT = []
         tmp_insides_SMT = []
 
@@ -287,7 +290,8 @@ class BinOpDist:
                 tmp_results.append(pool.apply_async(dependentIteration,
                                  args=[index_left, index_right, smt_manager, expression_left,
                                        expression_center, expression_right, self.operator, left_op_box_SMT,
-                                       right_op_box_SMT, domain_affine_SMT, self.is_error_computation],
+                                       right_op_box_SMT, domain_affine_SMT, self.is_error_computation,
+                                       self.symbolic_affine, domain_symbolic_interval],
                                  callback=tmp_insides_SMT.append))
 
         pool.close()
@@ -327,7 +331,6 @@ class BinOpDist:
         self.discretization =MixedArithmetic.clone_MixedArith_from_Args(domain_affine_SMT, pboxes)
 
 
-
     def executeDependent(self):
         if self.dependent_mode == "full_mc":
             self._full_mc_dependent_execution()
@@ -345,6 +348,8 @@ class BinOpDist:
         left_op=copy.deepcopy(self.leftoperand.get_discretization())
         right_op=copy.deepcopy(self.rightoperand.get_discretization())
         domain_affine = left_op.affine.perform_affine_operation(self.operator, right_op.affine)
+        self.symbolic_affine = self.leftoperand.symbolic_affine.perform_affine_operation\
+                                        (self.operator, self.rightoperand.symbolic_affine)
         insiders=[]
         evaluation_points=set()
         print(self.leftoperand.name,self.operator,self.rightoperand.name)
@@ -358,7 +363,6 @@ class BinOpDist:
                 pdf_right = Decimal(right_op_box.cdf_up) - Decimal(right_op_box.cdf_low)
                 domain_interval=left_op_box.interval.perform_interval_operation(self.operator,right_op_box.interval)
                 probability=pdf_left*pdf_right
-                #probability=round_near(probability,digits_for_cdf)
                 inside_box = PBox(domain_interval, dec2Str(probability), dec2Str(probability))
                 insiders.append(inside_box)
                 evaluation_points.add(Decimal(domain_interval.lower))
@@ -391,16 +395,18 @@ class BinOpDist:
         if self.distribution == None:
             if self.is_error_computation:
                 self.affine_error=self.rightoperand.affine_error
+                self.symbolic_error=self.rightoperand.symbolic_error
             else:
                 self.compute_error_affine_form()
+                self.compute_error_symbolic_form()
             if self.convolution:
                 self.executeIndependent()
-                self.distributionValues = self.operationDependent(elaborateBorders=False)
+                self.distributionValues = self.operationDependent()
                 self.distribution = self.distributionConv
                 self.a = self.aConv
                 self.b = self.bConv
             else:
-                self.distributionValues = self.operationDependent(elaborateBorders=False)
+                self.distributionValues = self.operationDependent()
                 self.executeDependent()
                 self.distribution = self.distributionSamp
                 self.a = self.aSamp
@@ -446,6 +452,41 @@ class BinOpDist:
                 perform_affine_operation("+",
                         self.exact_affines_forms[0].perform_affine_operation("+", self.leftoperand.affine_error).
                         perform_affine_operation("*",self.rightoperand.discretization.affine))
+        else:
+            print("Operation not supported!")
+            exit(-1)
+
+
+    def compute_error_symbolic_form(self):
+        if self.operator == "+":
+            self.symbolic_error = self.leftoperand.symbolic_error.perform_affine_operation\
+                ("+",self.rightoperand.symbolic_error)
+        elif self.operator == "-":
+            self.symbolic_error = self.leftoperand.symbolic_error.perform_affine_operation \
+                ("-", self.rightoperand.symbolic_error)
+        elif self.operator == "*":
+            x_erry = self.exact_affines_forms[2].\
+                perform_affine_operation("*", self.rightoperand.symbolic_error)
+            y_errx=self.exact_affines_forms[3].\
+                perform_affine_operation("*", self.leftoperand.symbolic_error)
+            errx_erry=self.leftoperand.symbolic_error.\
+                perform_affine_operation("*", self.rightoperand.symbolic_error)
+            self.symbolic_error=x_erry.perform_affine_operation("+",
+                              y_errx.perform_affine_operation("+", errx_erry))
+        elif self.operator == "/":
+            x_erry = self.exact_affines_forms[2].\
+                perform_affine_operation("/", self.rightoperand.symbolic_error)
+            y_errx = self.exact_affines_forms[3].\
+                perform_affine_operation("/", self.leftoperand.symbolic_error)
+            errx_erry = self.leftoperand.symbolic_error.\
+                perform_affine_operation("/", self.rightoperand.symbolic_error)
+            self.symbolic_error = x_erry.perform_arithmetic_operation("+",
+                                y_errx.perform_arithmetic_operation("+", errx_erry))
+        elif self.operator == "*+":
+            self.symbolic_error = self.leftoperand.symbolic_error.\
+                perform_affine_operation("+",
+                        self.exact_affines_forms[2].perform_affine_operation("+", self.leftoperand.symbolic_error).
+                        perform_affine_operation("*",self.rightoperand.symbolic_affine))
         else:
             print("Operation not supported!")
             exit(-1)
@@ -502,6 +543,8 @@ class UnOpDist:
         self.b = self.distribution.range_()[-1]
         self.discretization=None
         self.affine_error=None
+        self.symbolic_error=None
+        self.symbolic_affine = None
         self.get_discretization()
 
     def execute(self):
@@ -533,7 +576,6 @@ class UnOpDist:
         if self.discretization==None and self.affine_error == None:
             self.discretization = self.distribution.get_discretization()
             self.affine_error = self.distribution.affine_error
+            self.symbolic_error = self.distribution.symbolic_error
+            self.symbolic_affine=self.distribution.symbolic_affine
         return self.discretization
-
-    #if self.discretization == None and self.affine_error == None:
-    #    self.discretization = createDSIfromDistribution(self, n=discretization_points)
