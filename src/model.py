@@ -9,6 +9,8 @@ from scipy.stats import truncnorm
 
 from AffineArithmeticLibrary import AffineInstance, AffineManager
 from IntervalArithmeticLibrary import Interval
+from SymbolicAffineArithmetic import CreateSymbolicErrorForDistributions, SymbolicAffineInstance, SymExpression, \
+    CreateSymbolicZero
 from operations import BinOpDist
 from mixedarithmetic import createDSIfromDistribution, MixedArithmetic, dec2Str, PBox, from_PDFS_PBox_to_DSI, \
     from_DSI_to_PBox, createAffineErrorForLeaf
@@ -129,6 +131,8 @@ class N(stats.rv_continuous, Distr):
         self.interpolation_points=500
         self.discretization = None
         self.affine_error = None
+        self.symbolic_error = None
+        self.symbolic_affine = None
         self.init_piecewise_pdf()
         self.get_discretization()
 
@@ -153,9 +157,14 @@ class N(stats.rv_continuous, Distr):
         self.piecewise_pdf = piecewise_pdf
 
     def get_discretization(self):
-        if self.discretization==None and self.affine_error==None:
+        if self.discretization==None and self.affine_error==None and self.symbolic_error==None:
             self.discretization = createDSIfromDistribution(self, n=discretization_points)
             self.affine_error= createAffineErrorForLeaf()
+            self.symbolic_error= CreateSymbolicZero()
+            self.symbolic_affine = \
+                CreateSymbolicErrorForDistributions(self.name, self.discretization.intervals[0].interval.lower,
+                                                    self.discretization.intervals[-1].interval.upper)
+
         return self.discretization
 
     def execute(self):
@@ -425,8 +434,12 @@ class U(UniformDistr):
         self.sampleInit = True
         self.isScalar = False
         self.sampleSet=[]
+
         self.discretization = None
         self.affine_error=None
+        self.symbolic_error=None
+        self.symbolic_affine=None
+
         self.get_discretization()
 
     def execute(self):
@@ -436,9 +449,12 @@ class U(UniformDistr):
         return self.name
 
     def get_discretization(self):
-        if self.discretization==None and self.affine_error==None:
+        if self.discretization==None and self.affine_error==None and self.symbolic_error==None:
             self.discretization = createDSIfromDistribution(self, n=discretization_points)
             self.affine_error= createAffineErrorForLeaf()
+            self.symbolic_affine = \
+                CreateSymbolicErrorForDistributions(self.name, self.discretization.intervals[0].interval.lower, self.discretization.intervals[-1].interval.upper)
+            self.symbolic_error = CreateSymbolicZero()
         return self.discretization
 
     def getRepresentation(self):
@@ -464,6 +480,8 @@ class Number(ConstDistr):
         self.b=self.range_()[-1]
         self.discretization=None
         self.affine_error=None
+        self.symbolic_error=None
+        self.symbolic_affine=None
 
 
     def execute(self):
@@ -483,7 +501,8 @@ class Number(ConstDistr):
         if self.discretization==None:
             self.discretization=self.create_discretization()
             self.affine_error= createAffineErrorForLeaf()
-
+            self.symbolic_affine = SymbolicAffineInstance(self.name, {}, {})
+            self.symbolic_error = CreateSymbolicZero()
         return self.discretization
 
     def create_discretization(self):
@@ -829,12 +848,14 @@ class SineDistr(FuncNoninjectiveDistr):
 
 class AbsDistr(AbsDistr):
 
-    def __init__(self, d, discretization, affine_error, is_error_computation):
+    def __init__(self, d, discretization, affine_error, is_error_computation, symbolic_affine, symbolic_error):
         super(AbsDistr, self).__init__(d)
         self.operand=d
         self.discretization=discretization
         self.affine_error=affine_error
         self.is_error_computation=is_error_computation
+        self.symbolic_affine=symbolic_affine
+        self.symbolic_error=symbolic_error
         self.elaborate_discretization()
 
     def get_discretization(self):
@@ -869,25 +890,6 @@ class AbsDistr(AbsDistr):
             pboxes = from_DSI_to_PBox(edge_cdf, val_cdf_low, edge_cdf, val_cdf_up)
             self.discretization=MixedArithmetic.clone_MixedArith_from_Args(discretization.affine,pboxes)
 
-def lookForCDFValueInDiscretization(val, intervals):
-    if val<Decimal(intervals[0].interval.lower):
-        return 0,0
-    if val>Decimal(intervals[-1].interval.upper):
-        return 1,1
-    res_ub = Decimal("-inf")
-    res_lb = Decimal("+inf")
-    for inside in intervals:
-        if Decimal(inside.interval.lower) < val < Decimal(inside.interval.upper):
-            res_ub = max(res_ub, Decimal(inside.cdf_up))
-            res_lb = min(res_lb, Decimal(inside.cdf_low))
-        elif Decimal(inside.interval.lower) == val and inside.interval.include_lower:
-            res_ub = max(res_ub, Decimal(inside.cdf_up))
-            res_lb = min(res_lb, Decimal(inside.cdf_low))
-        elif Decimal(inside.interval.upper) == val and inside.interval.include_upper:
-            res_ub = max(res_ub, Decimal(inside.cdf_up))
-            res_lb = min(res_lb, Decimal(inside.cdf_low))
-    return res_lb, res_ub
-
 def sin(d):
     """Overload the sin function."""
     if isinstance(d, Distr):
@@ -900,7 +902,8 @@ def abs(d):
         return AbsDistr(d)
     elif isinstance(d, BinOpDist):
         d.execute()
-        return AbsDistr(d.distribution, d.discretization, d.affine_error, d.is_error_computation)
+        return AbsDistr(d.distribution, d.discretization, d.affine_error,
+                        d.is_error_computation, d.symbolic_affine, d.symbolic_error)
     elif isinstance(d, UnaryOperation):
         d.execute()
         return AbsDistr(d.distribution, d.discretization)
