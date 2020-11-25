@@ -1,5 +1,10 @@
+from decimal import Decimal
+
+from SymbolicAffineArithmetic import CreateSymbolicErrorForDistributions, CreateSymbolicErrorForErrors, \
+    SymbolicAffineInstance, SymExpression, CreateSymbolicZero
 from error_model import HighPrecisionErrorModel, LowPrecisionErrorModel, TypicalErrorModel, FastTypicalErrorModel
 from mixedarithmetic import createDSIfromDistribution, createAffineErrorForLeaf
+from project_utils import dec2Str
 from setup_utils import discretization_points
 
 
@@ -16,6 +21,7 @@ class ErrorModelWrapper:
         self.name = error_model.getName()
         self.discretization=None
         self.affine_error = None
+        self.symbolic_error = None
         self.get_discretization()
 
     def __str__(self):
@@ -32,8 +38,12 @@ class ErrorModelWrapper:
         return self.sampleSet
 
     def get_discretization(self):
-        if self.discretization==None and self.affine_error==None:
-            self.discretization = createDSIfromDistribution(self.distribution*self.unit_roundoff, n=discretization_points)
+        if self.discretization==None and self.affine_error==None and self.symbolic_error==None:
+            tmp_error=self.distribution*self.unit_roundoff
+            tmp_error.name=self.name
+            self.discretization = createDSIfromDistribution(tmp_error, n=discretization_points)
             self.affine_error= createAffineErrorForLeaf()
+            self.symbolic_error = CreateSymbolicZero()
+            self.symbolic_affine = CreateSymbolicErrorForErrors(eps_symbol=dec2Str(Decimal(self.unit_roundoff)))
         return self.discretization
 
