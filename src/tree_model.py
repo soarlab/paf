@@ -154,28 +154,6 @@ class TreeModel:
         #                                             self.final_exact_distr, 1000, self.samples_dep_op,
         #                                             regularize=True, convolution=False), "rel_err", "abs")
 
-    def compute_lower_upper_affine_error(self):
-        affine_error=self.abs_err_distr.affine_error
-        center=pacal.ConstDistr(float(affine_error.center.lower))
-        res_lower = center
-        for name, error in affine_error.coefficients.items():
-            if float(error.lower)>10**-15:
-                coeff=pacal.ConstDistr(float(error.lower))
-                err_distr=FastTypicalErrorModel(self.abs_err_distr,"F_T_E_M",self.precision,self.exponent,self.interp_precision)
-                res_lower=res_lower+coeff*err_distr
-                res_lower.get_piecewise_pdf()
-        center=pacal.ConstDistr(float(affine_error.center.upper))
-        res_upper = center
-        for name, error in affine_error.coefficients.items():
-            if float(error.upper) > 10 ** -15:
-                coeff=pacal.ConstDistr(float(error.upper))
-                err_distr=FastTypicalErrorModel(self.abs_err_distr,"F_T_E_M",self.precision,self.exponent,self.interp_precision)
-                res_upper=res_upper+coeff*err_distr
-                res_upper.get_piecewise_pdf()
-        res_lower=abs(res_lower)
-        res_upper=abs(res_upper)
-        return res_lower,res_upper
-
     def evaluate(self, tree):
         """ Recursively populate the Tree with the triples
         (distribution, error distribution, quantized distribution) """
@@ -184,11 +162,11 @@ class TreeModel:
             # Non-quantized distribution
 
             dist = self.manager.createUnaryOperation(tree.root_value, tree.root_name)
+
             smt_manager_dist=SMT_Interface.SMT_Instance()
             smt_manager_dist.add_var(tree.root_name, dist.discretization.lower, dist.discretization.upper)
             smt_manager_qdist=SMT_Interface.SMT_Instance()
             smt_manager_qdist.add_var(tree.root_name,dist.discretization.lower, dist.discretization.upper)
-
             dist_smt_query= SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(tree.root_name)
 
             # initialize=True means we quantize the inputs
@@ -201,7 +179,8 @@ class TreeModel:
                 else:
                     error = self.manager.createErrorModel(dist, self.precision, self.exponent, self.poly_precision, self.interp_precision,
                                                           self.error_model)
-                    exact_affine_forms=[dist.discretization.affine, None]
+                    exact_affine_forms=[dist.discretization.affine, None,
+                                        dist.symbolic_affine, None]
                     quantized_distribution = self.manager.createBinOperation(dist, "*+", error, self.interp_precision, exact_affine_forms=exact_affine_forms)
                     error_name_SMT=SMT_Interface.clean_var_name_SMT(error.distribution.name)
                     smt_manager_qdist.add_var(error_name_SMT, error.discretization.lower, error.discretization.upper)
@@ -211,7 +190,6 @@ class TreeModel:
                 error = 0
                 quantized_distribution = dist
                 qdist_smt_query = dist_smt_query
-
 
         # If not at a leaf we need to get the distribution and quantized distributions of the children nodes.
         # Then, check the operation. For each operation the template is the same:
@@ -231,8 +209,8 @@ class TreeModel:
             smt_triple_dist= (tree.left.root_value[3], tree.right.root_value[3], smt_manager_dist)
             smt_triple_qdist = (tree.left.root_value[4], tree.right.root_value[4], smt_manager_qdist)
 
-            exact_affine_forms=[tree.left.root_value[0].discretization.affine,
-                                tree.right.root_value[0].discretization.affine]
+            exact_affine_forms=[tree.left.root_value[0].discretization.affine,  tree.right.root_value[0].discretization.affine,
+                                tree.left.root_value[0].symbolic_affine,        tree.right.root_value[0].symbolic_affine]
 
             dist = self.manager.createBinOperation(tree.left.root_value[0], tree.root_name, tree.right.root_value[0],
                                                    self.interp_precision, exact_affine_forms, smt_triple_dist, convolution=tree.convolution)
@@ -252,7 +230,8 @@ class TreeModel:
             else:
                 error = self.manager.createErrorModel(qdist, self.precision, self.exponent, self.poly_precision,
                                                       self.interp_precision, self.error_model)
-                exact_affine_forms = [dist.discretization.affine, None]
+                exact_affine_forms = [dist.discretization.affine, None,
+                                      dist.symbolic_affine, None]
                 quantized_distribution = self.manager.createBinOperation(qdist, "*+", error,
                                                                          self.interp_precision, exact_affine_forms)
                 error_name_SMT = SMT_Interface.clean_var_name_SMT(error.distribution.name)
@@ -281,7 +260,8 @@ class TreeModel:
             else:
                 error = self.manager.createErrorModel(qdist, self.precision, self.exponent, self.poly_precision,
                                                       self.interp_precision, self.error_model)
-                exact_affine_forms=[tree.left.root_value[0].discretization.affine, None]
+                exact_affine_forms=[tree.left.root_value[0].discretization.affine, None,
+                                    tree.left.root_value[0].symbolic_affine, None]
                 quantized_distribution = self.manager.createBinOperation(qdist, "*+", error, self.interp_precision, exact_affine_forms=exact_affine_forms)
                 error_name_SMT = SMT_Interface.clean_var_name_SMT(error.distribution.name)
                 smt_manager_qdist.add_var(error_name_SMT, error.discretization.lower, error.discretization.upper)
