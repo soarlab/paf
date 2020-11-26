@@ -334,15 +334,30 @@ class BinOpDist:
     def executeDependent(self):
         if self.dependent_mode == "full_mc":
             self._full_mc_dependent_execution()
-        elif self.dependent_mode == "analytic":
-            self._analytic_dependent_execution()
         elif self.dependent_mode == "p-box":
             self._full_mc_dependent_execution()
             self._pbox_dependent_execution()
+            self._min_max_dependent_operation()
 
     def executeIndependent(self):
         self.executeConvolution()
         self.executeIndPBox()
+        self._min_max_independent_operation()
+
+    def _min_max_independent_operation(self):
+        pass
+
+    def _min_max_dependent_operation(self):
+        '''
+        FRED: here you can implement your new methods.
+        You need to add proper fields to the BinOp and UnOp (something like self.min_distribution
+        and self.max_distribution). In a similar way, you probably need to add one or more fields to Uniform/Normal
+        classes in the file model.py. Same thing for the WrapperErrorDistribution.
+        So basically, do the same thing we did for the field "distribution" in BinOp.
+        General rule: in case you need something please ADD IT, do not modify existing code
+        even in case you figure out some information might be redundant.
+        '''
+        pass
 
     def executeIndPBox(self):
         left_op=copy.deepcopy(self.leftoperand.get_discretization())
