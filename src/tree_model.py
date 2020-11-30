@@ -8,7 +8,7 @@ import SMT_Interface
 from error_model import HighPrecisionErrorModel, LowPrecisionErrorModel, FastTypicalErrorModel, ErrorModelPointMass, \
     ErrorModelWrapper, TypicalErrorModel
 from model import UnaryOperation
-from operations import quantizedPointMass, BinOpDist, UnOpDist, pacal, plt
+from operations import quantizedPointMass, BinOpDist, UnOpDist, pacal, plt, ConstantManager
 from setup_utils import loadIfExists, storage_path, global_interpolate
 from project_utils import printMPFRExactly, reset_default_precision, set_context_precision, isNumeric
 
@@ -175,7 +175,9 @@ class TreeModel:
                 if isPointMassDistr(dist):
                     error = ErrorModelPointMass(dist, self.precision, self.exponent)
                     quantized_distribution = quantizedPointMass(dist, self.precision, self.exponent)
-                    qdist_smt_query = SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(quantized_distribution.getName())
+                    quantized_value_name=ConstantManager.get_new_constant_index()
+                    smt_manager_qdist.add_var(quantized_value_name, quantized_distribution.discretization.lower, quantized_distribution.discretization.upper)
+                    qdist_smt_query = SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(quantized_value_name)
                 else:
                     error = self.manager.createErrorModel(dist, self.precision, self.exponent, self.poly_precision, self.interp_precision,
                                                           self.error_model)
