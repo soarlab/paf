@@ -13,42 +13,6 @@ from setup_utils import digits_for_discretization, recursion_limit_for_pruning_o
     GELPHIA_exponent_function_name, path_to_gelpia_executor
 
 
-def precise_create_exp_for_Gelpia(operand_left, operator, operand_right):
-    if operator=="+":
-        res = "("+ operand_left +" + "+operand_right+")"
-    elif operator=="-":
-        res = "("+ operand_left +" - "+operand_right+")"
-    elif operator == "*":
-        res = "("+ operand_left +" * "+operand_right+")"
-    elif operator == "/":
-        res = "("+ operand_left +" / "+operand_right+")"
-    elif operator =="*+":
-        exp = "(" + GELPHIA_exponent_function_name +"(" + operand_left + "))"
-        tmp= "("+operand_right+" * "+exp+")"
-        res= "("+operand_left+" + "+tmp+")"
-    else:
-        print("Operation not supported")
-        exit(-1)
-    return res
-
-def create_exp_for_Gelpia(operand_left, operator, operand_right):
-    if operator == "+":
-        res = "(" + operand_left + " + " + operand_right + ")"
-    elif operator == "-":
-        res = "(" + operand_left + " - " + operand_right + ")"
-    elif operator == "*":
-        res = "(" + operand_left + " * " + operand_right + ")"
-    elif operator == "/":
-        res = "(" + operand_left + " / " + operand_right + ")"
-    elif operator == "*+":
-        exp = "(1+ "+operand_right+")"
-        res = "(" + operand_left + " * " + exp + ")"
-    else:
-        print("Operation not supported")
-        exit(-1)
-    return res
-
-
 def CreateSymbolicErrorForDistributions(distribution_name, lb, ub):
     var_name={distribution_name:[lb,ub]}
     return SymbolicAffineInstance(SymExpression(distribution_name), {}, var_name)
@@ -104,11 +68,24 @@ class SymbolicAffineManager:
     def get_new_error_index():
         tmp=SymbolicAffineManager.i
         SymbolicAffineManager.i= SymbolicAffineManager.i + 1
-        return "E"+str(tmp)
+        return "SYM_E"+str(tmp)
 
     @staticmethod
     def from_Interval_to_Expression(interval):
         return SymExpression("["+interval.lower+","+interval.upper+"]")
+
+    @staticmethod
+    def precise_create_exp_for_Gelpia(exact, error):
+        err_interval=error.compute_interval()
+        middle_point=AffineManager.compute_middle_point_given_interval(err_interval.lower, err_interval.upper)
+        uncertainty=AffineManager.compute_uncertainty_given_interval(err_interval.lower, err_interval.upper)
+        middle_point_exp=SymbolicAffineManager.from_Interval_to_Expression(middle_point)
+        new_exact=exact.add_constant_expression(middle_point_exp)
+        new_uncertainty=list(uncertainty.values())[0].perform_interval_operation("*", Interval("-1","1",True,True,digits_for_discretization))
+        new_uncertainty_exp=SymbolicAffineManager.from_Interval_to_Expression(new_uncertainty)
+        new_exact=new_exact.add_constant_expression(new_uncertainty_exp)
+        encoding="(" + GELPHIA_exponent_function_name + "(" + str(new_exact.center) + "))"
+        return SymbolicAffineInstance(SymExpression(encoding),{},copy.deepcopy(exact.variables))
 
 class SymbolicToGelpia:
 
