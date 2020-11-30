@@ -39,7 +39,11 @@ def clean_co_domain(pbox, smt_manager, expression_center, divisions_SMT,
             break
     if not double_check:
         print("Problem with cleaning")
-        exit(-1)
+        smt_manager.operation_center = ()
+        smt_manager.check(debug=True, dReal=False)
+        smt_manager.check(debug=True, dReal=True)
+        ret_box = Interval(low, sup, inc_low, inc_sup, digits_for_discretization)
+        return ret_box
 
     for ind, interval in enumerate(codomain_intervals[:-1]):
         if not interval[2]:
