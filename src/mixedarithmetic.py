@@ -142,6 +142,8 @@ def from_PDFS_PBox_to_DSI(insiders, evaluation_points):
             if not Decimal(inside.cdf_low)==Decimal(inside.cdf_up):
                 print("This is a PDFs operation. They must match!")
                 exit(-1)
+            #FIX: In case the lower interval is excluded we should not sum the probability.
+            #Instead for the upper bound it is correct using <=.
             if Decimal(inside.interval.lower) <= ev_point:
                 res_ub = res_ub + Decimal(inside.cdf_low)
             acc_ub=acc_ub+Decimal(inside.cdf_low)
