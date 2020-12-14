@@ -1,4 +1,5 @@
 from error_model import HighPrecisionErrorModel, LowPrecisionErrorModel, TypicalErrorModel, ErrorModelWrapper
+from cdf_op_dev import ApproximatingPair, IndependentOperation
 import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
@@ -11,6 +12,42 @@ from tree_model import TreeModel
 ###
 # TreeModel Tests
 ###
+
+
+def test_Approx_Operations():
+    n = 32
+    epsilon = 0.0001
+    left_dist = UniformDistr(8,9) + BetaDistr(5,1)
+    right_dist = UniformDistr(2,3)
+    left_operand = ApproximatingPair(n, epsilon, left_dist)
+    right_operand = ApproximatingPair(n, epsilon, right_dist)
+    left_exact = []
+    right_exact = []
+    operation_exact = []
+    op = IndependentOperation("-", left_operand, right_operand)
+    op.perform_operation()
+    Z = left_dist - right_dist
+    for i in range(0, left_operand.n):
+        left_exact.append(left_dist.cdf(left_operand.range_array[i]))
+        right_exact.append(right_dist.cdf(right_operand.range_array[i]))
+        operation_exact.append(Z.cdf(op.output.range_array[i]))
+    plt.close("all")
+    matplotlib.rcParams.update({'font.size': 10})
+    fig, a = plt.subplots(3)
+    a[0].plot(left_operand.range_array, left_operand.lower_array, "r", drawstyle='steps-post')
+    a[0].plot(left_operand.range_array, left_operand.upper_array, "g", drawstyle='steps-pre')
+    a[0].plot(left_operand.range_array, left_exact, "b")
+    a[0].set_title("Left operand")
+    a[1].plot(right_operand.range_array, right_operand.lower_array, "r", drawstyle='steps-post')
+    a[1].plot(right_operand.range_array, right_operand.upper_array, "g", drawstyle='steps-pre')
+    a[1].plot(right_operand.range_array, right_exact, "b")
+    a[1].set_title("Right operand")
+    a[2].plot(op.output.range_array, op.output.lower_array, "r", drawstyle='steps-post')
+    a[2].plot(op.output.range_array, op.output.upper_array, "g", drawstyle='steps-pre')
+    a[2].plot(op.output.range_array, operation_exact, "b")
+    a[2].set_title("Operation")
+    plt.show()
+    exit(0)
 
 def test_TreeModel():
     # typical model test
