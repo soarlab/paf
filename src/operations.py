@@ -24,11 +24,11 @@ from setup_utils import global_interpolate, digits_for_cdf, discretization_point
     num_processes_dependent_operation
 
 
-def dependentIteration(index_left, index_right, smt_manager, expression_left, expression_center, expression_right,
+def dependentIteration(index_left, index_right, smt_manager_input, expression_left, expression_center, expression_right,
                        operator, left_op_box_SMT, right_op_box_SMT, domain_affine_SMT, error_computation,
                        symbolic_affine, symbolic_interval):
     #print("Start Square_"+str(index_left)+"_"+str(index_right))
-    smt_manager = copy.deepcopy(smt_manager)
+    smt_manager = copy.deepcopy(smt_manager_input)
     smt_manager.set_expression_left(expression_left, left_op_box_SMT.interval)
     smt_manager.set_expression_right(expression_right, right_op_box_SMT.interval)
     domain_interval = left_op_box_SMT.interval.perform_interval_operation(operator, right_op_box_SMT.interval)
@@ -38,6 +38,8 @@ def dependentIteration(index_left, index_right, smt_manager, expression_left, ex
     if not intersection_interval == empty_interval_domain:
         if smt_manager.check(debug=False, dReal=False):
             # now we can clean the domain
+            if error_computation:
+                return [index_left, index_right, intersection_interval]
             clean_intersection_interval = \
                 clean_co_domain(intersection_interval, smt_manager, expression_center,
                                 (divisions_SMT_pruning_error if error_computation else divisions_SMT_pruning_operation),
@@ -48,6 +50,19 @@ def dependentIteration(index_left, index_right, smt_manager, expression_left, ex
             return [index_left,index_right,clean_intersection_interval]
     #print("Done Affine Square_" + str(index_left) + "_" + str(index_right))
     return [None, None, empty_interval_domain]
+
+class ConstantManager:
+    i=1
+
+    def __init__(self):
+        print("Constant Manager should never be instantiated")
+        raise NotImplementedError
+
+    @staticmethod
+    def get_new_constant_index():
+        tmp=ConstantManager.i
+        ConstantManager.i= ConstantManager.i + 1
+        return "Constant_"+str(tmp)
 
 class quantizedPointMass:
 
@@ -92,7 +107,7 @@ class quantizedPointMass:
             self.affine_error = self.createAffineErrorForValue()
             self.symbolic_affine = self.createSymbolicAffineInstance()
             self.symbolic_error = self.wrapperInputDistribution.symbolic_affine.\
-                perform_affine_operation("-", self.symbolic_affine, dReal=False)
+                perform_affine_operation("-", self.symbolic_affine)
         return self.discretization
 
     def createSymbolicAffineInstance(self):
@@ -272,7 +287,7 @@ class BinOpDist:
                                                                                        right_operand_discr_SMT.affine)
             self.symbolic_affine = self.leftoperand.symbolic_affine.perform_affine_operation(self.operator,
                                                                                     self.rightoperand.symbolic_affine)
-        domain_symbolic_interval = self.symbolic_error.compute_interval()
+        domain_symbolic_interval = self.symbolic_affine.compute_interval()
         insides_SMT = []
         tmp_insides_SMT = []
 
@@ -471,7 +486,6 @@ class BinOpDist:
             print("Operation not supported!")
             exit(-1)
 
-
     def compute_error_symbolic_form(self):
         if self.operator == "+":
             self.symbolic_error = self.leftoperand.symbolic_error.perform_affine_operation\
@@ -498,10 +512,10 @@ class BinOpDist:
             self.symbolic_error = x_erry.perform_arithmetic_operation("+",
                                 y_errx.perform_arithmetic_operation("+", errx_erry))
         elif self.operator == "*+":
+            exponent=SymbolicAffineManager.precise_create_exp_for_Gelpia(self.exact_affines_forms[2], self.leftoperand.symbolic_error)
             self.symbolic_error = self.leftoperand.symbolic_error.\
                 perform_affine_operation("+",
-                        self.exact_affines_forms[2].perform_affine_operation("+", self.leftoperand.symbolic_error).
-                        perform_affine_operation("*",self.rightoperand.symbolic_affine))
+                        exponent.perform_affine_operation("*",self.rightoperand.symbolic_affine))
         else:
             print("Operation not supported!")
             exit(-1)

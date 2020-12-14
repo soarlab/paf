@@ -501,7 +501,7 @@ class Number(ConstDistr):
         if self.discretization==None:
             self.discretization=self.create_discretization()
             self.affine_error= createAffineErrorForLeaf()
-            self.symbolic_affine = SymbolicAffineInstance(self.name, {}, {})
+            self.symbolic_affine = SymbolicAffineInstance(SymExpression(self.name), {}, {})
             self.symbolic_error = CreateSymbolicZero()
         return self.discretization
 
