@@ -5,22 +5,23 @@ from decimal import Decimal
 import gmpy2
 from gmpy2 import mpfr
 
-from AffineArithmeticLibrary import AffineManager, AffineInstance
-from IntervalArithmeticLibrary import Interval
-from project_utils import round_number_down_to_digits, round_number_up_to_digits, round_number_nearest_to_digits
-from pruning import clean_non_linearity_affine
-from setup_utils import digits_for_discretization, recursion_limit_for_pruning_operation, \
-    GELPHIA_exponent_function_name, path_to_gelpia_executor
+from AffineArithmeticLibrary import AffineManager
+from IntervalArithmeticLibrary import Interval, check_interval_is_zero
+from project_utils import round_number_nearest_to_digits, round_number_down_to_digits, round_number_up_to_digits
+from setup_utils import digits_for_range, \
+    GELPHIA_exponent_function_name, path_to_gelpia_executor, mpfr_proxy_precision, path_to_gelpia_constraints_executor, \
+    timeout_gelpia_constraint
 
 
 def CreateSymbolicErrorForDistributions(distribution_name, lb, ub):
     var_name={distribution_name:[lb,ub]}
     return SymbolicAffineInstance(SymExpression(distribution_name), {}, var_name)
 
-def CreateSymbolicErrorForErrors(eps_symbol):
+def CreateSymbolicErrorForErrors(eps_symbol, eps_value):
     err_name=SymbolicAffineManager.get_new_error_index()
     coefficients={err_name:SymExpression(eps_symbol)}
-    return SymbolicAffineInstance(SymExpression("0"), coefficients, {})
+    variable={eps_symbol:[eps_value,eps_value]}
+    return SymbolicAffineInstance(SymExpression("0"), coefficients, variable)
 
 def CreateSymbolicZero():
     return SymbolicAffineInstance(SymExpression("0"), {}, {})
@@ -31,19 +32,45 @@ class SymExpression:
         self.value=value
 
     def addition(self, operand):
-        res = SymExpression("(" + self.value + " + " + operand.value + ")")
+        if SymbolicAffineManager.check_expression_is_constant_zero(self) and \
+           SymbolicAffineManager.check_expression_is_constant_zero(operand):
+            res = SymExpression("0")
+        elif SymbolicAffineManager.check_expression_is_constant_zero(self):
+            res = SymExpression(operand.value)
+        elif SymbolicAffineManager.check_expression_is_constant_zero(operand):
+            res = SymExpression(self.value)
+        else:
+            res = SymExpression("(" + self.value + " + " + operand.value + ")")
         return res
 
     def subtraction(self, operand):
-        res = SymExpression("(" + self.value + " - " + operand.value + ")")
+        if SymbolicAffineManager.check_expression_is_constant_zero(self) and \
+           SymbolicAffineManager.check_expression_is_constant_zero(operand):
+            res = SymExpression("0")
+        elif SymbolicAffineManager.check_expression_is_constant_zero(self):
+            res = operand.negate()
+        elif SymbolicAffineManager.check_expression_is_constant_zero(operand):
+            res = SymExpression(self.value)
+        else:
+            res = SymExpression("(" + self.value + " - " + operand.value + ")")
         return res
 
     def multiplication(self, operand):
-        res = SymExpression("(" + self.value + " * " + operand.value + ")")
+        if SymbolicAffineManager.check_expression_is_constant_zero(self) or \
+           SymbolicAffineManager.check_expression_is_constant_zero(operand):
+            res=SymExpression("0")
+        else:
+            res = SymExpression("(" + self.value + " * " + operand.value + ")")
         return res
 
     def division(self, operand):
-        res = SymExpression("(" + self.value + " / " + operand.value + ")")
+        if SymbolicAffineManager.check_expression_is_constant_zero(operand):
+            print("Symbolic division by zero!!!!")
+            exit(-1)
+        elif SymbolicAffineManager.check_expression_is_constant_zero(self):
+            res=SymExpression("0")
+        else:
+            res = SymExpression("(" + self.value + " / " + operand.value + ")")
         return res
 
     def abs(self):
@@ -75,25 +102,53 @@ class SymbolicAffineManager:
         return SymExpression("["+interval.lower+","+interval.upper+"]")
 
     @staticmethod
+    def check_expression_is_constant_zero(expression):
+        try:
+            interval=Interval(expression.value,expression.value,True,True,digits_for_range)
+            return check_interval_is_zero(interval)
+        except:
+            return False
+        return False
+
+    @staticmethod
+    def compute_symbolic_uncertainty_given_interval(low, upper):
+        coefficients={}
+        with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundDown, precision=mpfr_proxy_precision) as ctx:
+            res_left = gmpy2.sub(gmpy2.div(mpfr(upper), mpfr("2.0")),gmpy2.div(mpfr(low), mpfr("2.0")))
+        with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundUp, precision=mpfr_proxy_precision) as ctx:
+            res_right = gmpy2.sub(gmpy2.div(mpfr(upper), mpfr("2.0")),gmpy2.div(mpfr(low), mpfr("2.0")))
+        interval=Interval(round_number_down_to_digits(res_left, digits_for_range),
+                     round_number_up_to_digits(res_right, digits_for_range), True, True, digits_for_range)
+        coefficients[SymbolicAffineManager.get_new_error_index()]=SymbolicAffineManager.\
+            from_Interval_to_Expression(interval)
+        return coefficients
+
+    @staticmethod
     def precise_create_exp_for_Gelpia(exact, error):
         err_interval=error.compute_interval()
-        middle_point=AffineManager.compute_middle_point_given_interval(err_interval.lower, err_interval.upper)
-        uncertainty=AffineManager.compute_uncertainty_given_interval(err_interval.lower, err_interval.upper)
-        middle_point_exp=SymbolicAffineManager.from_Interval_to_Expression(middle_point)
-        new_exact=exact.add_constant_expression(middle_point_exp)
-        new_uncertainty=list(uncertainty.values())[0].perform_interval_operation("*", Interval("-1","1",True,True,digits_for_discretization))
-        new_uncertainty_exp=SymbolicAffineManager.from_Interval_to_Expression(new_uncertainty)
-        new_exact=new_exact.add_constant_expression(new_uncertainty_exp)
+        new_exact=copy.deepcopy(exact)
+        if not check_interval_is_zero(err_interval):
+            #middle_point=AffineManager.compute_middle_point_given_interval(err_interval.lower, err_interval.upper)
+            #uncertainty=AffineManager.compute_uncertainty_given_interval(err_interval.lower, err_interval.upper)
+            #middle_point_exp=SymbolicAffineManager.from_Interval_to_Expression(middle_point)
+            err_expression = SymbolicAffineManager.from_Interval_to_Expression(err_interval)
+            #new_exact=new_exact.add_constant_expression(middle_point_exp)
+            new_exact=new_exact.add_constant_expression(err_expression)
+            #new_uncertainty=list(uncertainty.values())[0].perform_interval_operation("*", Interval("-1","1", True, True, digits_for_range))
+            #new_uncertainty_exp=SymbolicAffineManager.from_Interval_to_Expression(new_uncertainty)
+            #new_exact=new_exact.add_constant_expression(new_uncertainty_exp)
+            #The exact form has only a center (no error terms)
         encoding="(" + GELPHIA_exponent_function_name + "(" + str(new_exact.center) + "))"
         return SymbolicAffineInstance(SymExpression(encoding),{},copy.deepcopy(exact.variables))
 
 class SymbolicToGelpia:
 
     #expressions
-    def __init__(self, expression, variables):
+    def __init__(self, expression, variables, constraints=None):
         #path_to_gelpia_exe
         self.expression=expression
         self.variables=variables
+        self.constraints=constraints
 
     def encode_variables(self):
         res=""
@@ -101,16 +156,26 @@ class SymbolicToGelpia:
             res=res+var+"=["+str(self.variables[var][0])+","+str(self.variables[var][1])+"]; "
         return res
 
-    def compute_concrete_bounds(self, debug=False):
+    def encode_constraints(self):
+        res=""
+        if not self.constraints==None:
+            for constraint in self.constraints:
+                res=res+self.constraints[constraint][0]+"<="+constraint+"; "
+                res=res+self.constraints[constraint][1]+">="+constraint+"; "
+        return res
+
+    def compute_concrete_bounds(self, debug=True):
         variables=self.encode_variables()
-        result=Interval("0","0",True,True,digits_for_discretization)
-        body=variables+self.expression.value
-        query = path_to_gelpia_executor+' --function "'+body+'" --mode=min-max'
+        constraints=self.encode_constraints()
+        body=variables+str(self.expression)+"; "+constraints
+        query = (path_to_gelpia_executor if constraints=='' else path_to_gelpia_constraints_executor)\
+                    +' --function "'+body+'" --mode=min-max '\
+                    +(' --timeout '+timeout_gelpia_constraint+' --max-iters 1000000' if not constraints=='' else "")
         if debug:
             print(query)
         proc_run = subprocess.Popen(shlex.split(query), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE)
-        out, err = proc_run.communicate() #input=str.encode(query)) #, timeout=hard_timeout)
+        out, err = proc_run.communicate()
         if not err.decode() == "":
             print(err.decode())
         res = out.decode().strip()
@@ -119,12 +184,11 @@ class SymbolicToGelpia:
                 lb = line.split("Minimum lower bound")[1].strip()
             if "Maximum upper bound" in line:
                 ub = line.split("Maximum upper bound")[1].strip()
-        result=result.addition(Interval(lb,ub,True,True,digits_for_discretization))#"["+lb+","+ub+"]"
-        return result.lower,result.upper
+        return lb, ub
 
 class SymbolicAffineInstance:
-    #center is an Expression
-    #coefficients is a dictionary Ei => Expression
+    #center is a SymExpression
+    #coefficients is a dictionary "Ei" => SymExpression or "SYM_E" => SymExpression
     #variables is a dictionary "VariableName" => [lb, ub]
 
     def __init__(self, center, coefficients, variables):
@@ -132,13 +196,32 @@ class SymbolicAffineInstance:
         self.coefficients=coefficients
         self.variables=variables
 
+    def compute_interval_error(self, constraints=None):
+        second_order_lower, second_order_upper = SymbolicToGelpia(self.center, self.variables).compute_concrete_bounds()
+        center_interval=Interval(second_order_lower,second_order_upper,True,True,digits_for_range)
+        tmp_variables=copy.deepcopy(self.variables)
+        memorize_eps=[]
+        for var in tmp_variables:
+            # for the moment there should be one
+            if "eps" in var:
+                memorize_eps=Interval(tmp_variables[var][0], tmp_variables[var][1], True, True, digits_for_range)
+                tmp_variables[var]=["1.0","1.0"]
+                break
+        self_coefficients = self.add_all_coefficients_abs_exact()
+        _, coeff_upper=SymbolicToGelpia(self_coefficients, tmp_variables, constraints).compute_concrete_bounds()
+        coeff_interval=Interval("-"+coeff_upper,coeff_upper,True,True,digits_for_range).\
+                            perform_interval_operation("*", memorize_eps)
+        lower_concrete=center_interval.perform_interval_operation("-", coeff_interval)
+        upper_concrete=center_interval.perform_interval_operation("+", coeff_interval)
+        return Interval(lower_concrete.lower, upper_concrete.upper, True, True, digits_for_range)
+
     def compute_interval(self):
         self_coefficients = self.add_all_coefficients_abs_exact()
         lower_expr=self.center.subtraction(self_coefficients)
         upper_expr=self.center.addition(self_coefficients)
         lower_concrete, _ = SymbolicToGelpia(lower_expr, self.variables).compute_concrete_bounds()
         _, upper_concrete = SymbolicToGelpia(upper_expr, self.variables).compute_concrete_bounds()
-        return Interval(lower_concrete, upper_concrete, True, True, digits_for_discretization)
+        return Interval(lower_concrete, upper_concrete, True, True, digits_for_range)
 
     def add_all_coefficients_abs_exact(self):
         res=self.add_all_coefficients_abs_over()
@@ -215,21 +298,22 @@ class SymbolicAffineInstance:
         variables_non_linear=copy.deepcopy(self.variables)
         variables_non_linear.update(sym_affine.variables)
 
-        lower_non_linear,upper_non_linear=SymbolicToGelpia(expr_non_linear, variables_non_linear).compute_concrete_bounds()
+        _, upper_non_linear=SymbolicToGelpia(expr_non_linear, variables_non_linear).compute_concrete_bounds()
 
-        interval_middle_point_non_linear=AffineManager.compute_middle_point_given_interval(lower_non_linear, upper_non_linear)
-        dict_uncertainty_non_linear=AffineManager.compute_uncertainty_given_interval(lower_non_linear, upper_non_linear)
+        interval_non_linear=Interval("-"+upper_non_linear, upper_non_linear, True, True, digits_for_range)
 
-        key_uncertainty=list(dict_uncertainty_non_linear.keys())[0]
-        interval_uncertainty_non_linear=dict_uncertainty_non_linear[key_uncertainty]
-
-        expr_middle_point=SymbolicAffineManager.from_Interval_to_Expression(interval_middle_point_non_linear)
-        expr_uncertainty=SymbolicAffineManager.from_Interval_to_Expression(interval_uncertainty_non_linear)
-
-        dict_symbolic_non_linear={key_uncertainty:expr_uncertainty}
-
-        new_center=new_center.addition(expr_middle_point)
-        new_coefficients.update(dict_symbolic_non_linear)
+        if not check_interval_is_zero(interval_non_linear):
+            expr_non_linear = SymbolicAffineManager.from_Interval_to_Expression(interval_non_linear)
+            new_center=new_center.addition(expr_non_linear)
+            #interval_middle_point_non_linear=AffineManager.compute_middle_point_given_interval(lower_non_linear, upper_non_linear)
+            #dict_uncertainty_non_linear=AffineManager.compute_uncertainty_given_interval(lower_non_linear, upper_non_linear)
+            #key_uncertainty=list(dict_uncertainty_non_linear.keys())[0] #Note: there can be only one in dict_uncertainty_non_linear
+            #interval_uncertainty_non_linear=dict_uncertainty_non_linear[key_uncertainty]
+            #expr_middle_point=SymbolicAffineManager.from_Interval_to_Expression(interval_middle_point_non_linear)
+            #expr_uncertainty=SymbolicAffineManager.from_Interval_to_Expression(interval_uncertainty_non_linear)
+            #dict_symbolic_non_linear={key_uncertainty:expr_uncertainty}
+            #new_center=new_center.addition(expr_middle_point)
+            #new_coefficients.update(dict_symbolic_non_linear)
 
         tmp_variables=copy.deepcopy(self.variables)
         tmp_variables.update(sym_affine.variables)
@@ -237,51 +321,53 @@ class SymbolicAffineInstance:
         return SymbolicAffineInstance(new_center, new_coefficients, tmp_variables)
 
     def mult_constant_string(self, constant):
-        new_center=self.center.multiplication(constant)
+        sym_constant=SymExpression(constant)
+        new_center=self.center.multiplication(sym_constant)
         new_coefficients = {}
         for key in self.coefficients:
-            new_coefficients[key]=self.coefficients[key].multiplication(constant)
+            new_coefficients[key]=self.coefficients[key].multiplication(sym_constant)
         sym_affine_instance=SymbolicAffineInstance(new_center, new_coefficients, copy.deepcopy(self.variables))
         return sym_affine_instance
 
     def inverse(self):
         concrete_interval=self.compute_interval()
         new_coefficients=copy.deepcopy(self.coefficients)
+        new_variables=copy.deepcopy(self.variables)
 
         if Decimal(concrete_interval.lower)<=Decimal("0.0")<=Decimal(concrete_interval.upper):
             print("Division By Zero")
             exit(-1)
 
-        with gmpy2.local_context(gmpy2.context()) as ctx:
+        with gmpy2.local_context(gmpy2.context(), precision=mpfr_proxy_precision) as ctx:
             a=min(abs(mpfr(concrete_interval.lower)),abs(mpfr(concrete_interval.upper)))
             b=max(abs(mpfr(concrete_interval.lower)),abs(mpfr(concrete_interval.upper)))
 
-        with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundDown) as ctx:
+        with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundDown, precision=mpfr_proxy_precision) as ctx:
             b_square=gmpy2.mul(b,b)
             alpha=-gmpy2.div(mpfr("1.0"),b_square)
 
-        with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundUp) as ctx:
+        with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundUp, precision=mpfr_proxy_precision) as ctx:
             tmp=gmpy2.div(mpfr("1.0"),a)
             d_max=gmpy2.sub(tmp, gmpy2.mul(alpha,a))
 
-        with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundDown) as ctx:
+        with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundDown, precision=mpfr_proxy_precision) as ctx:
             tmp = gmpy2.div(mpfr("1.0"), b)
             d_min = gmpy2.sub(tmp, gmpy2.mul(alpha, b))
 
         shift=AffineManager.compute_middle_point_given_interval(d_min, d_max)
 
         if Decimal(concrete_interval.lower)<Decimal("0.0"):
-            shift=shift.multiplication(Interval("-1.0","-1.0",True,True, digits_for_discretization))
+            shift=shift.multiplication(Interval("-1.0","-1.0", True, True, digits_for_range))
 
         #Error of the approximation with min-range
-        radius=AffineManager.compute_uncertainty_given_interval(d_min, d_max)
+        #radius=AffineManager.compute_uncertainty_given_interval(d_min, d_max)
         #####
-        res=SymbolicAffineInstance(self.center, new_coefficients)
-        res=res.mult_constant_string(round_number_nearest_to_digits(alpha,digits_for_discretization))
+        res=SymbolicAffineInstance(self.center, new_coefficients, new_variables)
+        res=res.mult_constant_string(round_number_nearest_to_digits(alpha, digits_for_range))
         res=res.add_constant_expression(SymbolicAffineManager.from_Interval_to_Expression(shift))
         #The err radius is not shifted or scaled by shift and alpha
         #err_radius=AffineManager.get_new_error_index()
-        res.coefficients.update(radius)
+        res.coefficients.update(SymbolicAffineManager.compute_symbolic_uncertainty_given_interval(d_min,d_max))
         #res.coefficients[err_radius]=radius
         return res
 
