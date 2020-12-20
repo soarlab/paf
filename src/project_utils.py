@@ -5,7 +5,7 @@ import gmpy2
 import numpy
 import pacal
 
-from setup_utils import digits_for_discretization
+from setup_utils import digits_for_range
 
 
 def round_number_up_to_digits(number, digits):
@@ -28,7 +28,6 @@ def round_near(number, digits):
 
 def dec2Str(dec):
     return '{0:f}'.format(dec)
-
 
 def set_context_precision(mantissa, exponent):
     ctx = gmpy2.get_context()
@@ -70,26 +69,6 @@ class MyFunDistr(pacal.FunDistr):
 def printMPFRExactly(a):
     return "{0:.100f}".format(a)
 
-def computeLargestPositiveNumber(mantissa, exponent):
-    assert "mantissa includes sign bit!"
-    with gmpy2.local_context(gmpy2.context(), precision=100) as ctx:
-        biggestPositiveNumber = gmpy2.mul(gmpy2.sub(2, gmpy2.exp2(-(mantissa-1))),
-                                          gmpy2.exp2(gmpy2.exp2(exponent - 1) - 1))
-        # for negative it is just a matter of signs
-        return biggestPositiveNumber
-
-def checkBoundsOutOfRange(a, b, mantissa, exponent):
-    ret=[0,0]
-    val=float(printMPFRExactly(computeLargestPositiveNumber(mantissa, exponent)))
-    val=val+1
-    if a<val<b:
-        warnings.warn("The range of floating points is too narrow, increase exponent", FutureWarning, stacklevel=2)
-        ret[1]=val
-    if a<-val<b:
-        warnings.warn("The range of floating points is too narrow, increase exponent", FutureWarning, stacklevel=2)
-        ret[0]=val
-    return ret
-
 def normalizeDistribution(distr, init=False):
     coverage = distr.get_piecewise_pdf().integrate(float("-inf"), float("+inf"))
     if abs(coverage)<0.1 or abs(coverage)>2.0:
@@ -106,12 +85,6 @@ def normalizeDistribution(distr, init=False):
         warnings.warn("PDF integrates to 1. Good Accuracy", FutureWarning, stacklevel=2)
     return distr
 
-def getBoundsWhenOutOfRange(distribution, mantissa, exponent):
-    minVal = min(distribution.get_piecewise_pdf().breaks)
-    maxVal = max(distribution.get_piecewise_pdf().breaks)
-    res=checkBoundsOutOfRange(minVal, maxVal,mantissa,exponent)
-    return res
-
 def linear_space_with_decimals(low, up, inc_low, inc_up, n):
     vals=numpy.linspace(float(low), float(up), endpoint=True, num=n+1)
     if vals[0]==vals[-1]:
@@ -119,8 +92,8 @@ def linear_space_with_decimals(low, up, inc_low, inc_up, n):
     tmp=[]
     ret=[]
     for val in vals:
-        if not (round_near(Decimal(val),digits_for_discretization), True) in tmp:
-            tmp.append((round_near(Decimal(val),digits_for_discretization), True))
+        if not (round_near(Decimal(val), digits_for_range), True) in tmp:
+            tmp.append((round_near(Decimal(val), digits_for_range), True))
     tmp[0]= (Decimal(low), inc_low)
     tmp[-1]=(Decimal(up), inc_up)
     for ind, val in enumerate(tmp[:-1]):
