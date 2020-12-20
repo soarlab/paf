@@ -1,4 +1,3 @@
-import copy
 import subprocess
 from decimal import Decimal
 import shlex
@@ -7,13 +6,10 @@ from multiprocessing.pool import Pool
 
 sys.setrecursionlimit(100000)
 
-import numpy as np
-from scipy.optimize import linprog
-
 from SMT_Interface import clean_var_name_SMT
 from mixedarithmetic import dec2Str
-from project_utils import round_near
-from setup_utils import eps_for_LP, digits_for_cdf, num_processes_dependent_operation
+from project_utils import round_near, round_up, round_down
+from setup_utils import eps_for_LP, digits_for_Z3_cdf, num_processes_dependent_operation
 
 
 def add_minus_to_number_str(numstr):
@@ -31,6 +27,7 @@ def min_instance(index_lp, ev_point, insiders, query):
     if len(res_values) > 0:
         encode = "\n\n(minimize " + LP_with_SMT.encode_recursive_addition(res_values) + ")"
         query = query + encode + "\n(check-sat)\n(get-objectives)\n"
+        print(query)
         solver_query = "z3 pp.decimal=true -in"
         proc_run = subprocess.Popen(shlex.split(solver_query),
                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -86,21 +83,6 @@ class LP_with_SMT():
         marks_clean=space_res.replace("?","")
         return str(float(marks_clean))
 
-    @staticmethod
-    def single_max_instance(name, insiders, ev_point, query):
-        print("Problem: " + str(name))
-        res_values = [intern for intern in insiders if (Decimal(intern.interval.lower) <= ev_point)]
-        encode = "\n\n(maximize " + LP_Instance.encode_recursive_addition(res_values) + ")"
-        query = query + encode + "\n(check-sat)\n(get-objectives)\n"
-        solver_query = "z3 pp.decimal=true -in"
-        proc_run = subprocess.Popen(shlex.split(solver_query),
-                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = proc_run.communicate(input=str.encode(query))
-        if not err.decode() == "":
-            print("Problem in the solver!")
-        res = LP_Instance.clean_result_of_optimization(out)
-        return [dec2Str(ev_point), round_near(Decimal(res), digits_for_cdf)]
-
     def optimize_max(self):
         edge_cdf=[]
         val_cdf = []
@@ -109,19 +91,17 @@ class LP_with_SMT():
         pool = Pool(processes=num_processes_dependent_operation, maxtasksperchild=3)
         tmp_results=[]
         results=[]
-
         for index_lp, ev_point in enumerate(self.evaluation_points):
             tmp_results.append(pool.apply_async(max_instance,
                                         args=[index_lp,ev_point,self.insiders,self.query],
                                         callback=results.append))
-
         pool.close()
         pool.join()
 
         for pair in sorted(results, key=lambda x: x[0]):
             res=self.clean_result_of_optimization(pair[1])
             edge_cdf.append(dec2Str(pair[0]))
-            val_cdf.append(round_near(Decimal(res), digits_for_cdf))
+            val_cdf.append(round_near(Decimal(res), digits_for_Z3_cdf))
 
         return edge_cdf, val_cdf
 
@@ -148,7 +128,7 @@ class LP_with_SMT():
             else:
                 res = self.clean_result_of_optimization(pair[1])
             edge_cdf.append(dec2Str(pair[0]))
-            val_cdf.append(round_near(Decimal(res), digits_for_cdf))
+            val_cdf.append(round_near(Decimal(res), digits_for_Z3_cdf))
 
         return edge_cdf, val_cdf
 
@@ -208,15 +188,15 @@ class LP_with_SMT():
         encode_marginals_left=""
         so_far_left=self.marginal_left[0].name
         encode_marginals_left = encode_marginals_left + \
-                                "(assert ( <= " + self.marginal_left[0].cdf_low + " " + so_far_left + "))\n"
+                                "(assert ( <= " + dec2Str(round_down(self.marginal_left[0].cdf_low, digits_for_Z3_cdf)) + " " + so_far_left + "))\n"
         encode_marginals_left = encode_marginals_left + \
-                                "(assert ( >= " + self.marginal_left[0].cdf_up + " " + so_far_left + "))\n"
+                                "(assert ( >= " + dec2Str(round_up(self.marginal_left[0].cdf_up, digits_for_Z3_cdf)) + " " + so_far_left + "))\n"
         for marginal in self.marginal_left[1:]:
             so_far_left="(+ "+marginal.name+" "+so_far_left+")"
             encode_marginals_left=encode_marginals_left+\
-                                  "(assert ( <= "+marginal.cdf_low+" "+so_far_left+"))\n"
+                                  "(assert ( <= "+ dec2Str(round_down(marginal.cdf_low, digits_for_Z3_cdf))+" "+so_far_left+"))\n"
             encode_marginals_left=encode_marginals_left+\
-                                  "(assert ( >= "+marginal.cdf_up+" "+so_far_left+"))\n"
+                                  "(assert ( >= "+ dec2Str(round_up(marginal.cdf_up, digits_for_Z3_cdf))+" "+so_far_left+"))\n"
         encode_marginals_left = encode_marginals_left + "\n\n"
         return encode_marginals_left
 
@@ -224,142 +204,14 @@ class LP_with_SMT():
         encode_marginals_right=""
         so_far_right=self.marginal_right[0].name
         encode_marginals_right = encode_marginals_right + \
-                                 "(assert ( <= " + self.marginal_right[0].cdf_low + " " + so_far_right + "))\n"
+                                 "(assert ( <= " + dec2Str(round_down(self.marginal_right[0].cdf_low, digits_for_Z3_cdf)) + " " + so_far_right + "))\n"
         encode_marginals_right = encode_marginals_right + \
-                                 "(assert ( >= " + self.marginal_right[0].cdf_up + " " + so_far_right + "))\n"
+                                 "(assert ( >= " + dec2Str(round_up(self.marginal_right[0].cdf_up, digits_for_Z3_cdf)) + " " + so_far_right + "))\n"
         for marginal in self.marginal_right[1:]:
             so_far_right="(+ "+marginal.name+" "+so_far_right+")"
             encode_marginals_right=encode_marginals_right+\
-                                  "(assert ( <= "+marginal.cdf_low+" "+so_far_right+"))\n"
+                                  "(assert ( <= "+dec2Str(round_down(marginal.cdf_low, digits_for_Z3_cdf))+" "+so_far_right+"))\n"
             encode_marginals_right=encode_marginals_right+\
-                                  "(assert ( >= "+marginal.cdf_up+" "+so_far_right+"))\n"
+                                  "(assert ( >= "+dec2Str(round_up(marginal.cdf_up, digits_for_Z3_cdf))+" "+so_far_right+"))\n"
         encode_marginals_right = encode_marginals_right + "\n\n"
         return encode_marginals_right
-
-'''
-LP with Numpy.
-'''
-class LP_Instance:
-    def __init__(self, marginal_left, marginal_right, insides, evaluation_points, debug=True):
-        self.i=0
-        self.debug=debug
-        self.association_internals = {}
-        self.association_marginals = {}
-        self.constraints=[]
-        self.values=[]
-        self.marginal_left=marginal_left
-        self.marginal_right=marginal_right
-        self.internals=insides
-        self.evaluation_points=set()
-        self.elaborate_associations()
-        self.elaborate_constraints()
-        self.evaluation_points=evaluation_points
-
-    def elaborate_associations(self):
-        #Please note that marginal_left and marginal_right are deep clones (no cross references)
-        for pbox in self.marginal_left:
-            for kid in pbox.kids:
-                if kid not in self.association_internals:
-                    self.association_internals[kid]=self.i
-                    self.i=self.i+1
-
-        for pbox in self.marginal_left:
-            if pbox not in self.association_marginals:
-                self.association_marginals[pbox]=self.i
-                self.i = self.i + 1
-
-        for pbox in self.marginal_right:
-            for kid in pbox.kids:
-                if kid not in self.association_internals:
-                    self.association_internals[kid] = self.i
-                    self.i = self.i + 1
-
-        for pbox in self.marginal_right:
-            if pbox not in self.association_marginals:
-                self.association_marginals[pbox]=self.i
-                self.i = self.i + 1
-
-    def elaborate_constraints(self):
-        #cells inside the square has to sum up to marginals
-        for pbox in self.marginal_left:
-            vect=np.zeros(len(self.association_internals) + len(self.association_marginals))
-            for kid in pbox.kids:
-                vect[self.association_internals[kid]]=1
-            # move to the other side of the equality
-            vect[self.association_marginals[pbox]] = -1
-            self.constraints.append(vect)
-            self.values.append((str(eps_for_LP), str(eps_for_LP)))
-        if self.debug:
-            print("Constraints Insiders to Marginal Left: "+str(len(self.constraints)))
-        #cells inside the square has to sum up to marginals
-        for pbox in self.marginal_right:
-            vect=np.zeros(len(self.association_internals) + len(self.association_marginals))
-            for kid in pbox.kids:
-                vect[self.association_internals[kid]]=1
-            vect[self.association_marginals[pbox]] = -1
-            self.constraints.append(vect)
-            self.values.append((str(eps_for_LP), str(eps_for_LP)))
-        if self.debug:
-            print("Constraints Insiders to Marginal Right: "+str(len(self.marginal_right)))
-        #cdf is in the form [0.0,0.2] so we encode >= 0.0 and <= 0.2 this is why we add minus
-        vect=np.zeros(len(self.association_internals) + len(self.association_marginals))
-        for i in range(0, len(self.marginal_left)):
-            pbox=self.marginal_left[i]
-            vect[self.association_marginals[pbox]]=1
-            self.constraints.append(copy.deepcopy(vect))
-            self.values.append((add_minus_to_number_str(pbox.cdf_low), pbox.cdf_up))
-        if self.debug:
-            print("Constraints Sums of Marginal Left: "+str(len(self.marginal_left)))
-        #cdf is in the form [0.0,0.2] so we encode >= 0.0 and <= 0.2 this is why we add minus
-        vect = np.zeros(len(self.association_internals) + len(self.association_marginals))
-        for i in range(0, len(self.marginal_right)):
-            pbox=self.marginal_right[i]
-            vect[self.association_marginals[pbox]]=1
-            self.constraints.append(copy.deepcopy(vect))
-            self.values.append((add_minus_to_number_str(pbox.cdf_low), pbox.cdf_up))
-        if self.debug:
-            print("Constraints Sums of Marginal Right: "+str(len(self.marginal_right)))
-
-    def prepare_constraints_with_inequalities(self):
-        tmp_constraints = []
-        tmp_b = []
-        for ind, val in enumerate(self.constraints):
-            tmp_constraints.append(-val)
-            tmp_b.append(self.values[ind][0])
-            tmp_constraints.append(val)
-            tmp_b.append(self.values[ind][1])
-        return tmp_constraints, tmp_b
-
-    def optimize_max(self):
-        edge_cdf=[]
-        val_cdf = []
-        tmp_constraints,tmp_b=self.prepare_constraints_with_inequalities()
-        print("LP problem, num evaluation points= "+str(len(self.evaluation_points)))
-        for index_lp, ev_point in enumerate(self.evaluation_points):
-            vect=np.zeros(len(self.association_internals) + len(self.association_marginals))
-            res_values = [intern for
-                            intern in self.internals if (Decimal(intern.interval.lower) <= ev_point)]
-            for element in res_values:
-                vect[self.association_internals[element]] = 1
-            res = linprog(-vect, A_ub=np.array(tmp_constraints), b_ub=np.array(tmp_b), bounds=(0, 1.0))#, method='revised simplex')
-            edge_cdf.append(dec2Str(ev_point))
-            res_val=min(Decimal("1.0"), max(Decimal("0.0"), Decimal(-res.fun)))
-            val_cdf.append(round_near(res_val, digits_for_cdf))
-        return edge_cdf, val_cdf
-
-    def optimize_min(self):
-        edge_cdf = []
-        val_cdf = []
-        tmp_constraints,tmp_b=self.prepare_constraints_with_inequalities()
-        print("LP problem, num evaluation points= "+str(len(self.evaluation_points)))
-        for index_lp, ev_point in enumerate(self.evaluation_points):
-            vect=np.zeros(len(self.association_internals) + len(self.association_marginals))
-            res_values = [intern for
-                          intern in self.internals if (Decimal(intern.interval.upper) <= ev_point)]
-            for element in res_values:
-                vect[self.association_internals[element]] = 1
-            res = linprog(vect, A_ub=np.array(tmp_constraints), b_ub=np.array(tmp_b), bounds=(0, 1.0))#, method='revised simplex')
-            edge_cdf.append(dec2Str(ev_point))
-            res_val=min(Decimal("1.0"), max(Decimal("0.0"), Decimal(res.fun)))
-            val_cdf.append(round_near(res_val, digits_for_cdf))
-        return edge_cdf, val_cdf
