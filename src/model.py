@@ -15,7 +15,7 @@ from operations import BinOpDist
 from mixedarithmetic import createDSIfromDistribution, MixedArithmetic, dec2Str, PBox, from_PDFS_PBox_to_DSI, \
     from_DSI_to_PBox, createAffineErrorForLeaf
 from project_utils import MyFunDistr, normalizeDistribution
-from setup_utils import global_interpolate, discretization_points, digits_for_discretization
+from setup_utils import global_interpolate, discretization_points, digits_for_range
 from scipy import stats
 
 
@@ -506,8 +506,8 @@ class Number(ConstDistr):
         return self.discretization
 
     def create_discretization(self):
-        return MixedArithmetic(self.name,self.name,
-                               [PBox(Interval(self.name,self.name,True,True,digits_for_discretization),"0.0","1.0")])
+        return MixedArithmetic(self.name, self.name,
+                               [PBox(Interval(self.name, self.name, True, True, digits_for_range), "0.0", "1.0")])
 
 # Classes which re-implement or customize PaCal classes
 import warnings
