@@ -7,8 +7,8 @@ import numpy as np
 from AffineArithmeticLibrary import AffineInstance, AffineManager
 from IntervalArithmeticLibrary import Interval
 from plotting import plot_operation, plot_boxing
-from project_utils import round_number_down_to_digits, dec2Str, round_near
-from setup_utils import digits_for_discretization, digits_for_cdf, delta_error_computation
+from project_utils import round_number_down_to_digits, dec2Str, round_near, round_down, round_up
+from setup_utils import digits_for_range, digits_for_cdf, digits_for_input_discretization
 
 '''
 A PBox consists in a domain interval associated with a probability (CDF) interval
@@ -79,21 +79,22 @@ class MixedArithmetic:
         return MixedArithmetic.clone_MixedArith_from_Args(mixarith.affine, mixarith.interval)
 
 def createDSIfromDistribution(distribution, n=50):
+    #np.logspace(-9, 5, base=2, num=50) spacing should be done by powers of 2
     lin_space = np.linspace(distribution.range_()[0], distribution.range_()[-1], num=n+1, endpoint=True)
     cdf_distr=distribution.get_piecewise_cdf()
     ret_list=[]
     for i in range(0, len(lin_space)-1):
         with gmpy2.local_context(gmpy2.context()) as ctx:
-            lower=round_number_down_to_digits(gmpy2.mpfr(lin_space[i]), digits_for_discretization)
-            upper=round_number_down_to_digits(gmpy2.mpfr(lin_space[i+1]), digits_for_discretization)
-            #input_variables = {}
-            #input_variables[distribution.name]=[lower,upper]
+            lower=round_number_down_to_digits(gmpy2.mpfr(lin_space[i]), digits_for_input_discretization)
+            upper=round_number_down_to_digits(gmpy2.mpfr(lin_space[i+1]), digits_for_input_discretization)
             cdf_low_bound=min(1.0, max(0.0, cdf_distr(lin_space[i])))
             cdf_up_bound=min(1.0, max(0.0, cdf_distr(lin_space[i+1])))
-            pbox = PBox(Interval(lower,upper,True,False, digits_for_discretization),
-                      dec2Str(round_near(cdf_low_bound, digits_for_cdf)),
-                      dec2Str(round_near(cdf_up_bound, digits_for_cdf)))#, input_variables)
+            pbox = PBox(Interval(lower, upper, True, False, digits_for_range),
+                        dec2Str(round_near(cdf_low_bound, digits_for_cdf)),
+                        dec2Str(round_near(cdf_up_bound, digits_for_cdf)))
             ret_list.append(pbox)
+    ret_list[0].cdf_low="0.0"
+    ret_list[-1].cdf_up="1.0"
     ret_list[-1].interval.include_upper = True
     mixarith=MixedArithmetic(ret_list[0].interval.lower,ret_list[-1].interval.upper,ret_list)
     return mixarith
@@ -132,6 +133,11 @@ def from_PDFS_PBox_to_DSI(insiders, evaluation_points):
     res_lb = Decimal("0")
     acc_lb = Decimal("0")
 
+    #res_ub = Interval("0","0", True, True, digits_for_cdf)
+    #acc_ub = Interval("0","0", True, True, digits_for_cdf)
+    #res_lb = Interval("0","0", True, True, digits_for_cdf)
+    #acc_lb = Interval("0","0", True, True, digits_for_cdf)
+
     previous_index_lower=0
     previous_index_upper=0
 
@@ -143,10 +149,17 @@ def from_PDFS_PBox_to_DSI(insiders, evaluation_points):
                 print("This is a PDFs operation. They must match!")
                 exit(-1)
             #FIX: In case the lower interval is excluded we should not sum the probability.
-            #Instead for the upper bound it is correct using <=.
-            if Decimal(inside.interval.lower) <= ev_point:
+            #On the contrary, for the lower bound it is correct using <=.
+
+            if Decimal(inside.interval.lower) < ev_point:
                 res_ub = res_ub + Decimal(inside.cdf_low)
-            acc_ub=acc_ub+Decimal(inside.cdf_low)
+                #res_ub = res_ub.perform_interval_operation("+", inside)
+            elif Decimal(inside.interval.lower) == ev_point and inside.interval.include_lower:
+                res_ub = res_ub + Decimal(inside.cdf_low)
+                #res_ub = res_ub.perform_interval_operation("+", inside)
+            acc_ub = acc_ub + Decimal(inside.cdf_low)
+            #acc_ub=acc_ub.perform_interval_operation("+", inside)
+
         previous_index_lower=index
 
         index = bisect.bisect_right(insiders_up_value, ev_point)
@@ -193,29 +206,6 @@ def convertListToDecimals(my_list):
         ret_list.append(Decimal(element))
     return ret_list
 
-def from_DSI_to_PBox_with_Delta(edges_lower, values_lower, edges_upper, values_upper):
-    ret_list=[]
-    if not edges_lower==edges_upper:
-        print("Lists should be identical")
-        exit(-1)
-    first_interval = Interval(edges_lower[0],
-                        dec2Str(Decimal(edges_lower[0]) + Decimal(delta_error_computation)),
-                        True, True, digits_for_discretization)
-    first_box = PBox(first_interval, values_lower[0], values_upper[0])
-    ret_list.append(first_box)
-    for index, value in enumerate(edges_lower[1:-1]):
-        interval=Interval(dec2Str(Decimal(edges_lower[index+1])-Decimal(delta_error_computation)),
-                          dec2Str(Decimal(edges_lower[index+1])+Decimal(delta_error_computation)),
-                          True, True, digits_for_discretization)
-        interval=PBox(interval,values_lower[index+1],values_upper[index+1])
-        ret_list.append(interval)
-    last_interval = Interval(dec2Str(Decimal(edges_lower[-1]) - Decimal(delta_error_computation)),
-                             edges_lower[-1],
-                             True, True, digits_for_discretization)
-    last_box = PBox(last_interval, values_lower[-1], values_upper[-1])
-    ret_list.append(last_box)
-    return ret_list
-
 def from_DSI_to_PBox(edges_lower, values_lower, edges_upper, values_upper):
     edges_lower=convertListToDecimals(edges_lower)
     values_lower=convertListToDecimals(values_lower)
@@ -244,11 +234,11 @@ def from_DSI_to_PBox(edges_lower, values_lower, edges_upper, values_upper):
         lower_index=pair_value_upper[2]
         if lower_index==0:
             ret_list.append(PBox(Interval(dec2Str(edges_lower[lower_index]), dec2Str(edges_lower[index]),
-                                          True, False, digits_for_discretization), "", dec2Str(pair_value_upper[0])))
+                                          True, False, digits_for_range), "", dec2Str(pair_value_upper[0])))
         else:
             lower_index=lower_index-1
             ret_list.append(PBox(Interval(dec2Str(edges_lower[lower_index]), dec2Str(edges_lower[index]),
-                             False,False,digits_for_discretization), "", dec2Str(pair_value_upper[0])))
+                                          False, False, digits_for_range), "", dec2Str(pair_value_upper[0])))
 
     for pair_value_lower in pair_values_lower:
         index = bisect.bisect_left(values_upper, pair_value_lower[0])
@@ -258,15 +248,15 @@ def from_DSI_to_PBox(edges_lower, values_lower, edges_upper, values_upper):
         if index==pair_value_lower[2]:
             index=index-1
             ret_list.append(PBox(Interval(dec2Str(edges_lower[index]), dec2Str(edges_lower[pair_value_lower[2]]),
-                                          False, False, digits_for_discretization), "", dec2Str(pair_value_lower[0])))
+                                          False, False, digits_for_range), "", dec2Str(pair_value_lower[0])))
             continue
         if index>0:
             index = index - 1
             ret_list.append(PBox(Interval(dec2Str(edges_lower[index]), dec2Str(edges_lower[pair_value_lower[2]]),
-                                      False, False, digits_for_discretization), "", dec2Str(pair_value_lower[0])))
+                                          False, False, digits_for_range), "", dec2Str(pair_value_lower[0])))
             continue
         ret_list.append(PBox(Interval(dec2Str(edges_lower[index]), dec2Str(edges_lower[pair_value_lower[2]]),
-                                  True, False, digits_for_discretization), "", dec2Str(pair_value_lower[0])))
+                                      True, False, digits_for_range), "", dec2Str(pair_value_lower[0])))
     #sort by cdf, in case they are equal sort by lower bound
     ret_list.sort(key=lambda x: (float(x.cdf_up), float(x.interval.lower)))
     prec="0.0"
