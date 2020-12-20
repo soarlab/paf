@@ -5,13 +5,14 @@ from multiprocessing.pool import Pool
 from pacal import ConstDistr
 from pychebfun import *
 
-from IntervalArithmeticLibrary import Interval, empty_interval_domain
+from AffineArithmeticLibrary import AffineInstance
+from IntervalArithmeticLibrary import Interval, empty_interval, check_zero_is_in_interval, find_min_abs_interval, \
+    check_sterbenz_apply
 import model
 from SMT_Interface import create_exp_for_BinaryOperation_SMT_LIB
-from SymbolicAffineArithmetic import SymbolicAffineInstance, SymbolicAffineManager, SymExpression
-from linearprogramming import LP_Instance, LP_with_SMT
-from mixedarithmetic import MixedArithmetic, PBox, from_PDFS_PBox_to_DSI, from_DSI_to_PBox, from_DSI_to_PBox_with_Delta, \
-    from_CDFS_PBox_to_DSI
+from SymbolicAffineArithmetic import SymbolicAffineInstance, SymbolicAffineManager, SymExpression, SymbolicToGelpia
+from linearprogramming import LP_with_SMT
+from mixedarithmetic import MixedArithmetic, PBox, from_PDFS_PBox_to_DSI, from_DSI_to_PBox
 from plotting import plot_operation
 from pruning import clean_co_domain
 from regularizer import *
@@ -26,19 +27,28 @@ from setup_utils import global_interpolate, digits_for_cdf, discretization_point
 
 def dependentIteration(index_left, index_right, smt_manager_input, expression_left, expression_center, expression_right,
                        operator, left_op_box_SMT, right_op_box_SMT, domain_affine_SMT, error_computation,
-                       symbolic_affine, symbolic_interval):
+                       symbolic_affine_form, concrete_symbolic_interval, constraint_expression):
     #print("Start Square_"+str(index_left)+"_"+str(index_right))
     smt_manager = copy.deepcopy(smt_manager_input)
     smt_manager.set_expression_left(expression_left, left_op_box_SMT.interval)
     smt_manager.set_expression_right(expression_right, right_op_box_SMT.interval)
     domain_interval = left_op_box_SMT.interval.perform_interval_operation(operator, right_op_box_SMT.interval)
     intersection_interval = domain_interval.intersection(domain_affine_SMT.interval)
-    if error_computation:
-        intersection_interval = intersection_interval.intersection(symbolic_interval)
-    if not intersection_interval == empty_interval_domain:
+    if not intersection_interval == empty_interval:
         if smt_manager.check(debug=False, dReal=False):
             # now we can clean the domain
             if error_computation:
+                intersection_interval = intersection_interval.intersection(concrete_symbolic_interval)
+                # self_coefficients = symbolic_affine_form.add_all_coefficients_abs_exact()
+                # lower_expr=symbolic_affine_form.center.subtraction(self_coefficients)
+                # upper_expr=symbolic_affine_form.center.addition(self_coefficients)
+                constraint_dict = {
+                    str(constraint_expression): [left_op_box_SMT.interval.lower, left_op_box_SMT.interval.upper]}
+                constraints_interval = symbolic_affine_form.compute_interval_error(constraint_dict)
+                # lower_concrete, _ = SymbolicToGelpia(lower_expr, symbolic_affine_form.variables, constraint_dict).compute_concrete_bounds()
+                # _, upper_concrete = SymbolicToGelpia(upper_expr, symbolic_affine_form.variables, constraint_dict).compute_concrete_bounds()
+                # constraints_interval=Interval(lower_concrete, upper_concrete, True, True, digits_for_range)
+                intersection_interval = intersection_interval.intersection(constraints_interval)
                 return [index_left, index_right, intersection_interval]
             clean_intersection_interval = \
                 clean_co_domain(intersection_interval, smt_manager, expression_center,
@@ -49,7 +59,7 @@ def dependentIteration(index_left, index_right, smt_manager_input, expression_le
             #print("Done Pruning Square_" + str(index_left) + "_" + str(index_right))
             return [index_left,index_right,clean_intersection_interval]
     #print("Done Affine Square_" + str(index_left) + "_" + str(index_right))
-    return [None, None, empty_interval_domain]
+    return [None, None, empty_interval]
 
 class ConstantManager:
     i=1
@@ -123,11 +133,12 @@ class quantizedPointMass:
         lower=self.wrapperInputDistribution.discretization.intervals[0].interval.lower
         upper=self.wrapperInputDistribution.discretization.intervals[-1].interval.upper
         with gmpy2.local_context(set_context_precision(self.precision, self.exp), round=gmpy2.RoundDown) as ctx:
-            lower=round_number_down_to_digits(mpfr(lower),digits_for_discretization)
+            lower=round_number_down_to_digits(mpfr(lower), digits_for_range)
         with gmpy2.local_context(set_context_precision(self.precision, self.exp), round=gmpy2.RoundUp) as ctx:
-            upper=round_number_up_to_digits(mpfr(upper),digits_for_discretization)
-        return MixedArithmetic(lower,upper,
-                               [PBox(Interval(lower,upper,True,True,digits_for_discretization),"0.0","1.0")])
+            upper=round_number_up_to_digits(mpfr(upper), digits_for_range)
+        #The following somehow remind of a dirac distribution.
+        return MixedArithmetic(lower, upper,
+                               [PBox(Interval(lower, upper, True, True, digits_for_range), "0.0", "1.0")])
 
 class DependentOperationExecutor(object):
     def __init__(self, bins, n, interp_points):
@@ -203,6 +214,7 @@ class BinOpDist:
         self.sampleInit = True
         self.discretization=None
         self.affine_error=None
+        self.do_quantize_operation = True
         self.symbolic_affine = None
         self.symbolic_error = None
         self.execute()
@@ -239,7 +251,6 @@ class BinOpDist:
 
         if self.operator == "*+":
             res = np.array(leftOp) * (1 + (self.rightoperand.unit_roundoff * np.array(rightOp)))
-
         else:
             res = eval("np.array(leftOp)" + self.operator + "np.array(rightOp)")
 
@@ -270,24 +281,26 @@ class BinOpDist:
         expression_center= create_exp_for_BinaryOperation_SMT_LIB(expression_left,self.operator,expression_right)
 
         if self.is_error_computation:
+            self.affine_error.update_interval()
             domain_affine_SMT = self.affine_error
-            smt_manager.set_expression_left(expression_left, Interval(left_operand_discr_SMT.lower,left_operand_discr_SMT.upper,True,True, digits_for_discretization))
-            smt_manager.set_expression_right(expression_right, Interval(right_operand_discr_SMT.lower,right_operand_discr_SMT.upper,True,True, digits_for_discretization))
-            domain_affine_SMT.interval=\
-                clean_co_domain(domain_affine_SMT.interval, smt_manager, expression_center,
-                                divisions_SMT_pruning_error, valid_for_exit_SMT_pruning_error,
-                                recursion_limit_for_pruning=recursion_limit_for_pruning_error,
-                                start_recursion_limit=0, dReal=False)
+            #smt_manager.set_expression_left(expression_left, Interval(left_operand_discr_SMT.lower, left_operand_discr_SMT.upper, True, True, digits_for_range))
+            #smt_manager.set_expression_right(expression_right, Interval(right_operand_discr_SMT.lower, right_operand_discr_SMT.upper, True, True, digits_for_range))
+            #domain_affine_SMT.interval=\
+            #    clean_co_domain(domain_affine_SMT.interval, smt_manager, expression_center,
+            #                    divisions_SMT_pruning_error, valid_for_exit_SMT_pruning_error,
+            #                    recursion_limit_for_pruning=recursion_limit_for_pruning_error,
+            #                    start_recursion_limit=0, dReal=False)
             smt_manager.clean_expressions()
-            #domain_symbolic_interval=self.symbolic_error.compute_interval()
-            #domain_affine_SMT=domain_affine_SMT.interval.intersection(domain_symbolic_interval)
             self.symbolic_affine = self.symbolic_error
+            constraint_expression=self.leftoperand.name #symbolic_affine.center
+            concrete_symbolic_interval = self.symbolic_affine.compute_interval_error()
         else:
             domain_affine_SMT = left_operand_discr_SMT.affine.perform_affine_operation(self.operator,
                                                                                        right_operand_discr_SMT.affine)
             self.symbolic_affine = self.leftoperand.symbolic_affine.perform_affine_operation(self.operator,
                                                                                     self.rightoperand.symbolic_affine)
-        domain_symbolic_interval = self.symbolic_affine.compute_interval()
+            constraint_expression=None
+            concrete_symbolic_interval = self.symbolic_affine.compute_interval()
         insides_SMT = []
         tmp_insides_SMT = []
 
@@ -306,7 +319,7 @@ class BinOpDist:
                                  args=[index_left, index_right, smt_manager, expression_left,
                                        expression_center, expression_right, self.operator, left_op_box_SMT,
                                        right_op_box_SMT, domain_affine_SMT, self.is_error_computation,
-                                       self.symbolic_affine, domain_symbolic_interval],
+                                       self.symbolic_affine, concrete_symbolic_interval, constraint_expression],
                                  callback=tmp_insides_SMT.append))
 
         pool.close()
@@ -314,7 +327,7 @@ class BinOpDist:
         print("\nDone with dependent operation\n")
 
         for triple in tmp_insides_SMT:
-            if not triple[2]==empty_interval_domain:
+            if not triple[2] == empty_interval:
                 inside_box_SMT = PBox(triple[2], "prob", "prob")
                 insides_SMT.append(inside_box_SMT)
                 left_operand_discr_SMT.intervals[triple[0]].add_kid(inside_box_SMT)
@@ -382,23 +395,32 @@ class BinOpDist:
                                         (self.operator, self.rightoperand.symbolic_affine)
         insiders=[]
         evaluation_points=set()
+
         print(self.leftoperand.name,self.operator,self.rightoperand.name)
 
         print("Left:\n", self.probability_in_insiders(self.leftoperand.discretization.intervals))
         print("Right:\n", self.probability_in_insiders(self.rightoperand.discretization.intervals))
 
         for index_left, left_op_box in enumerate(left_op.intervals):
-            pdf_left = Decimal(left_op_box.cdf_up)-Decimal(left_op_box.cdf_low)
+            pdf_left = Decimal(left_op_box.cdf_up) - Decimal(left_op_box.cdf_low)
+            #left_upper=Interval(left_op_box.cdf_up, left_op_box.cdf_up, True, True, digits_for_cdf)
+            #left_lower=Interval(left_op_box.cdf_low, left_op_box.cdf_low, True, True, digits_for_cdf)
+            #pdf_left=left_upper.perform_interval_operation("-", left_lower)
             for index_right, right_op_box in enumerate(right_op.intervals):
                 pdf_right = Decimal(right_op_box.cdf_up) - Decimal(right_op_box.cdf_low)
+                #right_upper = Interval(right_op_box.cdf_up, right_op_box.cdf_up, True, True, digits_for_cdf)
+                #right_lower = Interval(right_op_box.cdf_low, right_op_box.cdf_low, True, True, digits_for_cdf)
+                #pdf_right = right_upper.perform_interval_operation("-", right_lower)
+                #probability_interval=pdf_left.perform_interval_operation("*", pdf_right)
+                probability_value = pdf_left * pdf_right
                 domain_interval=left_op_box.interval.perform_interval_operation(self.operator,right_op_box.interval)
-                probability=pdf_left*pdf_right
-                inside_box = PBox(domain_interval, dec2Str(probability), dec2Str(probability))
+                inside_box = PBox(domain_interval, dec2Str(probability_value), dec2Str(probability_value))
+                #inside_box = PBox(domain_interval, probability_interval.lower, probability_interval.upper)
                 insiders.append(inside_box)
                 evaluation_points.add(Decimal(domain_interval.lower))
                 evaluation_points.add(Decimal(domain_interval.upper))
 
-        print("Result:\n", self.probability_in_insiders(insiders))
+        print("Potential error of the operation:\n", self.probability_in_insiders(insiders))
 
         evaluation_points = sorted(evaluation_points)
         if len(evaluation_points)>discretization_points and not self.is_error_computation:
@@ -417,12 +439,13 @@ class BinOpDist:
         for inside in insiders:
             res_left=res_left+Decimal(inside.cdf_low)
             res_right=res_right+Decimal(inside.cdf_up)
-        ret="Total probability in insiders low: "+dec2Str(res_left)+"\n"
-        ret = ret+"Total probability in insiders up: " + dec2Str(res_right)
+        ret="Check Total probability in insiders: "+dec2Str(res_right-res_left)+"\n"
         return ret
 
     def execute(self):
         if self.distribution == None:
+            #At the error computation we have X on the left node and Round(X) on the right node.
+            #Each node comes with an error, affine or symbolic.
             if self.is_error_computation:
                 self.affine_error=self.rightoperand.affine_error
                 self.symbolic_error=self.rightoperand.symbolic_error
@@ -465,17 +488,38 @@ class BinOpDist:
             self.affine_error=x_erry.perform_affine_operation("+",
                               y_errx.perform_affine_operation("+", errx_erry))
         elif self.operator == "/":
-            x_erry = self.exact_affines_forms[0].\
-                perform_affine_operation("/", self.rightoperand.affine_error,
+            #val a = Interval.minAbs(rightInterval)
+            #val errorMultiplier: Rational = -one / (a * a)
+
+            total_affine_right = self.exact_affines_forms[1].\
+                perform_affine_operation("+", self.rightoperand.affine_error,
                                          recursion_limit_for_pruning=recursion_limit_for_pruning_error, dReal=False)
-            y_errx = self.exact_affines_forms[1].\
-                perform_affine_operation("/", self.leftoperand.affine_error,
+            total_interval_right=total_affine_right.compute_interval()
+            if check_zero_is_in_interval(total_interval_right):
+                print("Potential division by zero!")
+                exit(-1)
+
+            min_abs_string=find_min_abs_interval(total_interval_right)
+            multiplier_interval=Interval("-1.0","-1.0",True,True,digits_for_range).perform_interval_operation("/",
+                                Interval(min_abs_string,min_abs_string,True,True,digits_for_range).perform_interval_operation("*",
+                                Interval(min_abs_string,min_abs_string,True,True,digits_for_range)))
+            multiplier_affine=AffineInstance(multiplier_interval,{})
+            inv_erry=multiplier_affine.perform_affine_operation("*", self.rightoperand.affine_error)
+
+            x_err_one_over_y=self.exact_affines_forms[0].\
+                perform_affine_operation("*", inv_erry,
                                          recursion_limit_for_pruning=recursion_limit_for_pruning_error, dReal=False)
-            errx_erry = self.leftoperand.affine_error.\
-                perform_affine_operation("/", self.rightoperand.affine_error,
+            one_over_y=self.exact_affines_forms[1].inverse()
+
+            one_over_y_err_x=one_over_y.perform_affine_operation("*",self.leftoperand.affine_error,
                                          recursion_limit_for_pruning=recursion_limit_for_pruning_error, dReal=False)
-            self.affine_error = x_erry.perform_arithmetic_operation("+",
-                                y_errx.perform_arithmetic_operation("+", errx_erry))
+
+            errx_err_one_over_y = self.leftoperand.affine_error.\
+                perform_affine_operation("*", inv_erry,
+                                         recursion_limit_for_pruning=recursion_limit_for_pruning_error, dReal=False)
+
+            self.affine_error = x_err_one_over_y.perform_affine_operation("+",
+                                one_over_y_err_x.perform_affine_operation("+", errx_err_one_over_y))
 
         elif self.operator == "*+":
             self.affine_error = self.leftoperand.affine_error.\
@@ -491,9 +535,19 @@ class BinOpDist:
             self.symbolic_error = self.leftoperand.symbolic_error.perform_affine_operation\
                 ("+",self.rightoperand.symbolic_error)
         elif self.operator == "-":
+            total_affine_right = self.exact_affines_forms[3]. \
+                perform_affine_operation("+", self.rightoperand.symbolic_error)
+            total_affine_left = self.exact_affines_forms[2]. \
+                perform_affine_operation("+", self.leftoperand.symbolic_error)
+
+            total_interval_right = total_affine_right.compute_interval()
+            total_interval_left = total_affine_left.compute_interval()
+            if check_sterbenz_apply(total_interval_left, total_interval_right):
+                self.do_quantize_operation=False
             self.symbolic_error = self.leftoperand.symbolic_error.perform_affine_operation \
                 ("-", self.rightoperand.symbolic_error)
         elif self.operator == "*":
+            #No roundoff error if one of the operands is a non - negative power of 2
             x_erry = self.exact_affines_forms[2].\
                 perform_affine_operation("*", self.rightoperand.symbolic_error)
             y_errx=self.exact_affines_forms[3].\
@@ -503,19 +557,43 @@ class BinOpDist:
             self.symbolic_error=x_erry.perform_affine_operation("+",
                               y_errx.perform_affine_operation("+", errx_erry))
         elif self.operator == "/":
-            x_erry = self.exact_affines_forms[2].\
-                perform_affine_operation("/", self.rightoperand.symbolic_error)
-            y_errx = self.exact_affines_forms[3].\
-                perform_affine_operation("/", self.leftoperand.symbolic_error)
-            errx_erry = self.leftoperand.symbolic_error.\
-                perform_affine_operation("/", self.rightoperand.symbolic_error)
-            self.symbolic_error = x_erry.perform_arithmetic_operation("+",
-                                y_errx.perform_arithmetic_operation("+", errx_erry))
+            # val a = Interval.minAbs(rightInterval)
+            # val errorMultiplier: Rational = -one / (a * a)
+
+            total_affine_right = self.exact_affines_forms[3]. \
+                perform_affine_operation("+", self.rightoperand.symbolic_error)
+
+            total_interval_right = total_affine_right.compute_interval()
+            if check_zero_is_in_interval(total_interval_right):
+                print("Potential division by zero!")
+                exit(-1)
+
+            min_abs_string = find_min_abs_interval(total_interval_right)
+            multiplier_interval = Interval("-1.0", "-1.0", True, True, digits_for_range).perform_interval_operation("/",
+                                     Interval(min_abs_string,min_abs_string,True,True,digits_for_range).perform_interval_operation("*",
+                                         Interval(min_abs_string,min_abs_string,True,True,digits_for_range)))
+
+            multiplier_expression = SymbolicAffineManager.from_Interval_to_Expression(multiplier_interval)
+            multiplier_symbolic = SymbolicAffineInstance(multiplier_expression,{},{})
+            inv_erry = multiplier_symbolic.perform_affine_operation("*", self.rightoperand.symbolic_error)
+            x_err_one_over_y = self.exact_affines_forms[2]. \
+                perform_affine_operation("*", inv_erry)
+
+            one_over_y = self.exact_affines_forms[3].inverse()
+            one_over_y_err_x = one_over_y.perform_affine_operation("*", self.leftoperand.symbolic_error)
+
+            errx_err_one_over_y = self.leftoperand.symbolic_error. \
+                perform_affine_operation("*", inv_erry)
+
+            self.symbolic_error = x_err_one_over_y.perform_affine_operation("+",
+                                    one_over_y_err_x.perform_affine_operation("+", errx_err_one_over_y))
         elif self.operator == "*+":
-            exponent=SymbolicAffineManager.precise_create_exp_for_Gelpia(self.exact_affines_forms[2], self.leftoperand.symbolic_error)
-            self.symbolic_error = self.leftoperand.symbolic_error.\
-                perform_affine_operation("+",
-                        exponent.perform_affine_operation("*",self.rightoperand.symbolic_affine))
+            if self.leftoperand.do_quantize_operation:
+                exponent=SymbolicAffineManager.precise_create_exp_for_Gelpia(self.exact_affines_forms[2], self.leftoperand.symbolic_error)
+                self.symbolic_error = self.leftoperand.symbolic_error.\
+                    perform_affine_operation("+", exponent.perform_affine_operation("*",self.rightoperand.symbolic_affine))
+            else:
+                self.symbolic_error = self.leftoperand.symbolic_error
         else:
             print("Operation not supported!")
             exit(-1)
@@ -572,6 +650,7 @@ class UnOpDist:
         self.b = self.distribution.range_()[-1]
         self.discretization=None
         self.affine_error=None
+        self.do_quantize_operation=True
         self.symbolic_error=None
         self.symbolic_affine = None
         self.get_discretization()
