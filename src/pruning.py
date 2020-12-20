@@ -3,7 +3,7 @@ from decimal import Decimal
 import SMT_Interface
 from IntervalArithmeticLibrary import Interval
 from project_utils import dec2Str, linear_space_with_decimals
-from setup_utils import digits_for_discretization, divisions_SMT_pruning_operation, valid_for_exit_SMT_pruning_operation
+from setup_utils import digits_for_range, divisions_SMT_pruning_operation, valid_for_exit_SMT_pruning_operation
 
 
 def clean_co_domain(pbox, smt_manager, expression_center, divisions_SMT,
@@ -42,7 +42,7 @@ def clean_co_domain(pbox, smt_manager, expression_center, divisions_SMT,
         smt_manager.operation_center = ()
         smt_manager.check(debug=True, dReal=False)
         smt_manager.check(debug=True, dReal=True)
-        ret_box = Interval(low, sup, inc_low, inc_sup, digits_for_discretization)
+        ret_box = Interval(low, sup, inc_low, inc_sup, digits_for_range)
         return ret_box
 
     for ind, interval in enumerate(codomain_intervals[:-1]):
@@ -58,7 +58,7 @@ def clean_co_domain(pbox, smt_manager, expression_center, divisions_SMT,
             inc_sup = reversed_codomain[ind + 1][1][1]
         else:
             break
-    ret_box=Interval(low,sup,inc_low,inc_sup,digits_for_discretization)
+    ret_box=Interval(low, sup, inc_low, inc_sup, digits_for_range)
     if start_recursion_limit>recursion_limit_for_pruning:
         print("Hit the recursion limit for pruning!!")
         print("Limit:"+str(recursion_limit_for_pruning))
@@ -71,7 +71,7 @@ def clean_co_domain(pbox, smt_manager, expression_center, divisions_SMT,
     return ret_box
 
 
-def clean_non_linearity_affine(left_coefficients, right_coefficients, value, recursion_limit_for_pruning, dReal):
+def clean_non_linearity_affine(left_coefficients, right_coefficients, codomain, recursion_limit_for_pruning, dReal):
     keys = set().union(left_coefficients, right_coefficients)
     SMT_pruning = SMT_Interface.SMT_Instance()
     name_dictionary_left = {}
@@ -90,7 +90,6 @@ def clean_non_linearity_affine(left_coefficients, right_coefficients, value, rec
             i = i + 1
     central = SMT_Interface.create_expression_for_multiplication(name_dictionary_left, name_dictionary_right)
 
-    codomain=Interval(dec2Str(value.copy_negate()), dec2Str(value), True, True, digits_for_discretization)
     ret_box=clean_co_domain(codomain, SMT_pruning, central,
                             divisions_SMT_pruning_operation, valid_for_exit_SMT_pruning_operation,
                             recursion_limit_for_pruning, start_recursion_limit=0, dReal=dReal)
