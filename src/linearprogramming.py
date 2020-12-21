@@ -27,7 +27,6 @@ def min_instance(index_lp, ev_point, insiders, query):
     if len(res_values) > 0:
         encode = "\n\n(minimize " + LP_with_SMT.encode_recursive_addition(res_values) + ")"
         query = query + encode + "\n(check-sat)\n(get-objectives)\n"
-        print(query)
         solver_query = "z3 pp.decimal=true -in"
         proc_run = subprocess.Popen(shlex.split(solver_query),
                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
