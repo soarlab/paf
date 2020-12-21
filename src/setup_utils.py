@@ -36,7 +36,7 @@ digits_for_range=25
 digits_for_cdf=10
 digits_for_Z3_cdf=6
 
-discretization_points=25
+discretization_points=5
 hard_timeout= 10
 soft_timeout= hard_timeout * 1000
 eps_for_LP= 2**-20
@@ -46,7 +46,8 @@ divisions_SMT_pruning_error=10
 valid_for_exit_SMT_pruning_error=9
 gap_cdf_regularizer = 1.0/discretization_points
 golden_model_time=10
-timeout_gelpia_constraint=10
+timeout_gelpia=10
+round_constants_to_nearest=True
 
 abs_prefix="ABS_"
 SMT_exponent_function_name= "find_exponent"
