@@ -22,12 +22,12 @@ from gmpy2 import *
 from setup_utils import global_interpolate, digits_for_cdf, discretization_points, divisions_SMT_pruning_error, \
     valid_for_exit_SMT_pruning_error, divisions_SMT_pruning_operation, valid_for_exit_SMT_pruning_operation, \
     recursion_limit_for_pruning_error, recursion_limit_for_pruning_operation, num_processes, \
-    num_processes_dependent_operation
+    num_processes_dependent_operation, round_constants_to_nearest
 
 
 def dependentIteration(index_left, index_right, smt_manager_input, expression_left, expression_center, expression_right,
                        operator, left_op_box_SMT, right_op_box_SMT, domain_affine_SMT, error_computation,
-                       symbolic_affine_form, concrete_symbolic_interval, constraint_expression):
+                       symbolic_affine_form, concrete_symbolic_interval, constraint_expression, center_interval):
     #print("Start Square_"+str(index_left)+"_"+str(index_right))
     smt_manager = copy.deepcopy(smt_manager_input)
     smt_manager.set_expression_left(expression_left, left_op_box_SMT.interval)
@@ -44,7 +44,7 @@ def dependentIteration(index_left, index_right, smt_manager_input, expression_le
                 # upper_expr=symbolic_affine_form.center.addition(self_coefficients)
                 constraint_dict = {
                     str(constraint_expression): [left_op_box_SMT.interval.lower, left_op_box_SMT.interval.upper]}
-                constraints_interval = symbolic_affine_form.compute_interval_error(constraint_dict)
+                constraints_interval = symbolic_affine_form.compute_interval_error(center_interval,constraints=constraint_dict)
                 # lower_concrete, _ = SymbolicToGelpia(lower_expr, symbolic_affine_form.variables, constraint_dict).compute_concrete_bounds()
                 # _, upper_concrete = SymbolicToGelpia(upper_expr, symbolic_affine_form.variables, constraint_dict).compute_concrete_bounds()
                 # constraints_interval=Interval(lower_concrete, upper_concrete, True, True, digits_for_range)
@@ -132,9 +132,12 @@ class quantizedPointMass:
     def create_discretization(self):
         lower=self.wrapperInputDistribution.discretization.intervals[0].interval.lower
         upper=self.wrapperInputDistribution.discretization.intervals[-1].interval.upper
-        with gmpy2.local_context(set_context_precision(self.precision, self.exp), round=gmpy2.RoundDown) as ctx:
+        with gmpy2.local_context(set_context_precision(self.precision, self.exp),
+                                 round=(gmpy2.RoundDown if not round_constants_to_nearest else gmpy2.RoundToNearest)) as ctx:
             lower=round_number_down_to_digits(mpfr(lower), digits_for_range)
-        with gmpy2.local_context(set_context_precision(self.precision, self.exp), round=gmpy2.RoundUp) as ctx:
+
+        with gmpy2.local_context(set_context_precision(self.precision, self.exp),
+                                 round=(gmpy2.RoundUp if not round_constants_to_nearest else gmpy2.RoundToNearest)) as ctx:
             upper=round_number_up_to_digits(mpfr(upper), digits_for_range)
         #The following somehow remind of a dirac distribution.
         return MixedArithmetic(lower, upper,
@@ -283,23 +286,22 @@ class BinOpDist:
         if self.is_error_computation:
             self.affine_error.update_interval()
             domain_affine_SMT = self.affine_error
-            #smt_manager.set_expression_left(expression_left, Interval(left_operand_discr_SMT.lower, left_operand_discr_SMT.upper, True, True, digits_for_range))
-            #smt_manager.set_expression_right(expression_right, Interval(right_operand_discr_SMT.lower, right_operand_discr_SMT.upper, True, True, digits_for_range))
-            #domain_affine_SMT.interval=\
-            #    clean_co_domain(domain_affine_SMT.interval, smt_manager, expression_center,
-            #                    divisions_SMT_pruning_error, valid_for_exit_SMT_pruning_error,
-            #                    recursion_limit_for_pruning=recursion_limit_for_pruning_error,
-            #                    start_recursion_limit=0, dReal=False)
             smt_manager.clean_expressions()
             self.symbolic_affine = self.symbolic_error
             constraint_expression=self.leftoperand.name #symbolic_affine.center
-            concrete_symbolic_interval = self.symbolic_affine.compute_interval_error()
+            second_order_lower, second_order_upper = \
+                SymbolicToGelpia(self.symbolic_affine.center,self.symbolic_affine.variables).\
+                    compute_concrete_bounds(zero_output_epsilon=True)
+            center_interval = Interval(second_order_lower, second_order_upper, True, True, digits_for_range)
+            concrete_symbolic_interval = self.symbolic_affine.compute_interval_error(center_interval)
+            print("Error domain: ["+str(concrete_symbolic_interval.lower)+", "+str(concrete_symbolic_interval.upper)+"]")
         else:
             domain_affine_SMT = left_operand_discr_SMT.affine.perform_affine_operation(self.operator,
                                                                                        right_operand_discr_SMT.affine)
             self.symbolic_affine = self.leftoperand.symbolic_affine.perform_affine_operation(self.operator,
                                                                                     self.rightoperand.symbolic_affine)
             constraint_expression=None
+            center_interval=None
             concrete_symbolic_interval = self.symbolic_affine.compute_interval()
         insides_SMT = []
         tmp_insides_SMT = []
@@ -319,7 +321,8 @@ class BinOpDist:
                                  args=[index_left, index_right, smt_manager, expression_left,
                                        expression_center, expression_right, self.operator, left_op_box_SMT,
                                        right_op_box_SMT, domain_affine_SMT, self.is_error_computation,
-                                       self.symbolic_affine, concrete_symbolic_interval, constraint_expression],
+                                       self.symbolic_affine, concrete_symbolic_interval,
+                                       constraint_expression, center_interval],
                                  callback=tmp_insides_SMT.append))
 
         pool.close()
