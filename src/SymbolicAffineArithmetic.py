@@ -6,11 +6,11 @@ import gmpy2
 from gmpy2 import mpfr
 
 from AffineArithmeticLibrary import AffineManager
-from IntervalArithmeticLibrary import Interval, check_interval_is_zero
+from IntervalArithmeticLibrary import Interval, check_interval_is_zero, find_min_abs_interval, find_max_abs_interval
 from project_utils import round_number_nearest_to_digits, round_number_down_to_digits, round_number_up_to_digits
 from setup_utils import digits_for_range, \
     GELPHIA_exponent_function_name, path_to_gelpia_executor, mpfr_proxy_precision, path_to_gelpia_constraints_executor, \
-    timeout_gelpia_constraint
+    timeout_gelpia
 
 
 def CreateSymbolicErrorForDistributions(distribution_name, lb, ub):
@@ -164,13 +164,14 @@ class SymbolicToGelpia:
                 res=res+self.constraints[constraint][1]+">="+constraint+"; "
         return res
 
-    def compute_concrete_bounds(self, debug=True):
+    def compute_concrete_bounds(self, debug=True, zero_output_epsilon=False):
         variables=self.encode_variables()
         constraints=self.encode_constraints()
         body=variables+str(self.expression)+"; "+constraints
-        query = (path_to_gelpia_executor if constraints=='' else path_to_gelpia_constraints_executor)\
-                    +' --function "'+body+'" --mode=min-max '\
-                    +(' --timeout '+timeout_gelpia_constraint+' --max-iters 1000000' if not constraints=='' else "")
+        query = (path_to_gelpia_executor if constraints=='' else path_to_gelpia_constraints_executor) \
+                +' --function "' + body +'" --mode=min-max ' \
+                + (' --timeout '+str(timeout_gelpia) if not constraints == '' or zero_output_epsilon else "") + \
+                (' -o 0' if zero_output_epsilon else '')
         if debug:
             print(query)
         proc_run = subprocess.Popen(shlex.split(query), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -196,11 +197,9 @@ class SymbolicAffineInstance:
         self.coefficients=coefficients
         self.variables=variables
 
-    def compute_interval_error(self, constraints=None):
-        second_order_lower, second_order_upper = SymbolicToGelpia(self.center, self.variables).compute_concrete_bounds()
-        center_interval=Interval(second_order_lower,second_order_upper,True,True,digits_for_range)
+    def compute_interval_error(self, center_interval, constraints=None):
         tmp_variables=copy.deepcopy(self.variables)
-        memorize_eps=[]
+        memorize_eps=Interval("1.0","1.0",True,True,digits_for_range)
         for var in tmp_variables:
             # for the moment there should be one
             if "eps" in var:
@@ -329,6 +328,14 @@ class SymbolicAffineInstance:
         sym_affine_instance=SymbolicAffineInstance(new_center, new_coefficients, copy.deepcopy(self.variables))
         return sym_affine_instance
 
+    def mult_constant_expression(self, sym_constant):
+        new_center=self.center.multiplication(sym_constant)
+        new_coefficients = {}
+        for key in self.coefficients:
+            new_coefficients[key]=self.coefficients[key].multiplication(sym_constant)
+        sym_affine_instance=SymbolicAffineInstance(new_center, new_coefficients, copy.deepcopy(self.variables))
+        return sym_affine_instance
+
     def inverse(self):
         concrete_interval=self.compute_interval()
         new_coefficients=copy.deepcopy(self.coefficients)
@@ -338,37 +345,34 @@ class SymbolicAffineInstance:
             print("Division By Zero")
             exit(-1)
 
-        with gmpy2.local_context(gmpy2.context(), precision=mpfr_proxy_precision) as ctx:
-            a=min(abs(mpfr(concrete_interval.lower)),abs(mpfr(concrete_interval.upper)))
-            b=max(abs(mpfr(concrete_interval.lower)),abs(mpfr(concrete_interval.upper)))
+        min_a = find_min_abs_interval(concrete_interval)
+        a = Interval(min_a, min_a, True, True, digits_for_range)
+        max_b = find_max_abs_interval(concrete_interval)
+        b = Interval(max_b, max_b, True, True, digits_for_range)
+        b_square = b.perform_interval_operation("*", b)
+        alpha = Interval("-1.0", "-1.0", True, True, digits_for_range).perform_interval_operation("/", b_square)
+        tmp_a = Interval("1.0", "1.0", True, True, digits_for_range).perform_interval_operation("/", a)
+        d_max = tmp_a.perform_interval_operation("-", alpha.perform_interval_operation("*", a))
+        tmp_b = Interval("1.0", "1.0", True, True, digits_for_range).perform_interval_operation("/", b)
+        d_min = tmp_b.perform_interval_operation("-", alpha.perform_interval_operation("*", b))
 
-        with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundDown, precision=mpfr_proxy_precision) as ctx:
-            b_square=gmpy2.mul(b,b)
-            alpha=-gmpy2.div(mpfr("1.0"),b_square)
+        shift=Interval(d_min.lower,d_max.upper,True,True,digits_for_range)
 
-        with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundUp, precision=mpfr_proxy_precision) as ctx:
-            tmp=gmpy2.div(mpfr("1.0"),a)
-            d_max=gmpy2.sub(tmp, gmpy2.mul(alpha,a))
+        if Decimal(concrete_interval.lower) < Decimal("0.0"):
+            shift = shift.multiplication(Interval("-1.0", "-1.0", True, True, digits_for_range))
 
-        with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundDown, precision=mpfr_proxy_precision) as ctx:
-            tmp = gmpy2.div(mpfr("1.0"), b)
-            d_min = gmpy2.sub(tmp, gmpy2.mul(alpha, b))
-
-        shift=AffineManager.compute_middle_point_given_interval(d_min, d_max)
-
-        if Decimal(concrete_interval.lower)<Decimal("0.0"):
-            shift=shift.multiplication(Interval("-1.0","-1.0", True, True, digits_for_range))
+        symbolic_shift = SymbolicAffineManager.from_Interval_to_Expression(shift)
 
         #Error of the approximation with min-range
         #radius=AffineManager.compute_uncertainty_given_interval(d_min, d_max)
         #####
         res=SymbolicAffineInstance(self.center, new_coefficients, new_variables)
-        res=res.mult_constant_string(round_number_nearest_to_digits(alpha, digits_for_range))
-        res=res.add_constant_expression(SymbolicAffineManager.from_Interval_to_Expression(shift))
-        #The err radius is not shifted or scaled by shift and alpha
-        #err_radius=AffineManager.get_new_error_index()
-        res.coefficients.update(SymbolicAffineManager.compute_symbolic_uncertainty_given_interval(d_min,d_max))
-        #res.coefficients[err_radius]=radius
+
+        symbolic_alpha=SymbolicAffineManager.from_Interval_to_Expression(alpha)
+        res=res.mult_constant_expression(symbolic_alpha)
+        res=res.add_constant_expression(symbolic_shift)
+        #There is no error radius here, because the shift is symbolic
+        
         return res
 
     def add_constant_expression(self, constant):

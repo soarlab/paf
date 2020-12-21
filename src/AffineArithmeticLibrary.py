@@ -171,13 +171,10 @@ class AffineInstance:
         b=Interval(max_b,max_b,True,True,digits_for_range)
         b_square=b.perform_interval_operation("*",b)
         alpha=Interval("-1.0","-1.0",True,True,digits_for_range).perform_interval_operation("/",b_square)
-
         tmp_a=Interval("1.0","1.0",True,True, digits_for_range).perform_interval_operation("/",a)
         d_max=tmp_a.perform_interval_operation("-",alpha.perform_interval_operation("*",a))
-
         tmp_b=Interval("1.0","1.0",True,True, digits_for_range).perform_interval_operation("/",b)
         d_min=tmp_b.perform_interval_operation("-", alpha.perform_interval_operation("*",b))
-
         shift = AffineManager.compute_middle_point_given_interval(d_min.lower, d_max.upper)
         if Decimal(self_interval.lower)<Decimal("0.0"):
             shift=shift.multiplication(Interval("-1.0","-1.0", True, True, digits_for_range))
