@@ -85,6 +85,14 @@ def normalizeDistribution(distr, init=False):
         warnings.warn("PDF integrates to 1. Good Accuracy", FutureWarning, stacklevel=2)
     return distr
 
+def remove_starting_minus_from_string(string):
+    if string[0]=="-":
+        return string[1:]
+    else:
+        print("This method should be used only by the parser. Input string does not start with -")
+        exit(-1)
+
+
 def linear_space_with_decimals(low, up, inc_low, inc_up, n):
     vals=numpy.linspace(float(low), float(up), endpoint=True, num=n+1)
     if vals[0]==vals[-1]:
