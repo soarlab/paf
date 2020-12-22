@@ -4,6 +4,7 @@ import ply.yacc as yacc
 
 from fprlex import *
 from model import NodeManager, CustomDistr, U, N, B, Operation, Number, UnaryOperation
+from project_utils import remove_starting_minus_from_string
 
 uniqueLexer = FPRlex()
 
@@ -144,6 +145,16 @@ class FPRyacc:
         p[0] = p[1]
         self.myPrint("Expression", p)
 
+    def p_BinaryArithExprNegativeSpecial(self, p):
+        '''BinaryArithExpr : AnnidateArithExpr NEGNUMBER
+        '''
+        negative_string=str(p[2])
+        positive_string=remove_starting_minus_from_string(negative_string)
+        tmpNode = self.manager.createNode(Number(positive_string), [])
+        oper = Operation(p[1].value, "-", tmpNode.value)
+        p[0] = self.manager.createNode(oper, [p[1], tmpNode])
+        self.myPrint("BinaryArithExprNegativeSpecial", p)
+
     def p_BinaryArithExpr(self, p):
         '''BinaryArithExpr : AnnidateArithExpr PLUS  AnnidateArithExpr
 						   | AnnidateArithExpr MINUS AnnidateArithExpr
@@ -198,6 +209,16 @@ class FPRyacc:
         node = self.manager.createNode(oper, [p[3]])
         p[0] = node
         self.myPrint("UnaryArithOp-Sin", p)
+
+    def p_AnnidateArithExprNegativeSpecial(self, p):
+        '''AnnidateArithExpr : LPAREN AnnidateArithExpr NEGNUMBER RPAREN
+        '''
+        negative_string=str(p[3])
+        positive_string=remove_starting_minus_from_string(negative_string)
+        tmpNode = self.manager.createNode(Number(positive_string), [])
+        oper = Operation(p[2].value, "-", tmpNode.value)
+        p[0] = self.manager.createNode(oper, [p[2], tmpNode])
+        self.myPrint("AnnidateArithExprNegativeSpecial", p)
 
     def p_AnnidateArithExpr(self, p):
         '''AnnidateArithExpr : LPAREN AnnidateArithExpr PLUS  AnnidateArithExpr RPAREN
