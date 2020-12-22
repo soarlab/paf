@@ -21,7 +21,7 @@ from tree_model import TreeModel
 from FPTaylor import getFPTaylorResults
 from tests.tests import test_Approx_Operations
 
-# test_Approx_Operations()
+#test_Approx_Operations()
 
 def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
     try:
@@ -74,10 +74,10 @@ warnings.warn("Mantissa with implicit bit of sign. In gmpy2 set precision=p incl
 
 mantissa = 24
 exp = 8
-
-file = "tests/my_expression.txt"
-
 range_my_dict, abs_my_dict, rel_my_dict = getFPTaylorResults(fptaylor_exe, fptaylor_path)
-process_file(file, mantissa, exp, range_my_dict, abs_my_dict)
+
+for file in os.listdir(benchmarks_path):
+    if file.endswith(".txt"):
+        process_file(benchmarks_path+file, mantissa, exp, range_my_dict, abs_my_dict)
 
 print("\nDone with sample\n")
