@@ -5,7 +5,7 @@ from SymbolicAffineArithmetic import CreateSymbolicErrorForDistributions, Create
 from error_model import HighPrecisionErrorModel, LowPrecisionErrorModel, TypicalErrorModel, FastTypicalErrorModel
 from mixedarithmetic import createDSIfromDistribution, createAffineErrorForLeaf
 from project_utils import dec2Str
-from setup_utils import discretization_points
+from setup_utils import discretization_points, digits_for_range
 
 
 class ErrorModelWrapper:
@@ -41,6 +41,8 @@ class ErrorModelWrapper:
         if self.discretization==None and self.affine_error==None and self.symbolic_error==None:
             tmp_error=self.distribution*self.unit_roundoff
             tmp_error.name=self.name
+            tmp_error.a_real=("-{0:."+str(digits_for_range)+"f}").format(self.unit_roundoff)
+            tmp_error.b_real=("{0:."+str(digits_for_range)+"f}").format(self.unit_roundoff)
             self.discretization = createDSIfromDistribution(tmp_error, n=discretization_points)
             self.affine_error= createAffineErrorForLeaf()
             self.symbolic_error = CreateSymbolicZero()
