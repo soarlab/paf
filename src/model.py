@@ -126,8 +126,10 @@ class N(stats.rv_continuous, Distr):
         self.indipendent=True
         self.a = float(a)
         self.b = float(b)
+        self.a_real=a
+        self.b_real=b
         self.mean=0
-        self.sigma=0.01
+        self.sigma=1
         self.interpolation_points=500
         self.discretization = None
         self.affine_error = None
@@ -189,6 +191,8 @@ class B(BetaDistr):
         self.name = name
         self.a=self.range_()[0]
         self.b=self.range_()[-1]
+        self.a_real=a
+        self.b_real=b
         self.indipendent=True
         self.sampleInit = True
         self.isScalar = False
@@ -430,11 +434,12 @@ class U(UniformDistr):
         self.name = name
         self.a=self.range_()[0]
         self.b=self.range_()[-1]
+        self.a_real=a
+        self.b_real=b
         self.indipendent = True
         self.sampleInit = True
         self.isScalar = False
         self.sampleSet=[]
-
         self.discretization = None
         self.affine_error=None
         self.symbolic_error=None
@@ -862,33 +867,30 @@ class AbsDistr(AbsDistr):
         return self.discretization
 
     def elaborate_discretization(self):
-        if self.discretization==None:
-            self.discretization = createDSIfromDistribution(self, n=discretization_points)
-        else:
-            evaluation_points=set()
-            discretization=copy.deepcopy(self.discretization)
-            for pbox in discretization.intervals:
-                if Decimal(pbox.interval.lower)<Decimal("0.0")<Decimal(pbox.interval.upper):
-                    pbox.interval.upper=dec2Str(max(Decimal(pbox.interval.lower).copy_abs(),Decimal(pbox.interval.upper).copy_abs()))
-                    pbox.interval.lower="0.0"
-                else:
-                    tmp_lower=pbox.interval.lower
-                    tmp_upper=pbox.interval.upper
-                    pbox.interval.lower = dec2Str(min(Decimal(tmp_lower).copy_abs(), Decimal(tmp_upper).copy_abs()))
-                    pbox.interval.upper = dec2Str(max(Decimal(tmp_lower).copy_abs(), Decimal(tmp_upper).copy_abs()))
-                pdf=dec2Str(Decimal(pbox.cdf_up)-Decimal(pbox.cdf_low))
-                pbox.cdf_up=pdf
-                pbox.cdf_low=pdf
-                evaluation_points.add(Decimal(pbox.interval.lower))
-                evaluation_points.add(Decimal(pbox.interval.upper))
-            evaluation_points=sorted(evaluation_points)
-            if not self.is_error_computation:
-                step = round(len(evaluation_points) / (discretization_points/2.0))
-                evaluation_points = sorted(set(evaluation_points[::step]+[evaluation_points[-1]]))
-            #here you have to do abs(affine)
-            edge_cdf, val_cdf_low, val_cdf_up = from_PDFS_PBox_to_DSI(discretization.intervals, evaluation_points)
-            pboxes = from_DSI_to_PBox(edge_cdf, val_cdf_low, edge_cdf, val_cdf_up)
-            self.discretization=MixedArithmetic.clone_MixedArith_from_Args(discretization.affine,pboxes)
+        evaluation_points=set()
+        discretization=copy.deepcopy(self.discretization)
+        for pbox in discretization.intervals:
+            if Decimal(pbox.interval.lower)<Decimal("0.0")<Decimal(pbox.interval.upper):
+                pbox.interval.upper=dec2Str(max(Decimal(pbox.interval.lower).copy_abs(),Decimal(pbox.interval.upper).copy_abs()))
+                pbox.interval.lower="0.0"
+            else:
+                tmp_lower=pbox.interval.lower
+                tmp_upper=pbox.interval.upper
+                pbox.interval.lower = dec2Str(min(Decimal(tmp_lower).copy_abs(), Decimal(tmp_upper).copy_abs()))
+                pbox.interval.upper = dec2Str(max(Decimal(tmp_lower).copy_abs(), Decimal(tmp_upper).copy_abs()))
+            pdf=dec2Str(Decimal(pbox.cdf_up)-Decimal(pbox.cdf_low))
+            pbox.cdf_up=pdf
+            pbox.cdf_low=pdf
+            evaluation_points.add(Decimal(pbox.interval.lower))
+            evaluation_points.add(Decimal(pbox.interval.upper))
+        evaluation_points=sorted(evaluation_points)
+        if not self.is_error_computation:
+            step = round(len(evaluation_points) / (discretization_points/2.0))
+            evaluation_points = sorted(set(evaluation_points[::step]+[evaluation_points[-1]]))
+        #here you have to do abs(affine)
+        edge_cdf, val_cdf_low, val_cdf_up = from_PDFS_PBox_to_DSI(discretization.intervals, evaluation_points)
+        pboxes = from_DSI_to_PBox(edge_cdf, val_cdf_low, edge_cdf, val_cdf_up)
+        self.discretization=MixedArithmetic.clone_MixedArith_from_Args(discretization.affine,pboxes)
 
 def sin(d):
     """Overload the sin function."""
