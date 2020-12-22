@@ -46,7 +46,8 @@ divisions_SMT_pruning_error=10
 valid_for_exit_SMT_pruning_error=9
 gap_cdf_regularizer = 1.0/discretization_points
 golden_model_time=10
-timeout_gelpia=10
+timeout_gelpia_constraints=10
+timeout_gelpia_standard=20
 round_constants_to_nearest=True
 
 abs_prefix="ABS_"
