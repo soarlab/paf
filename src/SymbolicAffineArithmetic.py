@@ -9,8 +9,7 @@ from AffineArithmeticLibrary import AffineManager
 from IntervalArithmeticLibrary import Interval, check_interval_is_zero, find_min_abs_interval, find_max_abs_interval
 from project_utils import round_number_nearest_to_digits, round_number_down_to_digits, round_number_up_to_digits
 from setup_utils import digits_for_range, \
-    GELPHIA_exponent_function_name, path_to_gelpia_executor, mpfr_proxy_precision, path_to_gelpia_constraints_executor, \
-    timeout_gelpia
+    GELPHIA_exponent_function_name, path_to_gelpia_executor, mpfr_proxy_precision, path_to_gelpia_constraints_executor, timeout_gelpia_standard, timeout_gelpia_constraints
 
 
 def CreateSymbolicErrorForDistributions(distribution_name, lb, ub):
@@ -168,10 +167,12 @@ class SymbolicToGelpia:
         variables=self.encode_variables()
         constraints=self.encode_constraints()
         body=variables+str(self.expression)+"; "+constraints
+        timeout_gelpia=\
+            str(timeout_gelpia_constraints) if not constraints == '' or zero_output_epsilon else str(timeout_gelpia_standard)
         query = (path_to_gelpia_executor if constraints=='' else path_to_gelpia_constraints_executor) \
                 +' --function "' + body +'" --mode=min-max ' \
-                + (' --timeout '+str(timeout_gelpia) if not constraints == '' or zero_output_epsilon else "") + \
-                (' -o 0' if zero_output_epsilon else '')
+                + (' --timeout '+ timeout_gelpia) \
+                + (' -o 0' if zero_output_epsilon else '')
         if debug:
             print(query)
         proc_run = subprocess.Popen(shlex.split(query), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
