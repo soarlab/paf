@@ -7,8 +7,9 @@ import numpy as np
 from AffineArithmeticLibrary import AffineInstance, AffineManager
 from IntervalArithmeticLibrary import Interval
 from plotting import plot_operation, plot_boxing
-from project_utils import round_number_down_to_digits, dec2Str, round_near, round_down, round_up
-from setup_utils import digits_for_range, digits_for_cdf, digits_for_input_discretization
+from project_utils import round_number_down_to_digits, dec2Str, round_near, round_down, round_up, \
+    round_number_up_to_digits
+from setup_utils import digits_for_range, digits_for_cdf, digits_for_input_discretization, mpfr_proxy_precision
 
 '''
 A PBox consists in a domain interval associated with a probability (CDF) interval
@@ -84,17 +85,24 @@ def createDSIfromDistribution(distribution, n=50):
     cdf_distr=distribution.get_piecewise_cdf()
     ret_list=[]
     for i in range(0, len(lin_space)-1):
-        with gmpy2.local_context(gmpy2.context()) as ctx:
+        with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundDown, precision=mpfr_proxy_precision) as ctx:
             lower=round_number_down_to_digits(gmpy2.mpfr(lin_space[i]), digits_for_input_discretization)
-            upper=round_number_down_to_digits(gmpy2.mpfr(lin_space[i+1]), digits_for_input_discretization)
-            cdf_low_bound=min(1.0, max(0.0, cdf_distr(lin_space[i])))
-            cdf_up_bound=min(1.0, max(0.0, cdf_distr(lin_space[i+1])))
-            pbox = PBox(Interval(lower, upper, True, False, digits_for_range),
-                        dec2Str(round_near(cdf_low_bound, digits_for_cdf)),
-                        dec2Str(round_near(cdf_up_bound, digits_for_cdf)))
-            ret_list.append(pbox)
+        with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundUp, precision=mpfr_proxy_precision) as ctx:
+            upper=round_number_up_to_digits(gmpy2.mpfr(lin_space[i+1]), digits_for_input_discretization)
+        cdf_low_bound=min(1.0, max(0.0, cdf_distr(lin_space[i])))
+        cdf_up_bound=min(1.0, max(0.0, cdf_distr(lin_space[i+1])))
+        pbox = PBox(Interval(lower, upper, True, False, digits_for_range),
+                    dec2Str(round_near(cdf_low_bound, digits_for_cdf)),
+                    dec2Str(round_near(cdf_up_bound, digits_for_cdf)))
+        ret_list.append(pbox)
     ret_list[0].cdf_low="0.0"
     ret_list[-1].cdf_up="1.0"
+    with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundDown, precision=mpfr_proxy_precision) as ctx:
+        ret_list[0].interval.lower = \
+            round_number_down_to_digits(gmpy2.mpfr(distribution.a_real), digits_for_input_discretization)
+    with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundUp, precision=mpfr_proxy_precision) as ctx:
+        ret_list[-1].interval.upper = \
+            round_number_up_to_digits(gmpy2.mpfr(distribution.b_real), digits_for_input_discretization)
     ret_list[-1].interval.include_upper = True
     mixarith=MixedArithmetic(ret_list[0].interval.lower,ret_list[-1].interval.upper,ret_list)
     return mixarith
