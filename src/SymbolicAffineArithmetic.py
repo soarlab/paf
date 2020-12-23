@@ -76,6 +76,14 @@ class SymExpression:
         res=SymExpression("abs("+self.value+")")
         return res
 
+    def inverse(self):
+        if SymbolicAffineManager.check_expression_is_constant_zero(self):
+            print("Symbolic division by zero!!!!")
+            exit(-1)
+        else:
+            res = SymExpression("(1 / " + self.value + ")")
+        return res
+
     def negate(self):
         res=SymExpression("-("+self.value+")")
         return res
@@ -345,6 +353,10 @@ class SymbolicAffineInstance:
         if Decimal(concrete_interval.lower)<=Decimal("0.0")<=Decimal(concrete_interval.upper):
             print("Division By Zero")
             exit(-1)
+
+        if len(new_coefficients)==0:
+            res = SymbolicAffineInstance(self.center.inverse(), new_coefficients, new_variables)
+            return res
 
         min_a = find_min_abs_interval(concrete_interval)
         a = Interval(min_a, min_a, True, True, digits_for_range)
