@@ -216,7 +216,7 @@ class SymbolicAffineInstance:
                 tmp_variables[var]=["1.0","1.0"]
                 break
         self_coefficients = self.add_all_coefficients_abs_exact()
-        _, coeff_upper=SymbolicToGelpia(self_coefficients, tmp_variables, constraints).compute_concrete_bounds()
+        _, coeff_upper=SymbolicToGelpia(self_coefficients, tmp_variables, constraints).compute_concrete_bounds(zero_output_epsilon=True)
         coeff_interval=Interval("-"+coeff_upper,coeff_upper,True,True,digits_for_range).\
                             perform_interval_operation("*", memorize_eps)
         lower_concrete=center_interval.perform_interval_operation("-", coeff_interval)

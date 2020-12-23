@@ -38,6 +38,7 @@ def dependentIteration(index_left, index_right, smt_manager_input, expression_le
         if smt_manager.check(debug=False, dReal=False):
             # now we can clean the domain
             if error_computation:
+                print(index_left, index_right)
                 intersection_interval = intersection_interval.intersection(concrete_symbolic_interval)
                 # self_coefficients = symbolic_affine_form.add_all_coefficients_abs_exact()
                 # lower_expr=symbolic_affine_form.center.subtraction(self_coefficients)
@@ -317,14 +318,21 @@ class BinOpDist:
 
         for index_left, left_op_box_SMT in enumerate(left_operand_discr_SMT.intervals):
             for index_right, right_op_box_SMT in enumerate(right_operand_discr_SMT.intervals):
-                tmp_results.append(pool.apply_async(dependentIteration,
-                                 args=[index_left, index_right, smt_manager, expression_left,
-                                       expression_center, expression_right, self.operator, left_op_box_SMT,
-                                       right_op_box_SMT, domain_affine_SMT, self.is_error_computation,
-                                       self.symbolic_affine, concrete_symbolic_interval,
-                                       constraint_expression, center_interval],
-                                 callback=tmp_insides_SMT.append))
-
+                domain_interval = left_op_box_SMT.\
+                    interval.perform_interval_operation(self.operator,right_op_box_SMT.interval)
+                intersection_interval = domain_interval.intersection(domain_affine_SMT.interval)
+                if not intersection_interval == empty_interval:
+                    intersection_interval = intersection_interval.intersection(concrete_symbolic_interval)
+                    if not intersection_interval == empty_interval:
+                        tmp_results.append(
+                            pool.apply_async(dependentIteration,
+                                args=[index_left, index_right, smt_manager, expression_left,
+                                    expression_center, expression_right, self.operator, left_op_box_SMT,
+                                    right_op_box_SMT, domain_affine_SMT, self.is_error_computation,
+                                    self.symbolic_affine, concrete_symbolic_interval,
+                                    constraint_expression, center_interval],
+                                callback=tmp_insides_SMT.append))
+        print("Number of jobs for dependent operation: "+str(len(tmp_results)))
         pool.close()
         pool.join()
         print("\nDone with dependent operation\n")

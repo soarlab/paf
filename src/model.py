@@ -14,6 +14,7 @@ from SymbolicAffineArithmetic import CreateSymbolicErrorForDistributions, Symbol
 from operations import BinOpDist
 from mixedarithmetic import createDSIfromDistribution, MixedArithmetic, dec2Str, PBox, from_PDFS_PBox_to_DSI, \
     from_DSI_to_PBox, createAffineErrorForLeaf
+from plotting import plot_operation, plot_boxing
 from project_utils import MyFunDistr, normalizeDistribution
 from setup_utils import global_interpolate, discretization_points, digits_for_range
 from scipy import stats
@@ -889,7 +890,9 @@ class AbsDistr(AbsDistr):
             evaluation_points = sorted(set(evaluation_points[::step]+[evaluation_points[-1]]))
         #here you have to do abs(affine)
         edge_cdf, val_cdf_low, val_cdf_up = from_PDFS_PBox_to_DSI(discretization.intervals, evaluation_points)
+        plot_operation(edge_cdf, val_cdf_low, val_cdf_up)
         pboxes = from_DSI_to_PBox(edge_cdf, val_cdf_low, edge_cdf, val_cdf_up)
+        plot_boxing(pboxes)
         self.discretization=MixedArithmetic.clone_MixedArith_from_Args(discretization.affine,pboxes)
 
 def sin(d):

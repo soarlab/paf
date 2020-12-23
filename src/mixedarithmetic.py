@@ -1,4 +1,5 @@
 import bisect
+import copy
 from decimal import Decimal
 
 import gmpy2
@@ -8,8 +9,9 @@ from AffineArithmeticLibrary import AffineInstance, AffineManager
 from IntervalArithmeticLibrary import Interval
 from plotting import plot_operation, plot_boxing
 from project_utils import round_number_down_to_digits, dec2Str, round_near, round_down, round_up, \
-    round_number_up_to_digits
-from setup_utils import digits_for_range, digits_for_cdf, digits_for_input_discretization, mpfr_proxy_precision
+    round_number_up_to_digits, round_number_nearest_to_digits
+from setup_utils import digits_for_range, digits_for_cdf, digits_for_input_discretization, mpfr_proxy_precision, \
+    discretization_points, use_powers_of_two_spacing
 
 '''
 A PBox consists in a domain interval associated with a probability (CDF) interval
@@ -79,9 +81,50 @@ class MixedArithmetic:
     def clone_from_MixedArith(mixarith):
         return MixedArithmetic.clone_MixedArith_from_Args(mixarith.affine, mixarith.interval)
 
+def powers_of_two_spacing():
+    exp_spacing=[]
+    with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundToNearest, precision=mpfr_proxy_precision) as ctx:
+        exponent=gmpy2.mpfr("0")
+        while abs(exponent)<discretization_points:
+            value=gmpy2.exp2(exponent)
+            exp_spacing.insert(0, round_number_nearest_to_digits(value, digits_for_input_discretization))
+            exponent=gmpy2.sub(exponent,gmpy2.mpfr("1"))
+        exp_spacing.insert(0, "0.0")
+    for index, value in enumerate(exp_spacing[:-1]):
+        if value==exp_spacing[index+1]:
+            print("Problem with digits in powers of 2")
+            exit(-1)
+    return exp_spacing
+
+def powers_of_two_error(precision):
+    exp_spacing=[]
+    with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundToNearest, precision=mpfr_proxy_precision) as ctx:
+        exponent=gmpy2.mpfr(-precision)
+        counter=0
+        while counter<discretization_points//2:
+            value=gmpy2.exp2(exponent)
+            exp_spacing.insert(0, round_number_nearest_to_digits(value, digits_for_input_discretization))
+            exponent=gmpy2.sub(exponent,gmpy2.mpfr("1"))
+            counter=counter+1
+    exp_spacing_reverse=copy.deepcopy(exp_spacing)
+    exp_spacing_reverse.reverse()
+    exp_spacing_reverse=["-"+s for s in exp_spacing_reverse]
+    exp_spacing=exp_spacing_reverse+["0.0"]+exp_spacing
+    for index, value in enumerate(exp_spacing[:-1]):
+        if value==exp_spacing[index+1]:
+            print("Problem with digits in powers of 2")
+            exit(-1)
+    return exp_spacing
+
 def createDSIfromDistribution(distribution, n=50):
     #np.logspace(-9, 5, base=2, num=50) spacing should be done by powers of 2
-    lin_space = np.linspace(distribution.range_()[0], distribution.range_()[-1], num=n+1, endpoint=True)
+    if distribution.range_()[0]==0.0 and distribution.range_()[-1]==1.0 and use_powers_of_two_spacing:
+        lin_space = powers_of_two_spacing()
+    elif "FTE" in distribution.name:
+        lin_space = powers_of_two_error(distribution.d.precision)
+    else:
+        lin_space = np.linspace(distribution.range_()[0], distribution.range_()[-1], num=n + 1, endpoint=True)
+
     cdf_distr=distribution.get_piecewise_cdf()
     ret_list=[]
     for i in range(0, len(lin_space)-1):
@@ -89,8 +132,8 @@ def createDSIfromDistribution(distribution, n=50):
             lower=round_number_down_to_digits(gmpy2.mpfr(lin_space[i]), digits_for_input_discretization)
         with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundUp, precision=mpfr_proxy_precision) as ctx:
             upper=round_number_up_to_digits(gmpy2.mpfr(lin_space[i+1]), digits_for_input_discretization)
-        cdf_low_bound=min(1.0, max(0.0, cdf_distr(lin_space[i])))
-        cdf_up_bound=min(1.0, max(0.0, cdf_distr(lin_space[i+1])))
+        cdf_low_bound=min(1.0, max(0.0, cdf_distr(float(lin_space[i]))))
+        cdf_up_bound=min(1.0, max(0.0, cdf_distr(float(lin_space[i+1]))))
         pbox = PBox(Interval(lower, upper, True, False, digits_for_range),
                     dec2Str(round_near(cdf_low_bound, digits_for_cdf)),
                     dec2Str(round_near(cdf_up_bound, digits_for_cdf)))

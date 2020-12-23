@@ -1,6 +1,8 @@
 import os
 # disable openblas threading
 # This must be done before importing numpy
+import psutil
+
 par=1
 os.environ["OPENBLAS_NUM_THREADS"] = str(par)
 
@@ -21,22 +23,23 @@ init_pacal(num_threads)
 num_processes=int(multiprocessing.cpu_count()/num_threads)
 
 home_directory_project=os.getcwd()+"/"
-benchmarks_path=home_directory_project+"benchmarks/"
+benchmarks_path=home_directory_project+"benchmarks_tmp/"
 storage_path=home_directory_project+"storage/"
 fptaylor_path=home_directory_project+"FPTaylor/"
 output_path=home_directory_project+"results/"
 fptaylor_exe="/home/roki/GIT/FPTaylor/./fptaylor"
 pran_exe=""
 num_processes_dependent_operation=int(multiprocessing.cpu_count())
-
+#memory_limit_optimization=((psutil.virtual_memory().total//1024)//1024)
 mpfr_proxy_precision=200
+use_powers_of_two_spacing=True
 
-digits_for_input_discretization=20
-digits_for_range=25
-digits_for_cdf=10
+digits_for_input_discretization=25
+digits_for_range=30
+digits_for_cdf=20
 digits_for_Z3_cdf=6
 
-discretization_points=5
+discretization_points=50
 hard_timeout= 10
 soft_timeout= hard_timeout * 1000
 eps_for_LP= 2**-20

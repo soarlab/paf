@@ -87,7 +87,7 @@ class LP_with_SMT():
         val_cdf = []
         print("LP problem Maximize, num evaluation points= " + str(len(self.evaluation_points)))
 
-        pool = Pool(processes=num_processes_dependent_operation, maxtasksperchild=3)
+        pool = Pool(processes=num_processes_dependent_operation//2, maxtasksperchild=3)
         tmp_results=[]
         results=[]
         for index_lp, ev_point in enumerate(self.evaluation_points):
@@ -109,7 +109,7 @@ class LP_with_SMT():
         val_cdf = []
         print("LP problem Minimize, num evaluation points= " + str(len(self.evaluation_points)))
 
-        pool = Pool(processes=num_processes_dependent_operation, maxtasksperchild=3)
+        pool = Pool(processes=num_processes_dependent_operation//2, maxtasksperchild=3)
         tmp_results = []
         results = []
 
