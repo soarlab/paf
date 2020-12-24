@@ -35,7 +35,7 @@ def dependentIteration(index_left, index_right, smt_manager_input, expression_le
     domain_interval = left_op_box_SMT.interval.perform_interval_operation(operator, right_op_box_SMT.interval)
     intersection_interval = domain_interval.intersection(domain_affine_SMT.interval)
     if not intersection_interval == empty_interval:
-        if smt_manager.check(debug=False, dReal=False):
+        if smt_manager.check(debug=False, dReal=False) and smt_manager.check(debug=False, dReal=True):
             # now we can clean the domain
             if error_computation:
                 print(index_left, index_right)
