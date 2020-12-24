@@ -38,10 +38,8 @@ def clean_co_domain(pbox, smt_manager, expression_center, divisions_SMT,
             double_check=True
             break
     if not double_check:
-        print("Problem with cleaning")
         smt_manager.operation_center = ()
-        smt_manager.check(debug=True, dReal=False)
-        smt_manager.check(debug=True, dReal=True)
+        print("Problem with cleaning. Z3:" +str(smt_manager.check(debug=False, dReal=False))+", dReal:"+str(smt_manager.check(debug=False, dReal=True)))
         ret_box = Interval(low, sup, inc_low, inc_sup, digits_for_range)
         return ret_box
 
