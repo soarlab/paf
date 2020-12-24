@@ -432,6 +432,11 @@ class BinOpDist:
                 evaluation_points.add(Decimal(domain_interval.upper))
 
         print("Potential error of the operation:\n", self.probability_in_insiders(insiders))
+        res_left = Decimal("0")
+        for inside in insiders:
+            res_left = res_left + Decimal(inside.cdf_low)
+        ret = "Check Total probability in insiders: " + dec2Str(res_left) + "\n"
+        print(ret)
 
         evaluation_points = sorted(evaluation_points)
         if len(evaluation_points)>discretization_points and not self.is_error_computation:

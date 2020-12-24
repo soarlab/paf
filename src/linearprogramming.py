@@ -9,7 +9,7 @@ sys.setrecursionlimit(100000)
 from SMT_Interface import clean_var_name_SMT
 from mixedarithmetic import dec2Str
 from project_utils import round_near, round_up, round_down
-from setup_utils import eps_for_LP, digits_for_Z3_cdf, num_processes_dependent_operation
+from setup_utils import eps_for_LP, digits_for_Z3_cdf, num_processes_dependent_operation, timeout_optimization_problem
 
 
 def add_minus_to_number_str(numstr):
@@ -27,7 +27,7 @@ def min_instance(index_lp, ev_point, insiders, query):
     if len(res_values) > 0:
         encode = "\n\n(minimize " + LP_with_SMT.encode_recursive_addition(res_values) + ")"
         query = query + encode + "\n(check-sat)\n(get-objectives)\n"
-        solver_query = "z3 pp.decimal=true -in"
+        solver_query = "z3 -T:"+str(timeout_optimization_problem)+" pp.decimal=true -in"
         proc_run = subprocess.Popen(shlex.split(solver_query),
                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = proc_run.communicate(input=str.encode(query))
@@ -43,7 +43,7 @@ def max_instance(index_lp, ev_point, insiders, query):
     res_values = [intern for intern in insiders if (Decimal(intern.interval.lower) <= ev_point)]
     encode = "\n\n(maximize " + LP_with_SMT.encode_recursive_addition(res_values) + ")"
     query = query + encode + "\n(check-sat)\n(get-objectives)\n"
-    solver_query = "z3 pp.decimal=true -in"
+    solver_query = "z3 -T:"+str(timeout_optimization_problem)+" pp.decimal=true -in"
     proc_run = subprocess.Popen(shlex.split(solver_query),
                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc_run.communicate(input=str.encode(query))
@@ -76,6 +76,8 @@ class LP_with_SMT():
     @staticmethod
     def clean_result_of_optimization(out):
         res = out.decode().strip()
+        if "unknown" in res or "timeout" in res:
+            return "-1.0"
         new_line_clean=res.replace("\n","")
         par_res = new_line_clean.split("))")[0]
         space_res=par_res.split()[-1]
@@ -97,11 +99,16 @@ class LP_with_SMT():
         pool.close()
         pool.join()
 
+        previous="1.0"
         for pair in sorted(results, key=lambda x: x[0]):
             res=self.clean_result_of_optimization(pair[1])
             edge_cdf.append(dec2Str(pair[0]))
-            val_cdf.append(round_near(Decimal(res), digits_for_Z3_cdf))
-
+            if res=="-1.0":
+                print("Timeout in the optimization")
+                val_cdf.append(previous)
+            else:
+                previous=round_near(Decimal(res), digits_for_Z3_cdf)
+                val_cdf.append(previous)
         return edge_cdf, val_cdf
 
     def optimize_min(self):
@@ -121,14 +128,20 @@ class LP_with_SMT():
         pool.close()
         pool.join()
 
+        previous="0.0"
         for pair in sorted(results, key=lambda x: x[0]):
             if pair[1]=="0.0":
                 res="0.0"
             else:
                 res = self.clean_result_of_optimization(pair[1])
+            if res=="-1.0":
+                print("Timeout in the optimization")
+                val_cdf.append(previous)
+            else:
+                previous=round_near(Decimal(res), digits_for_Z3_cdf)
+                val_cdf.append(previous)
             edge_cdf.append(dec2Str(pair[0]))
-            val_cdf.append(round_near(Decimal(res), digits_for_Z3_cdf))
-
+            #val_cdf.append(round_near(Decimal(res), digits_for_Z3_cdf))
         return edge_cdf, val_cdf
 
     def encode_variables(self):

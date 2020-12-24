@@ -120,7 +120,7 @@ def createDSIfromDistribution(distribution, n=50):
     #np.logspace(-9, 5, base=2, num=50) spacing should be done by powers of 2
     if distribution.range_()[0]==0.0 and distribution.range_()[-1]==1.0 and use_powers_of_two_spacing:
         lin_space = powers_of_two_spacing()
-    elif "FTE" in distribution.name:
+    elif "FTE" in distribution.name and use_powers_of_two_spacing:
         lin_space = powers_of_two_error(distribution.d.precision)
     else:
         lin_space = np.linspace(distribution.range_()[0], distribution.range_()[-1], num=n + 1, endpoint=True)
