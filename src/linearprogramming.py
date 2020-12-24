@@ -1,3 +1,5 @@
+import os
+import signal
 import subprocess
 from decimal import Decimal
 import shlex
@@ -30,10 +32,19 @@ def min_instance(index_lp, ev_point, insiders, query):
         solver_query = "z3 -T:"+str(timeout_optimization_problem)+" pp.decimal=true -in"
         proc_run = subprocess.Popen(shlex.split(solver_query),
                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = proc_run.communicate(input=str.encode(query))
-        if not err.decode() == "":
-            print("Problem in the solver!")
-        res = out
+        try:
+            out, err = proc_run.communicate(input=str.encode(query), timeout=timeout_optimization_problem)
+            if not err.decode() == "":
+                print("Problem in the solver!")
+            res = out
+        except subprocess.TimeoutExpired:
+            try:
+                os.kill(proc_run.pid, signal.SIGINT) # send signal to the process group
+                os.killpg(proc_run.pid, signal.SIGINT) # send signal to the process group
+            except OSError:
+                # silently fail if the subprocess has exited already
+                pass
+            res="timeout"
     else:
         res = "0.0"
     return [ev_point, res]
@@ -46,11 +57,22 @@ def max_instance(index_lp, ev_point, insiders, query):
     solver_query = "z3 -T:"+str(timeout_optimization_problem)+" pp.decimal=true -in"
     proc_run = subprocess.Popen(shlex.split(solver_query),
                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    out, err = proc_run.communicate(input=str.encode(query))
-    if not err.decode() == "":
-        print("Problem in the solver!")
-        exit(-1)
-    return [ev_point, out]
+
+    try:
+        out, err = proc_run.communicate(input=str.encode(query), timeout=timeout_optimization_problem)
+        if not err.decode() == "":
+            print("Problem in the solver!")
+        res = out
+    except subprocess.TimeoutExpired:
+        try:
+            os.kill(proc_run.pid, signal.SIGINT)  # send signal to the process group
+            os.killpg(proc_run.pid, signal.SIGINT)  # send signal to the process group
+        except OSError:
+            # silently fail if the subprocess has exited already
+            pass
+        res = "timeout"
+
+    return [ev_point, res]
 
 '''
 LP with Z3
@@ -99,6 +121,8 @@ class LP_with_SMT():
         pool.close()
         pool.join()
 
+        print("Done with optimize max")
+
         previous="1.0"
         for pair in sorted(results, key=lambda x: x[0]):
             res=self.clean_result_of_optimization(pair[1])
@@ -127,6 +151,8 @@ class LP_with_SMT():
 
         pool.close()
         pool.join()
+
+        print("Done with optimize min")
 
         previous="0.0"
         for pair in sorted(results, key=lambda x: x[0]):

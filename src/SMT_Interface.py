@@ -107,7 +107,7 @@ class SMT_Instance():
         if res=="sat" or "delta-sat with delta" in res:
             return 1
         elif res=="unknown" or res=="timeout":
-            print("timeout/unknown from the solver")
+            print("timeout/unknown from the solver. dReal ?"+str(dReal))
             if debug:
                 print(query)
             return 1
