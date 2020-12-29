@@ -1,3 +1,5 @@
+import matplotlib
+
 import setup_utils  # It has to be first line, do not remove
 
 from setup_utils import home_directory_project, benchmarks_path, \
@@ -69,6 +71,7 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
         del values_samples, abs_err_samples, rel_err_samples
         del values_golden, abs_err_golden, rel_err_golden
         gc.collect()
+        matplotlib.pyplot.close("all")
 
 warnings.warn("Mantissa with implicit bit of sign. In gmpy2 set precision=p includes also sign bit. (e.g. Float32 is mantissa=24 and exp=8)\n")
 

@@ -19,7 +19,7 @@ def CreateSymbolicErrorForDistributions(distribution_name, lb, ub):
 def CreateSymbolicErrorForErrors(eps_symbol, eps_value):
     err_name=SymbolicAffineManager.get_new_error_index()
     coefficients={err_name:SymExpression(eps_symbol)}
-    variable={eps_symbol:[eps_value,eps_value]}
+    variable={eps_symbol:["-"+eps_value,eps_value]}
     return SymbolicAffineInstance(SymExpression("0"), coefficients, variable)
 
 def CreateSymbolicZero():

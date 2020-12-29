@@ -11,6 +11,7 @@ from IntervalArithmeticLibrary import Interval, empty_interval, check_zero_is_in
 import model
 from SMT_Interface import create_exp_for_BinaryOperation_SMT_LIB
 from SymbolicAffineArithmetic import SymbolicAffineInstance, SymbolicAffineManager, SymExpression, SymbolicToGelpia
+from expected_value import get_expected_value_product, get_expected_value_ds
 from linearprogramming import LP_with_SMT
 from mixedarithmetic import MixedArithmetic, PBox, from_PDFS_PBox_to_DSI, from_DSI_to_PBox
 from plotting import plot_operation
@@ -25,42 +26,36 @@ from setup_utils import global_interpolate, digits_for_cdf, discretization_point
     num_processes_dependent_operation, round_constants_to_nearest
 
 
-def dependentIteration(index_left, index_right, smt_manager_input, expression_left, expression_center, expression_right,
+def dependentIteration(index_left, index_right, unique_id, smt_manager_input, expression_left, expression_center, expression_right,
                        operator, left_op_box_SMT, right_op_box_SMT, domain_affine_SMT, error_computation,
                        symbolic_affine_form, concrete_symbolic_interval, constraint_expression, center_interval):
-    #print("Start Square_"+str(index_left)+"_"+str(index_right))
     smt_manager = copy.deepcopy(smt_manager_input)
     smt_manager.set_expression_left(expression_left, left_op_box_SMT.interval)
     smt_manager.set_expression_right(expression_right, right_op_box_SMT.interval)
-    domain_interval = left_op_box_SMT.interval.perform_interval_operation(operator, right_op_box_SMT.interval)
-    intersection_interval = domain_interval.intersection(domain_affine_SMT.interval)
-    if not intersection_interval == empty_interval:
-        if smt_manager.check(debug=False, dReal=False) and smt_manager.check(debug=False, dReal=True):
-            # now we can clean the domain
-            if error_computation:
-                print(index_left, index_right)
-                intersection_interval = intersection_interval.intersection(concrete_symbolic_interval)
-                # self_coefficients = symbolic_affine_form.add_all_coefficients_abs_exact()
-                # lower_expr=symbolic_affine_form.center.subtraction(self_coefficients)
-                # upper_expr=symbolic_affine_form.center.addition(self_coefficients)
-                constraint_dict = {
-                    str(constraint_expression): [left_op_box_SMT.interval.lower, left_op_box_SMT.interval.upper]}
-                constraints_interval = symbolic_affine_form.compute_interval_error(center_interval,constraints=constraint_dict)
-                # lower_concrete, _ = SymbolicToGelpia(lower_expr, symbolic_affine_form.variables, constraint_dict).compute_concrete_bounds()
-                # _, upper_concrete = SymbolicToGelpia(upper_expr, symbolic_affine_form.variables, constraint_dict).compute_concrete_bounds()
-                # constraints_interval=Interval(lower_concrete, upper_concrete, True, True, digits_for_range)
-                intersection_interval = intersection_interval.intersection(constraints_interval)
-                return [index_left, index_right, intersection_interval]
-            clean_intersection_interval = \
-                clean_co_domain(intersection_interval, smt_manager, expression_center,
-                                (divisions_SMT_pruning_error if error_computation else divisions_SMT_pruning_operation),
-                                (valid_for_exit_SMT_pruning_error if error_computation else valid_for_exit_SMT_pruning_operation),
-                                recursion_limit_for_pruning=(recursion_limit_for_pruning_error if error_computation else recursion_limit_for_pruning_operation),
-                                start_recursion_limit=0, dReal=not error_computation)
-            #print("Done Pruning Square_" + str(index_left) + "_" + str(index_right))
-            return [index_left,index_right,clean_intersection_interval]
-    #print("Done Affine Square_" + str(index_left) + "_" + str(index_right))
-    return [None, None, empty_interval]
+    initial_check_z3 = smt_manager.check(debug=False, dReal=False)
+    initial_check_dreal = smt_manager.check(debug=False, dReal=True)
+    if initial_check_z3 and initial_check_dreal:
+        domain_interval = left_op_box_SMT.interval.perform_interval_operation(operator, right_op_box_SMT.interval)
+        intersection_interval = domain_interval.intersection(domain_affine_SMT.interval)
+        if not intersection_interval == empty_interval:
+            intersection_interval = intersection_interval.intersection(concrete_symbolic_interval)
+            if not intersection_interval == empty_interval:
+                if error_computation:
+                    print(index_left, index_right)
+                    constraint_dict = {str(constraint_expression): [left_op_box_SMT.interval.lower, left_op_box_SMT.interval.upper]}
+                    constraints_interval = symbolic_affine_form.compute_interval_error(center_interval,constraints=constraint_dict)
+                    intersection_interval = intersection_interval.intersection(constraints_interval)
+                    return [index_left, index_right, unique_id, intersection_interval]
+                if initial_check_z3 == 2 and initial_check_dreal == 2:
+                    return [index_left, index_right, unique_id, intersection_interval]
+                clean_intersection_interval = \
+                    clean_co_domain(intersection_interval, smt_manager, expression_center,
+                                    (divisions_SMT_pruning_error if error_computation else divisions_SMT_pruning_operation),
+                                    (valid_for_exit_SMT_pruning_error if error_computation else valid_for_exit_SMT_pruning_operation),
+                                    recursion_limit_for_pruning=(recursion_limit_for_pruning_error if error_computation else recursion_limit_for_pruning_operation),
+                                    start_recursion_limit=0, dReal=not error_computation)
+                return [index_left, index_right, unique_id, clean_intersection_interval]
+    return [None, None, unique_id, empty_interval]
 
 class ConstantManager:
     i=1
@@ -290,6 +285,22 @@ class BinOpDist:
             smt_manager.clean_expressions()
             self.symbolic_affine = self.symbolic_error
             constraint_expression=self.leftoperand.name #symbolic_affine.center
+            expected_value_bounds=get_expected_value_product(self.leftoperand.discretization.intervals,
+                                           self.rightoperand.discretization.intervals)
+            exact_affine_forms=[self.leftoperand.discretization.affine,  self.rightoperand.discretization.affine,
+                                self.leftoperand.symbolic_affine,        self.rightoperand.symbolic_affine]
+
+            product=BinOpDist(self.leftoperand, "*",
+                      self.rightoperand, self.smt_triple, "f(x)*Round(f(x))", 100, self.samples_dep_op,exact_affine_forms,
+                      regularize=True, convolution=False, dependent_mode="p-box", is_error_computation=False)
+
+
+            expected_value_computed=get_expected_value_ds(product.discretization.intervals)
+            expected_value_product=expected_value_bounds.intersection(expected_value_computed)
+
+            corr_constraint=product.optimization.\
+                encode_correlation_insiders(product.optimization.insiders, expected_value_product)
+
             second_order_lower, second_order_upper = \
                 SymbolicToGelpia(self.symbolic_affine.center,self.symbolic_affine.variables).\
                     compute_concrete_bounds(zero_output_epsilon=True)
@@ -304,6 +315,7 @@ class BinOpDist:
             constraint_expression=None
             center_interval=None
             concrete_symbolic_interval = self.symbolic_affine.compute_interval()
+            corr_constraint=None
         insides_SMT = []
         tmp_insides_SMT = []
 
@@ -316,30 +328,30 @@ class BinOpDist:
         pool = Pool(processes=num_processes_dependent_operation)#, maxtasksperchild=3)
         tmp_results=[]
 
+        unique_id=0
+
         for index_left, left_op_box_SMT in enumerate(left_operand_discr_SMT.intervals):
             for index_right, right_op_box_SMT in enumerate(right_operand_discr_SMT.intervals):
-                domain_interval = left_op_box_SMT.\
-                    interval.perform_interval_operation(self.operator,right_op_box_SMT.interval)
-                intersection_interval = domain_interval.intersection(domain_affine_SMT.interval)
-                if not intersection_interval == empty_interval:
-                    intersection_interval = intersection_interval.intersection(concrete_symbolic_interval)
-                    if not intersection_interval == empty_interval:
-                        tmp_results.append(
-                            pool.apply_async(dependentIteration,
-                                args=[index_left, index_right, smt_manager, expression_left,
-                                    expression_center, expression_right, self.operator, left_op_box_SMT,
-                                    right_op_box_SMT, domain_affine_SMT, self.is_error_computation,
-                                    self.symbolic_affine, concrete_symbolic_interval,
-                                    constraint_expression, center_interval],
-                                callback=tmp_insides_SMT.append))
+                tmp_results.append(
+                    pool.apply_async(dependentIteration,
+                                    args=[index_left, index_right, unique_id, smt_manager, expression_left,
+                                        expression_center, expression_right, self.operator, left_op_box_SMT,
+                                        right_op_box_SMT, domain_affine_SMT, self.is_error_computation,
+                                        self.symbolic_affine, concrete_symbolic_interval,
+                                        constraint_expression, center_interval],
+                                    callback=tmp_insides_SMT.append))
+                unique_id=unique_id+1
         print("Number of jobs for dependent operation: "+str(len(tmp_results)))
         pool.close()
         pool.join()
         print("\nDone with dependent operation\n")
 
-        for triple in tmp_insides_SMT:
-            if not triple[2] == empty_interval:
-                inside_box_SMT = PBox(triple[2], "prob", "prob")
+        for triple in sorted(tmp_insides_SMT, key=lambda x: x[2]):
+            if not triple[3] == empty_interval:
+                inside_box_SMT = PBox(triple[3], "prob", "prob")
+                inside_box_SMT.index_left = triple[0]
+                inside_box_SMT.index_right = triple[1]
+                inside_box_SMT.unique_id = str(triple[2])
                 insides_SMT.append(inside_box_SMT)
                 left_operand_discr_SMT.intervals[triple[0]].add_kid(inside_box_SMT)
                 right_operand_discr_SMT.intervals[triple[1]].add_kid(inside_box_SMT)
@@ -353,8 +365,22 @@ class BinOpDist:
             step = max(1,step)
             evaluation_points = sorted(set(evaluation_points[::step]+[evaluation_points[-1]]))
 
+        if self.is_error_computation:
+            for prod_ins in product.optimization.insiders:
+                t=False
+                for ins in insides_SMT:
+                    if prod_ins.unique_id==ins.unique_id:
+                        t=True
+                        break
+                if not t:
+                    corr_constraint=corr_constraint.replace("insider_"+prod_ins.unique_id+" ", "0.0 ")
+
         lp_inst_SMT=LP_with_SMT(self.leftoperand.name,self.rightoperand.name,
-                    left_operand_discr_SMT.intervals,right_operand_discr_SMT.intervals,insides_SMT,evaluation_points)
+                                left_operand_discr_SMT.intervals,right_operand_discr_SMT.intervals,
+                                insides_SMT,evaluation_points, corr_constraint=corr_constraint)
+
+        self.optimization=lp_inst_SMT
+
         upper_bound_cdf_ind_SMT, upper_bound_cdf_val_SMT=lp_inst_SMT.optimize_max()
         lower_bound_cdf_ind_SMT, lower_bound_cdf_val_SMT=lp_inst_SMT.optimize_min()
 

@@ -78,7 +78,8 @@ def max_instance(index_lp, ev_point, insiders, query):
 LP with Z3
 '''
 class LP_with_SMT():
-    def __init__(self, left_name, right_name, marginal_left, marginal_right, insides, evaluation_points, debug=True):
+    def __init__(self, left_name, right_name, marginal_left, marginal_right,
+                 insides, evaluation_points, debug=True, corr_constraint=None):
         self.debug=debug
         self.marginal_left=marginal_left
         self.marginal_right=marginal_right
@@ -89,6 +90,7 @@ class LP_with_SMT():
             self.right_name="TMP_"+self.right_name
         self.evaluation_points=evaluation_points
         self.insiders=insides
+        self.corr_constraint=corr_constraint
         self.query = self.encode_variables()+self.encode_marginals_left()+\
               self.encode_marginals_right()+self.encode_insiders()
 
@@ -98,6 +100,10 @@ class LP_with_SMT():
     @staticmethod
     def clean_result_of_optimization(out):
         res = out.decode().strip()
+        if "error" in res:
+            print("Error in the optimization problem!")
+            print(res)
+            exit(-1)
         if "unknown" in res or "timeout" in res:
             return "-1.0"
         new_line_clean=res.replace("\n","")
@@ -188,9 +194,9 @@ class LP_with_SMT():
             declare_vars = declare_vars + "(assert (>= " + marginal_right.name + " 0.0))\n"
             counter=counter+1
         declare_vars = declare_vars + "\n\n"
-        counter=0
+        #counter=0
         for inside in self.insiders:
-            inside.name="insider_"+str(counter)
+            inside.name = "insider_"+inside.unique_id
             declare_vars = declare_vars + "(declare-const " + inside.name + " Real)\n"
             declare_vars = declare_vars+"(assert (<= "+inside.name+" 1.0))\n"
             declare_vars = declare_vars + "(assert (>= " + inside.name + " 0.0))\n"
@@ -205,6 +211,31 @@ class LP_with_SMT():
         else:
             return "(+ " + tmp_list[0].name + " " + LP_with_SMT.encode_recursive_addition(tmp_list[1:]) + " " + ")"
 
+    @staticmethod
+    def encode_recursive_addition_strings(list_of_strings):
+        if len(list_of_strings)==1:
+            return list_of_strings[0]
+        else:
+            return "(+ " + list_of_strings[0] + " " + LP_with_SMT.encode_recursive_addition_strings(list_of_strings[1:]) + " " + ")"
+
+    @staticmethod
+    def encode_correlation_insiders(insiders,expected_value_product):
+        result=""
+        multiplications_lower=[]
+        multiplications_upper=[]
+        for insider in insiders:
+            tmp_lower = "( * " + insider.interval.lower + " " + insider.name+ " )"
+            tmp_upper = "( * " + insider.interval.upper + " " + insider.name + " )"
+            multiplications_lower.append(tmp_lower)
+            multiplications_upper.append(tmp_upper)
+        addition_lower=LP_with_SMT.encode_recursive_addition_strings(multiplications_lower)
+        addition_upper=LP_with_SMT.encode_recursive_addition_strings(multiplications_upper)
+
+        result=result+"(assert (>= "+expected_value_product.upper+" "+addition_upper+"))\n"
+        result=result+"(assert (<= "+expected_value_product.lower+" "+addition_lower+"))\n"
+        return result
+
+
     '''
     Insiders have to sum up to the marginal
     '''
@@ -216,6 +247,8 @@ class LP_with_SMT():
         for marginal in self.marginal_left:
             encode_insiders=encode_insiders+\
                             "(assert (= "+self.encode_recursive_addition(list(marginal.kids))+" "+marginal.name+"))\n"
+        if not self.corr_constraint==None:
+            encode_insiders=encode_insiders+"\n"+self.corr_constraint+"\n"
         return encode_insiders
 
     '''
