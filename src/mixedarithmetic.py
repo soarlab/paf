@@ -1,6 +1,6 @@
 import bisect
 import copy
-from decimal import Decimal
+from decimal import Decimal, getcontext
 
 import gmpy2
 import numpy as np
@@ -10,7 +10,7 @@ from IntervalArithmeticLibrary import Interval
 from plotting import plot_operation, plot_boxing
 from project_utils import round_number_down_to_digits, dec2Str, round_near, round_down, round_up, \
     round_number_up_to_digits, round_number_nearest_to_digits
-from setup_utils import digits_for_range, digits_for_cdf, digits_for_input_discretization, mpfr_proxy_precision, \
+from setup_utils import digits_for_range, digits_for_input_cdf, digits_for_input_discretization, mpfr_proxy_precision, \
     discretization_points, use_powers_of_two_spacing
 
 '''
@@ -134,12 +134,14 @@ def createDSIfromDistribution(distribution, n=50):
             upper=round_number_up_to_digits(gmpy2.mpfr(lin_space[i+1]), digits_for_input_discretization)
         cdf_low_bound=min(1.0, max(0.0, cdf_distr(float(lin_space[i]))))
         cdf_up_bound=min(1.0, max(0.0, cdf_distr(float(lin_space[i+1]))))
+        cdf_low_string=dec2Str(round_near(cdf_low_bound, digits_for_input_cdf))
+        cdf_up_string=dec2Str(round_near(cdf_up_bound, digits_for_input_cdf))
         pbox = PBox(Interval(lower, upper, True, False, digits_for_range),
-                    dec2Str(round_near(cdf_low_bound, digits_for_cdf)),
-                    dec2Str(round_near(cdf_up_bound, digits_for_cdf)))
+                             cdf_low_string, cdf_up_string)
         ret_list.append(pbox)
-    ret_list[0].cdf_low="0.0"
-    ret_list[-1].cdf_up="1.0"
+
+    ret_list=adjust_ret_list(ret_list)
+
     with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundDown, precision=mpfr_proxy_precision) as ctx:
         ret_list[0].interval.lower = \
             round_number_down_to_digits(gmpy2.mpfr(distribution.a_real), digits_for_input_discretization)
@@ -150,6 +152,35 @@ def createDSIfromDistribution(distribution, n=50):
     mixarith=MixedArithmetic(ret_list[0].interval.lower,ret_list[-1].interval.upper,ret_list)
     return mixarith
 
+def adjust_ret_list(retlist):
+    retlist[0].cdf_low="0.0"
+    retlist[-1].cdf_up="1.0"
+    with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundUp, precision=mpfr_proxy_precision) as ctx:
+        min_value=gmpy2.exp10(-digits_for_input_cdf)
+        current=min_value
+    for pbox in retlist:
+        with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundDown, precision=mpfr_proxy_precision) as ctx:
+            if gmpy2.is_zero(gmpy2.mpfr(pbox.cdf_low)) or gmpy2.mpfr(pbox.cdf_low)<current:
+                pbox.cdf_low=round_number_down_to_digits(current, digits_for_input_cdf)
+                with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundUp, precision=mpfr_proxy_precision) as ctx:
+                    current=current+min_value
+            if gmpy2.is_zero(gmpy2.mpfr(pbox.cdf_up)) or gmpy2.mpfr(pbox.cdf_up)<current:
+                pbox.cdf_up=round_number_down_to_digits(current, digits_for_input_cdf)
+
+    with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundDown, precision=mpfr_proxy_precision) as ctx:
+        current=gmpy2.sub(gmpy2.mpfr("1.0"), min_value)
+    for pbox in retlist[::-1]:
+        with gmpy2.local_context(gmpy2.context(), round=gmpy2.RoundDown, precision=mpfr_proxy_precision) as ctx:
+            if gmpy2.mpfr(pbox.cdf_up)==gmpy2.mpfr("1.0") or gmpy2.mpfr(pbox.cdf_up)>current:
+                pbox.cdf_up=round_number_up_to_digits(current, digits_for_input_cdf)
+                current=gmpy2.sub(current, min_value)
+            if gmpy2.mpfr(pbox.cdf_low)==gmpy2.mpfr("1.0") or gmpy2.mpfr(pbox.cdf_low)>current:
+                pbox.cdf_low=round_number_up_to_digits(current, digits_for_input_cdf)
+
+    retlist[0].cdf_low = "0.0"
+    retlist[-1].cdf_up = "1.0"
+
+    return retlist
 
 def createAffineErrorForLeaf():
     return AffineInstance(AffineManager.compute_middle_point_given_interval("0", "0"),
