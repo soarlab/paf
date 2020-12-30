@@ -19,10 +19,10 @@ from regularizer import *
 from project_utils import *
 from gmpy2 import *
 
-from setup_utils import global_interpolate, digits_for_cdf, discretization_points, divisions_SMT_pruning_error, \
+from setup_utils import global_interpolate, digits_for_input_cdf, discretization_points, divisions_SMT_pruning_error, \
     valid_for_exit_SMT_pruning_error, divisions_SMT_pruning_operation, valid_for_exit_SMT_pruning_operation, \
     recursion_limit_for_pruning_error, recursion_limit_for_pruning_operation, num_processes, \
-    num_processes_dependent_operation, round_constants_to_nearest
+    num_processes_dependent_operation, round_constants_to_nearest, MyPool
 
 
 def dependentIteration(index_left, index_right, smt_manager_input, expression_left, expression_center, expression_right,
@@ -313,7 +313,7 @@ class BinOpDist:
         print("Right-Intervals: "+str(len(right_operand_discr_SMT.intervals)))
         print("Pruning dependent operation...")
 
-        pool = Pool(processes=num_processes_dependent_operation)#, maxtasksperchild=3)
+        pool = MyPool(processes=num_processes_dependent_operation)#, maxtasksperchild=3)
         tmp_results=[]
 
         for index_left, left_op_box_SMT in enumerate(left_operand_discr_SMT.intervals):
@@ -358,6 +358,7 @@ class BinOpDist:
         upper_bound_cdf_ind_SMT, upper_bound_cdf_val_SMT=lp_inst_SMT.optimize_max()
         lower_bound_cdf_ind_SMT, lower_bound_cdf_val_SMT=lp_inst_SMT.optimize_min()
 
+        print("Done with LP optimization problem")
 
         if not lower_bound_cdf_ind_SMT == upper_bound_cdf_ind_SMT:
             print("Lists should be identical")
