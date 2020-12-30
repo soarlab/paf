@@ -5,7 +5,7 @@ import pacal
 from pacal import UniformDistr, ConstDistr, BetaDistr
 from pacal.distr import Distr
 from pychebfun import chebfun
-from scipy.stats import truncnorm
+from scipy.stats import truncnorm, norm
 
 from AffineArithmeticLibrary import AffineInstance, AffineManager
 from IntervalArithmeticLibrary import Interval
@@ -158,6 +158,13 @@ class N(stats.rv_continuous, Distr):
         hidden_pdf=normalizeDistribution(not_norm_hidden_pdf, init=True)
         piecewise_pdf.addSegment(Segment(a=self.a, b=self.b,f =hidden_pdf.get_piecewise_pdf()))
         self.piecewise_pdf = piecewise_pdf
+
+    def get_piecewise_cdf(self):
+        a_trans = (self.a - self.mean) / self.sigma
+        b_trans = (self.b - self.mean) / self.sigma
+        tmp_dist = truncnorm(a_trans, b_trans)
+        scipy_cdf=tmp_dist.cdf
+        return scipy_cdf
 
     def get_discretization(self):
         if self.discretization==None and self.affine_error==None and self.symbolic_error==None:
@@ -488,7 +495,7 @@ class Number(ConstDistr):
         self.affine_error=None
         self.symbolic_error=None
         self.symbolic_affine=None
-
+        self.get_discretization()
 
     def execute(self):
         return self
@@ -892,7 +899,6 @@ class AbsDistr(AbsDistr):
         edge_cdf, val_cdf_low, val_cdf_up = from_PDFS_PBox_to_DSI(discretization.intervals, evaluation_points)
         plot_operation(edge_cdf, val_cdf_low, val_cdf_up)
         pboxes = from_DSI_to_PBox(edge_cdf, val_cdf_low, edge_cdf, val_cdf_up)
-        plot_boxing(pboxes)
         self.discretization=MixedArithmetic.clone_MixedArith_from_Args(discretization.affine,pboxes)
 
 def sin(d):
