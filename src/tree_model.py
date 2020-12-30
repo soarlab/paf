@@ -164,10 +164,19 @@ class TreeModel:
             dist = self.manager.createUnaryOperation(tree.root_value, tree.root_name)
 
             smt_manager_dist=SMT_Interface.SMT_Instance()
-            smt_manager_dist.add_var(tree.root_name, dist.discretization.lower, dist.discretization.upper)
             smt_manager_qdist=SMT_Interface.SMT_Instance()
-            smt_manager_qdist.add_var(tree.root_name,dist.discretization.lower, dist.discretization.upper)
-            dist_smt_query= SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(tree.root_name)
+
+            if smt_manager_dist.check_string_number_is_exp_notation(tree.root_name):
+                scientific_name = ConstantManager.get_new_constant_index()
+                smt_manager_dist.add_var(scientific_name, dist.discretization.affine.interval.lower,
+                                                          dist.discretization.affine.interval.upper)
+                smt_manager_qdist.add_var(scientific_name, dist.discretization.affine.interval.lower,
+                                                          dist.discretization.affine.interval.upper)
+                dist_smt_query = SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(scientific_name)
+            else:
+                smt_manager_dist.add_var(tree.root_name, dist.discretization.lower, dist.discretization.upper)
+                smt_manager_qdist.add_var(tree.root_name,dist.discretization.lower, dist.discretization.upper)
+                dist_smt_query= SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(tree.root_name)
 
             # initialize=True means we quantize the inputs
             if self.initialize:
