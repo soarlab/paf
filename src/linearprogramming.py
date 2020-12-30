@@ -11,7 +11,8 @@ sys.setrecursionlimit(100000)
 from SMT_Interface import clean_var_name_SMT
 from mixedarithmetic import dec2Str
 from project_utils import round_near, round_up, round_down
-from setup_utils import eps_for_LP, digits_for_Z3_cdf, num_processes_dependent_operation, timeout_optimization_problem
+from setup_utils import eps_for_LP, digits_for_Z3_cdf, num_processes_dependent_operation, timeout_optimization_problem, \
+    MyPool
 
 
 def add_minus_to_number_str(numstr):
@@ -111,7 +112,7 @@ class LP_with_SMT():
         val_cdf = []
         print("LP problem Maximize, num evaluation points= " + str(len(self.evaluation_points)))
 
-        pool = Pool(processes=num_processes_dependent_operation//2, maxtasksperchild=3)
+        pool = MyPool(processes=num_processes_dependent_operation//2)
         tmp_results=[]
         results=[]
         for index_lp, ev_point in enumerate(self.evaluation_points):
@@ -140,7 +141,7 @@ class LP_with_SMT():
         val_cdf = []
         print("LP problem Minimize, num evaluation points= " + str(len(self.evaluation_points)))
 
-        pool = Pool(processes=num_processes_dependent_operation//2, maxtasksperchild=3)
+        pool = MyPool(processes=num_processes_dependent_operation//2)
         tmp_results = []
         results = []
 
