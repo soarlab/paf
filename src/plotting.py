@@ -38,7 +38,7 @@ def plotBoundsDistr(figureName, distribution):
                 label="PAF: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=6, s=600)
 
 
-def plot_range_analysis_PDF(final_distribution, loadedGolden, r, golden_samples, paf_file, file_name, range_fpt):
+def plot_range_analysis_PDF(final_distribution, loadedGolden, golden_samples, paf_file, file_name, range_fpt):
 
     print("Generating Graphs Range Analysis PDF\n")
 
@@ -66,15 +66,15 @@ def plot_range_analysis_PDF(final_distribution, loadedGolden, r, golden_samples,
     title="PDF Range Analysis with PAF with gaps: " + str(binLenDistr)
     collectInfoAboutCDFDistributionNaive(paf_file, final_distribution, title, distr_mode, binLenDistr)
 
-    sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
-    vals, edges, patches = plt.hist(r, bins='auto', density=True, color="blue", label="Sampled distribution")
-    binLenSamp = len(vals)
-    title="PDF Range Analysis with Sampling Model with num. bins: " + str(binLenSamp)
-    collectInfoAboutSampling(sampling_file, vals, edges, title, pdf=True)
-    sampling_file.close()
+    #sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
+    #vals, edges, patches = plt.hist(r, bins='auto', density=True, color="blue", label="Sampled distribution")
+    #binLenSamp = len(vals)
+    #title="PDF Range Analysis with Sampling Model with num. bins: " + str(binLenSamp)
+    #collectInfoAboutSampling(sampling_file, vals, edges, title, pdf=True)
+    #sampling_file.close()
 
-    title="PDF Measure Distances Range Analysis"
-    measureDistances(final_distribution, paf_file, vals_golden, vals, edges_golden, edges, title)
+    #title="PDF Measure Distances Range Analysis"
+    #measureDistances(final_distribution, paf_file, vals_golden, vals, edges_golden, edges, title)
 
     golden_max = abs(final_distribution.distribution.get_piecewise_pdf()(golden_mode))
     mode_distr = final_distribution.distribution.mode()
@@ -159,11 +159,11 @@ def plot_boxing(ret_list):
         ax.add_patch(Rectangle((float(val.interval.lower), float(val.cdf_low)),
                                float(val.interval.upper)-float(val.interval.lower),
                                float(val.cdf_up)-float(val.cdf_low), color='black',
-                               fill = False, label=("Paving" if val==ret_list[0] else "")))
+                               fill = False, label=("Boxing" if val==ret_list[0] else "")))
     plt.legend()
     return
 
-def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_short, samples_golden, fileHook, file_name, range_fpt):
+def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_golden, fileHook, file_name, range_fpt):
     a = final_distribution.a
     b = final_distribution.b
 
@@ -195,27 +195,27 @@ def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_short, sam
     title = "CDF Range Analysis with PAF using PBox Discretization"
     collectInfoAboutCDFDistributionPBox(fileHook, final_distribution, title)
 
-    sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
-    notnorm_vals, notnorm_edges = np.histogram(samples_short, bins='auto', density=True)
-    vals, edges = plotCDF(notnorm_edges, notnorm_vals, normalize=True, color="blue", label="Sampled distribution", linewidth=3)
-    binLenSamp = len(vals)
-    title="CDF Range Analysis with Sampling with num. bins: " + str(binLenSamp)
-    collectInfoAboutCDFSampling(sampling_file, notnorm_vals, edges, title)
-    sampling_file.close()
+    #sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
+    #notnorm_vals, notnorm_edges = np.histogram(samples_short, bins='auto', density=True)
+    #vals, edges = plotCDF(notnorm_edges, notnorm_vals, normalize=True, color="blue", label="Sampled distribution", linewidth=3)
+    #binLenSamp = len(vals)
+    #title="CDF Range Analysis with Sampling with num. bins: " + str(binLenSamp)
+    #collectInfoAboutCDFSampling(sampling_file, notnorm_vals, edges, title)
+    #sampling_file.close()
 
     #title="CDF Measure Distances Range Analysis"
-    measureDistances(final_distribution, fileHook, vals_golden, vals, edges_golden, edges, title, pdf=False)
+    #measureDistances(final_distribution, fileHook, vals_golden, vals, edges_golden, edges, title, pdf=False)
 
     plt.autoscale(enable=True, axis='both', tight=False)
     plt.ylim(bottom=-0.05, top=1.1)
     #x = np.linspace(a, b, 1000)
     #plt.plot(x, abs(final_distribution.distribution.get_piecewise_cdf()(x)), linewidth=3, color="red")
-    final_distribution.distribution.get_piecewise_cdf().plot(xmin=a, xmax=b, linewidth=3, color="red")
+    #final_distribution.distribution.get_piecewise_cdf().plot(xmin=a, xmax=b, linewidth=3, color="red")
+    #plotBoundsDistr(tmp_filename, final_distribution.distribution)
 
     plotCDFdiscretization(final_distribution.discretization.intervals)
 
     plotTicks(tmp_filename, "X", "green", 4, 500, ticks=range_fpt, label="FPT: " + str(range_fpt))
-    plotBoundsDistr(tmp_filename, final_distribution.distribution)
     plt.xlabel('Distribution Range')
     plt.ylabel('CDF')
     plt.title(file_name + " - Range Analysis")
@@ -285,8 +285,7 @@ def plot_error_analysis_PDF(abs_err, loadedGolden, abs_err_samples, abs_err_gold
     plt.close()
 
 
-def plot_error_analysis_CDF(tree, loadedGolden, abs_err_samples, abs_err_golden, summary_file
-                            ,file_name, abs_fpt, rel_fpt):
+def plot_error_analysis_CDF(tree, loadedGolden, abs_err_golden, summary_file, file_name, abs_fpt, rel_fpt):
     abs_err=tree.abs_err_distr
 
     print("Generating Graphs Error Analysis CDF\n")
@@ -318,31 +317,30 @@ def plot_error_analysis_CDF(tree, loadedGolden, abs_err_samples, abs_err_golden,
     title = "CDF Error Analysis with PAF using PBox Discretization"
     collectInfoAboutCDFDistributionPBox(summary_file, abs_err, title)
 
-    sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
-    not_norm_vals, not_norm_edges = np.histogram(abs_err_samples, bins='auto', density=True)
-    vals, edges = plotCDF(not_norm_edges, not_norm_vals, normalize=True, linewidth=3, color="blue",label="Sampled distribution")
-    binLenSamp = len(vals)
-    title="CDF Error Analysis with Sampling model with num. bins: " + str(binLenSamp)
-    collectInfoAboutSampling(sampling_file, vals, edges, title, pdf=False, golden_mode_index=0)
+    #sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
+    #not_norm_vals, not_norm_edges = np.histogram(abs_err_samples, bins='auto', density=True)
+    #vals, edges = plotCDF(not_norm_edges, not_norm_vals, normalize=True, linewidth=3, color="blue",label="Sampled distribution")
+    #binLenSamp = len(vals)
+    #title="CDF Error Analysis with Sampling model with num. bins: " + str(binLenSamp)
+    #collectInfoAboutSampling(sampling_file, vals, edges, title, pdf=False, golden_mode_index=0)
+    #sampling_file.close()
 
-    sampling_file.close()
-
-    title="CDF Measure Distances Error Analysis"
-    measureDistances(abs_err, summary_file, vals_golden, vals, edges_golden, edges, title, pdf=False)
+    #title="CDF Measure Distances Error Analysis"
+    #measureDistances(abs_err, summary_file, vals_golden, vals, edges_golden, edges, title, pdf=False)
 
     plt.autoscale(enable=True, axis='both', tight=False)
     plt.ylim(bottom=-0.05, top=1.1)
     #x = np.linspace(abs_err.a, abs_err.b, 1000)
     #plt.plot(x, abs(abs_err.distribution.get_piecewise_cdf()(x)), linewidth=3, color="red")
-    abs_err.distribution.get_piecewise_cdf().plot(xmin=abs_err.a, xmax=abs_err.b, linewidth=3, color="red")
-
+    #abs_err.distribution.get_piecewise_cdf().plot(xmin=abs_err.a, xmax=abs_err.b, linewidth=3, color="red")
+    #plotBoundsDistr(tmp_name, abs_err.distribution)
     #tree.lower_error_affine.get_piecewise_cdf().plot(xmin=0, xmax=tree.lower_error_affine.range_()[-1], linewidth=3, color="green")
     #tree.upper_error_affine.get_piecewise_cdf().plot(xmin=0, xmax=tree.upper_error_affine.range_()[-1], linewidth=3, color="green")
 
     plotCDFdiscretization(abs_err.discretization.intervals)
 
     plotTicks(tmp_name, "X", "green", 4, 500, ticks="[0.0, " + str(abs_fpt) + "]", label="FPT: " + str(abs_fpt))
-    plotBoundsDistr(tmp_name, abs_err.distribution)
+
     plt.ticklabel_format(axis='both', style='sci', scilimits=(0, 0))
     plt.title(tmp_name)
     plt.xlabel('Error Distribution')
