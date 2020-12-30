@@ -15,6 +15,7 @@ import traceback
 import logging
 import gc
 import ntpath
+import matplotlib
 
 from fpryacc import FPRyacc
 from tree_model import TreeModel
@@ -25,7 +26,7 @@ from tests.tests import test_Approx_Operations
 
 def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
     try:
-        print(file)
+        print("\n\n\n\n"+file+"\n\n\n\n\n")
         f = open(file, "r")
         file_name = (ntpath.basename(file).split(".")[0]).lower()  # (file.split(".")[0]).lower()
         text = f.read()
@@ -69,6 +70,7 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
         del values_samples, abs_err_samples, rel_err_samples
         del values_golden, abs_err_golden, rel_err_golden
         gc.collect()
+        matplotlib.pyplot.close("all")
 
 warnings.warn("Mantissa with implicit bit of sign. In gmpy2 set precision=p includes also sign bit. (e.g. Float32 is mantissa=24 and exp=8)\n")
 
@@ -77,7 +79,9 @@ exp = 8
 range_my_dict, abs_my_dict, rel_my_dict = getFPTaylorResults(fptaylor_exe, fptaylor_path)
 
 for file in os.listdir(benchmarks_path):
-    if file.endswith(".txt"):
-        process_file(benchmarks_path+file, mantissa, exp, range_my_dict, abs_my_dict)
-
+    try:
+        if file.endswith(".txt"):
+            process_file(benchmarks_path+file, mantissa, exp, range_my_dict, abs_my_dict)
+    except:
+        print("CRASH: "+str(file))
 print("\nDone with sample\n")
