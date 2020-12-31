@@ -35,7 +35,9 @@ def dependentIteration(index_left, index_right, smt_manager_input, expression_le
     domain_interval = left_op_box_SMT.interval.perform_interval_operation(operator, right_op_box_SMT.interval)
     intersection_interval = domain_interval.intersection(domain_affine_SMT.interval)
     if not intersection_interval == empty_interval:
-        if smt_manager.check(debug=False, dReal=False) and smt_manager.check(debug=False, dReal=True):
+        z3=smt_manager.check(debug=False, dReal=False)
+        dreal=smt_manager.check(debug=False, dReal=True)
+        if z3 and dreal:
             # now we can clean the domain
             if error_computation:
                 print(index_left, index_right)
@@ -51,6 +53,10 @@ def dependentIteration(index_left, index_right, smt_manager_input, expression_le
                 # constraints_interval=Interval(lower_concrete, upper_concrete, True, True, digits_for_range)
                 intersection_interval = intersection_interval.intersection(constraints_interval)
                 return [index_left, index_right, intersection_interval]
+
+            if z3>1 and dreal>1:
+                return [index_left, index_right, intersection_interval]
+
             clean_intersection_interval = \
                 clean_co_domain(intersection_interval, smt_manager, expression_center,
                                 (divisions_SMT_pruning_error if error_computation else divisions_SMT_pruning_operation),
