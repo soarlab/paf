@@ -16,10 +16,10 @@ def CreateSymbolicErrorForDistributions(distribution_name, lb, ub):
     var_name={distribution_name:[lb,ub]}
     return SymbolicAffineInstance(SymExpression(distribution_name), {}, var_name)
 
-def CreateSymbolicErrorForErrors(eps_symbol, eps_value):
+def CreateSymbolicErrorForErrors(eps_symbol, eps_value_string):
     err_name=SymbolicAffineManager.get_new_error_index()
     coefficients={err_name:SymExpression(eps_symbol)}
-    variable={eps_symbol:[eps_value,eps_value]}
+    variable={eps_symbol:["-"+eps_value_string, eps_value_string]}
     return SymbolicAffineInstance(SymExpression("0"), coefficients, variable)
 
 def CreateSymbolicZero():
@@ -208,12 +208,12 @@ class SymbolicAffineInstance:
 
     def compute_interval_error(self, center_interval, constraints=None):
         tmp_variables=copy.deepcopy(self.variables)
-        memorize_eps=Interval("1.0","1.0",True,True,digits_for_range)
+        memorize_eps=Interval("-1.0","1.0",True,True,digits_for_range)
         for var in tmp_variables:
             # for the moment there should be one
             if "eps" in var:
                 memorize_eps=Interval(tmp_variables[var][0], tmp_variables[var][1], True, True, digits_for_range)
-                tmp_variables[var]=["1.0","1.0"]
+                tmp_variables[var]=["-1.0","1.0"]
                 break
         self_coefficients = self.add_all_coefficients_abs_exact()
         _, coeff_upper=SymbolicToGelpia(self_coefficients, tmp_variables, constraints).compute_concrete_bounds(zero_output_epsilon=True)
