@@ -48,6 +48,6 @@ class ErrorModelWrapper:
             self.symbolic_error = CreateSymbolicZero()
             #self.symbolic_affine = CreateSymbolicErrorForErrors(eps_symbol=dec2Str(Decimal(self.unit_roundoff)))
             self.symbolic_affine = CreateSymbolicErrorForErrors(eps_symbol="eps",
-                                                                eps_value=dec2Str(Decimal(self.unit_roundoff)))
+                                                                eps_value_string=dec2Str(Decimal(self.unit_roundoff)))
         return self.discretization
 
