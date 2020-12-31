@@ -112,7 +112,7 @@ class SMT_Instance():
             print("timeout/unknown from the solver. dReal ? "+str(dReal))
             if debug:
                 print(query)
-            return 1
+            return 2
         elif res=="unsat":
             return 0
         elif "error" in res:
