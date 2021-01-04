@@ -37,7 +37,8 @@ def dependentIteration(index_left, index_right, smt_manager_input, expression_le
     if not intersection_interval == empty_interval:
         z3=smt_manager.check(debug=False, dReal=False)
         dreal=smt_manager.check(debug=False, dReal=True)
-        if z3 and dreal:
+        solver_res= (z3 and dreal)
+        if solver_res:
             # now we can clean the domain
             if error_computation:
                 print(index_left, index_right)
@@ -580,9 +581,7 @@ class BinOpDist:
             self.symbolic_error=x_erry.perform_affine_operation("+",
                               y_errx.perform_affine_operation("+", errx_erry))
         elif self.operator == "/":
-            # val a = Interval.minAbs(rightInterval)
-            # val errorMultiplier: Rational = -one / (a * a)
-
+            # - 1 / a * a
             total_affine_right = self.exact_affines_forms[3]. \
                 perform_affine_operation("+", self.rightoperand.symbolic_error)
 
