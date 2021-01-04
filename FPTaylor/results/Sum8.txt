@@ -1,0 +1,88 @@
+***** The environment variable FPTAYLOR_BASE is defined = '/home/roki/GIT/FPTaylor'
+Loading configuration file: /home/roki/GIT/FPTaylor/default.cfg
+FPTaylor, version 0.9.3+dev
+
+Loading: /home/roki/GIT/paf/FPTaylor/Sum8.txt
+Processing: sum
+
+*************************************
+Taylor form for: rnd32((rnd32((rnd32((rnd32((rnd32((rnd32((rnd32((rnd32(x0) + rnd32(x1))) + rnd32(x2))) + rnd32(x3))) + rnd32(x4))) + rnd32(x5))) + rnd32(x6))) + rnd32(x7)))
+
+Conservative bound: [7.999997, 16.000005]
+
+Simplified rounding: rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd32(x0) + rnd32(x1))) + rnd32(x2))) + rnd32(x3))) + rnd32(x4))) + rnd32(x5))) + rnd32(x6))) + rnd32(x7)))
+Building Taylor forms...
+Simplifying Taylor forms...
+success
+v0 = (((((((x0 + x1) + x2) + x3) + x4) + x5) + x6) + x7)
+-1 (28): exp = -24: 0
+1 (1): exp = -24: floor_power2(x0)
+2 (2): exp = -24: floor_power2(x1)
+3 (3): exp = -24: floor_power2(((x0 + x1) + interval(-1.19209289550781250000e-07, 1.19209289550781250000e-07)))
+4 (5): exp = -24: floor_power2(x2)
+5 (6): exp = -24: floor_power2((((x0 + x1) + x2) + interval(-4.17232513427734375000e-07, 4.17232513427734375000e-07)))
+6 (8): exp = -24: floor_power2(x3)
+7 (9): exp = -24: floor_power2(((((x0 + x1) + x2) + x3) + interval(-7.15255737304687500000e-07, 7.15255737304687500000e-07)))
+8 (11): exp = -24: floor_power2(x4)
+9 (12): exp = -24: floor_power2((((((x0 + x1) + x2) + x3) + x4) + interval(-1.25169754028320312500e-06, 1.25169754028320312500e-06)))
+10 (14): exp = -24: floor_power2(x5)
+11 (15): exp = -24: floor_power2(((((((x0 + x1) + x2) + x3) + x4) + x5) + interval(-1.78813934326171875000e-06, 1.78813934326171875000e-06)))
+12 (17): exp = -24: floor_power2(x6)
+13 (18): exp = -24: floor_power2((((((((x0 + x1) + x2) + x3) + x4) + x5) + x6) + interval(-2.32458114624023437500e-06, 2.32458114624023437500e-06)))
+14 (20): exp = -24: floor_power2(x7)
+15 (21): exp = -24: floor_power2(((((((((x0 + x1) + x2) + x3) + x4) + x5) + x6) + x7) + interval(-2.86102294921875000000e-06, 2.86102294921875000000e-06)))
+
+Corresponding original subexpressions:
+1: rnd32(x0)
+2: rnd32(x1)
+3: rnd[32,ne,1.00,-24,0]((rnd32(x0) + rnd32(x1)))
+4: rnd32(x2)
+5: rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd32(x0) + rnd32(x1))) + rnd32(x2)))
+6: rnd32(x3)
+7: rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd32(x0) + rnd32(x1))) + rnd32(x2))) + rnd32(x3)))
+8: rnd32(x4)
+9: rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd32(x0) + rnd32(x1))) + rnd32(x2))) + rnd32(x3))) + rnd32(x4)))
+10: rnd32(x5)
+11: rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd32(x0) + rnd32(x1))) + rnd32(x2))) + rnd32(x3))) + rnd32(x4))) + rnd32(x5)))
+12: rnd32(x6)
+13: rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd32(x0) + rnd32(x1))) + rnd32(x2))) + rnd32(x3))) + rnd32(x4))) + rnd32(x5))) + rnd32(x6)))
+14: rnd32(x7)
+15: rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd[32,ne,1.00,-24,0]((rnd32(x0) + rnd32(x1))) + rnd32(x2))) + rnd32(x3))) + rnd32(x4))) + rnd32(x5))) + rnd32(x6))) + rnd32(x7)))
+
+bounds: [8.000000e+00, 1.600000e+01]
+
+Computing absolute errors
+-1: exp = -24: 0.000000e+00 (low = 0.000000e+00, subopt = -nan%)
+
+Solving the exact optimization problem
+exact bound (exp = -24): 6.400000e+01 (low = 5.000000e+01, subopt = 21.9%)
+total2: 0.000000e+00 (low = 0.000000e+00, subopt = -nan%)
+exact total: 3.814697e-06 (low = 2.980232e-06, subopt = 21.9%)
+
+Computing relative errors
+-1: exp = -24: 0.000000e+00 (low = 0.000000e+00, subopt = -nan%)
+
+Solving the exact optimization problem
+exact bound-rel (exp = -24): 5.111111e+00 (low = 4.515337e+00, subopt = 11.7%)
+total2: 0.000000e+00 (low = 0.000000e+00, subopt = -nan%)
+exact total-rel: 3.046460e-07 (low = 2.691351e-07, subopt = 11.7%)
+
+Elapsed time: 34.33431
+*************************************
+
+-------------------------------------------------------------------------------
+Problem: sum
+
+Optimization lower bounds for error models:
+The absolute error model (exact): 2.980232e-6 (0x1.9p-19) (suboptimality = 21.9%)
+The relative error model (exact): 2.691350e-7 (0x1.20fb49d0e228dp-22) (suboptimality = 11.7%)
+
+Bounds (without rounding): [8.000000, 1.600000e+1]
+Bounds (floating-point): [7.999996, 1.600001e+1]
+
+Absolute error (exact): 3.814698e-6 (0x1p-18)
+Relative error (exact): 3.046460e-7 (0x1.471c71c71c71dp-22)
+
+Elapsed time: 34.33
+
+

@@ -1,0 +1,7 @@
+Variables
+	float64 u in [-30, 120],
+	float64 v in [320, 20300],
+	float64 T in [-50, 30];
+	
+Expressions
+	doppler3 rnd32 = ((-(3314e-1 + (6e-1 * T)) * v) / (((3314e-1 + (6e-1 * T)) + u) * ((3314e-1 + (6e-1 * T)) + u)));

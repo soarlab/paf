@@ -1,0 +1,6 @@
+Variables
+	float64 x in [0, 10],
+	float64 y in [0, 10];
+
+Expressions
+  	example rnd32=((x*y)+x);

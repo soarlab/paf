@@ -1,0 +1,88 @@
+***** The environment variable FPTAYLOR_BASE is defined = '/home/roki/GIT/FPTaylor'
+Loading configuration file: /home/roki/GIT/FPTaylor/default.cfg
+FPTaylor, version 0.9.3+dev
+
+Loading: /home/roki/GIT/paf/FPTaylor/Mul8.txt
+Processing: mul
+
+*************************************
+Taylor form for: rnd32((rnd32((rnd32((rnd32((rnd32((rnd32((rnd32((rnd32(x0) * rnd32(x1))) * rnd32(x2))) * rnd32(x3))) * rnd32(x4))) * rnd32(x5))) * rnd32(x6))) * rnd32(x7)))
+
+Conservative bound: [0.999999, 256.000229]
+
+Simplified rounding: rnd32((rnd32((rnd32((rnd32((rnd32((rnd32((rnd32((rnd32(x0) * rnd32(x1))) * rnd32(x2))) * rnd32(x3))) * rnd32(x4))) * rnd32(x5))) * rnd32(x6))) * rnd32(x7)))
+Building Taylor forms...
+Simplifying Taylor forms...
+success
+v0 = (((((((x0 * x1) * x2) * x3) * x4) * x5) * x6) * x7)
+-1 (42): exp = -24: (4925812356677645/18446744073709551616)
+1 (1): exp = -24: (x7 * (x6 * (x5 * (x4 * (x3 * (x2 * (x1 * floor_power2(x0))))))))
+2 (2): exp = -24: (x7 * (x6 * (x5 * (x4 * (x3 * (x2 * (x0 * floor_power2(x1))))))))
+3 (4): exp = -24: (x7 * (x6 * (x5 * (x4 * (x3 * (x2 * floor_power2(((x0 * x1) + interval(-2.38418582654276178801e-07, 2.38418582654276178801e-07)))))))))
+4 (6): exp = -24: (x7 * (x6 * (x5 * (x4 * (x3 * ((x0 * x1) * floor_power2(x2)))))))
+5 (8): exp = -24: (x7 * (x6 * (x5 * (x4 * (x3 * floor_power2((((x0 * x1) * x2) + interval(-1.19209293103494971152e-06, 1.19209293103494971152e-06))))))))
+6 (10): exp = -24: (x7 * (x6 * (x5 * (x4 * (((x0 * x1) * x2) * floor_power2(x3))))))
+7 (12): exp = -24: (x7 * (x6 * (x5 * (x4 * floor_power2(((((x0 * x1) * x2) * x3) + interval(-3.81469743615525997056e-06, 3.81469743615525997056e-06)))))))
+8 (14): exp = -24: (x7 * (x6 * (x5 * ((((x0 * x1) * x2) * x3) * floor_power2(x4)))))
+9 (16): exp = -24: (x7 * (x6 * (x5 * floor_power2((((((x0 * x1) * x2) * x3) * x4) + interval(-1.04904181057463744095e-05, 1.04904181057463744095e-05))))))
+10 (18): exp = -24: (x7 * (x6 * (((((x0 * x1) * x2) * x3) * x4) * floor_power2(x5))))
+11 (20): exp = -24: (x7 * (x6 * floor_power2(((((((x0 * x1) * x2) * x3) * x4) * x5) + interval(-2.67028828488947312790e-05, 2.67028828488947312790e-05)))))
+12 (22): exp = -24: (x7 * ((((((x0 * x1) * x2) * x3) * x4) * x5) * floor_power2(x6)))
+13 (24): exp = -24: (x7 * floor_power2((((((((x0 * x1) * x2) * x3) * x4) * x5) * x6) + interval(-6.48498593136539813004e-05, 6.48498593136539813004e-05))))
+14 (26): exp = -24: (((((((x0 * x1) * x2) * x3) * x4) * x5) * x6) * floor_power2(x7))
+15 (28): exp = -24: floor_power2(((((((((x0 * x1) * x2) * x3) * x4) * x5) * x6) * x7) + interval(-1.52587906541158148388e-04, 1.52587906541158148388e-04)))
+
+Corresponding original subexpressions:
+1: rnd32(x0)
+2: rnd32(x1)
+3: rnd32((rnd32(x0) * rnd32(x1)))
+4: rnd32(x2)
+5: rnd32((rnd32((rnd32(x0) * rnd32(x1))) * rnd32(x2)))
+6: rnd32(x3)
+7: rnd32((rnd32((rnd32((rnd32(x0) * rnd32(x1))) * rnd32(x2))) * rnd32(x3)))
+8: rnd32(x4)
+9: rnd32((rnd32((rnd32((rnd32((rnd32(x0) * rnd32(x1))) * rnd32(x2))) * rnd32(x3))) * rnd32(x4)))
+10: rnd32(x5)
+11: rnd32((rnd32((rnd32((rnd32((rnd32((rnd32(x0) * rnd32(x1))) * rnd32(x2))) * rnd32(x3))) * rnd32(x4))) * rnd32(x5)))
+12: rnd32(x6)
+13: rnd32((rnd32((rnd32((rnd32((rnd32((rnd32((rnd32(x0) * rnd32(x1))) * rnd32(x2))) * rnd32(x3))) * rnd32(x4))) * rnd32(x5))) * rnd32(x6)))
+14: rnd32(x7)
+15: rnd32((rnd32((rnd32((rnd32((rnd32((rnd32((rnd32((rnd32(x0) * rnd32(x1))) * rnd32(x2))) * rnd32(x3))) * rnd32(x4))) * rnd32(x5))) * rnd32(x6))) * rnd32(x7)))
+
+bounds: [1.000000e+00, 2.560000e+02]
+
+Computing absolute errors
+-1: exp = -24: 2.670288e-04 (low = 2.670288e-04, subopt = 0.0%)
+
+Solving the exact optimization problem
+exact bound (exp = -24): 2.816000e+03 (low = 1.920000e+03, subopt = 31.8%)
+total2: 1.591616e-11 (low = 1.591616e-11, subopt = 0.0%)
+exact total: 1.678467e-04 (low = 1.144409e-04, subopt = 31.8%)
+
+Computing relative errors
+-1: exp = -24: 2.670288e-04 (low = 2.670288e-04, subopt = 0.0%)
+
+Solving the exact optimization problem
+exact bound-rel (exp = -24): 4.487552e+01 (low = 1.286901e+01, subopt = 71.3%)
+total2: 1.591616e-11 (low = 6.217249e-14, subopt = 99.6%)
+exact total-rel: 2.674805e-06 (low = 7.670526e-07, subopt = 71.3%)
+
+Elapsed time: 80.96285
+*************************************
+
+-------------------------------------------------------------------------------
+Problem: mul
+
+Optimization lower bounds for error models:
+The absolute error model (exact): 1.144409e-4 (0x1.e00004600003fp-14) (suboptimality = 31.8%)
+The relative error model (exact): 7.670525e-7 (0x1.9bcee7cf50d4fp-21) (suboptimality = 71.3%)
+
+Bounds (without rounding): [1.000000, 2.560000e+2]
+Bounds (floating-point): [9.998321e-1, 2.560002e+2]
+
+Absolute error (exact): 1.678467e-4 (0x1.600002300002p-13)
+Relative error (exact): 2.674806e-6 (0x1.67019a8ba366dp-19)
+
+Elapsed time: 80.96
+
+

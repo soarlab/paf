@@ -1,0 +1,60 @@
+***** The environment variable FPTAYLOR_BASE is defined = '/home/roki/GIT/FPTaylor'
+Loading configuration file: /home/roki/GIT/FPTaylor/default.cfg
+FPTaylor, version 0.9.3+dev
+
+Loading: /home/roki/GIT/paf/FPTaylor/Example.txt
+Processing: example
+
+*************************************
+Taylor form for: rnd32((rnd32((rnd32(x) * rnd32(y))) + rnd32(x)))
+
+Conservative bound: [-0.000000, 110.000025]
+
+Simplified rounding: rnd[32,ne,1.00,-24,0]((rnd32((rnd32(x) * rnd32(y))) + rnd32(x)))
+Building Taylor forms...
+Simplifying Taylor forms...
+success
+v0 = ((x * y) + x)
+-1 (10): exp = -24: (4503599627370497/1180591620717411303424)
+1 (1): exp = -24: ((y * floor_power2(x)) + floor_power2(x))
+2 (2): exp = -24: (x * floor_power2(y))
+3 (4): exp = -24: floor_power2(((x * y) + interval(-9.53674339143617544323e-06, 9.53674339143617544323e-06)))
+4 (7): exp = -24: floor_power2((((x * y) + x) + interval(-1.38282778152643021373e-05, 1.38282778152643021373e-05)))
+
+Corresponding original subexpressions:
+1: rnd32(x)
+2: rnd32(y)
+3: rnd32((rnd32(x) * rnd32(y)))
+4: rnd[32,ne,1.00,-24,0]((rnd32((rnd32(x) * rnd32(y))) + rnd32(x)))
+
+bounds: [0.000000e+00, 1.100000e+02]
+
+Computing absolute errors
+-1: exp = -24: 3.814697e-06 (low = 3.814697e-06, subopt = 0.0%)
+
+Solving the exact optimization problem
+exact bound (exp = -24): 2.960000e+02 (low = 2.960000e+02, subopt = 0.0%)
+total2: 2.273737e-13 (low = 2.273737e-13, subopt = 0.0%)
+exact total: 1.764298e-05 (low = 1.764298e-05, subopt = 0.0%)
+
+Computing relative errors
+**WARNING**: 
+Cannot compute the relative error: values of the function are close to zero
+
+Elapsed time: 0.53631
+*************************************
+
+-------------------------------------------------------------------------------
+Problem: example
+
+Optimization lower bounds for error models:
+The absolute error model (exact): 1.764297e-5 (0x1.2800004p-16) (suboptimality = 0.0%)
+
+Bounds (without rounding): [0.0, 1.100000e+2]
+Bounds (floating-point): [-1.764298e-5, 1.100001e+2]
+
+Absolute error (exact): 1.764298e-5 (0x1.2800004000001p-16)
+
+Elapsed time: 0.54
+
+
