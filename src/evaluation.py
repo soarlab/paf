@@ -99,7 +99,7 @@ def collectInfoAboutCDFDistributionPBox(f, finalDistr_wrapper, name):
     res="###### Info about "+name+"#######:\n\n"
     discretization=finalDistr_wrapper.discretization
     res=res+"Starting range analysis from: "+str(discretization.intervals[0].interval.lower)+" \n\n\n"
-    probs = ["0.25", "0.5", "0.75", "0.85", "0.99", "0.999"]
+    probs = ["0.25", "0.5", "0.75", "0.85", "0.98", "0.99", "0.999"]
 
     upper_discretization = sorted(discretization.intervals,
                                   key=lambda x: Decimal(x.cdf_up), reverse=False)
