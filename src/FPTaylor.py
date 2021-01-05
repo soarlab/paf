@@ -29,6 +29,8 @@ def getAbsoluteError(folder_path):
             for line in text:
                 if "Absolute error (exact):" in line:
                     value=str(line.split(":")[1])
+                    value=value.split("(")[0]
+                    value=value.strip()
                     break
             my_dict[file_name.lower()]=value
             my_dict[file_name.lower()+"_gaussian"] = value
