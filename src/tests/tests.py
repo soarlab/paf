@@ -16,17 +16,18 @@ from tree_model import TreeModel
 
 def test_Approx_Operations():
     n = 32
-    epsilon = 0.0001
-    left_dist = UniformDistr(8,9) + BetaDistr(5,1)
-    right_dist = UniformDistr(2,3)
-    left_operand = ApproximatingPair(n, epsilon, left_dist)
-    right_operand = ApproximatingPair(n, epsilon, right_dist)
+    epsilon = 0.0
+    left_dist = UniformDistr(2, 3)
+    right_dist = UniformDistr(-3, -2)
+    left_operand = ApproximatingPair(n, left_dist)
+    right_operand = ApproximatingPair(n, right_dist)
+    operation = "/"
     left_exact = []
     right_exact = []
     operation_exact = []
-    op = IndependentOperation("-", left_operand, right_operand)
+    op = IndependentOperation(operation, left_operand, right_operand)
     op.perform_operation()
-    Z = left_dist - right_dist
+    Z = left_dist / right_dist
     for i in range(0, left_operand.n):
         left_exact.append(left_dist.cdf(left_operand.range_array[i]))
         right_exact.append(right_dist.cdf(right_operand.range_array[i]))
@@ -37,16 +38,18 @@ def test_Approx_Operations():
     a[0].plot(left_operand.range_array, left_operand.lower_array, "r", drawstyle='steps-post')
     a[0].plot(left_operand.range_array, left_operand.upper_array, "g", drawstyle='steps-pre')
     a[0].plot(left_operand.range_array, left_exact, "b")
-    a[0].set_title("Left operand")
+    a[0].set_title("Left operand:"+left_dist.getName()+" (epsilon="+str(epsilon)+")")
     a[1].plot(right_operand.range_array, right_operand.lower_array, "r", drawstyle='steps-post')
     a[1].plot(right_operand.range_array, right_operand.upper_array, "g", drawstyle='steps-pre')
     a[1].plot(right_operand.range_array, right_exact, "b")
-    a[1].set_title("Right operand")
+    a[1].set_title("Right operand:"+right_dist.getName()+" (epsilon="+str(epsilon)+")")
     a[2].plot(op.output.range_array, op.output.lower_array, "r", drawstyle='steps-post')
     a[2].plot(op.output.range_array, op.output.upper_array, "g", drawstyle='steps-pre')
     a[2].plot(op.output.range_array, operation_exact, "b")
-    a[2].set_title("Operation")
+    a[2].set_title("Operation:"+left_dist.getName()+operation+right_dist.getName())
     plt.show()
+    #plt.savefig("tests/"+left_dist.getName()+operation+right_dist.getName())
+    #plt.close("all")
     exit(0)
 
 def test_TreeModel():
