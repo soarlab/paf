@@ -18,6 +18,7 @@ import ntpath
 import matplotlib
 
 from fpryacc import FPRyacc
+from plotting import plot_error_analysis_CDF_no_abs
 from tree_model import TreeModel
 from FPTaylor import getFPTaylorResults
 from tests.tests import test_Approx_Operations
@@ -44,13 +45,14 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
         os.makedirs(output_path + file_name)
 
         #loadedSamples, values_samples, abs_err_samples, rel_err_samples = T.generate_error_samples(5, file_name)
-        loadedGolden, values_golden, abs_err_golden, rel_err_golden = T.generate_error_samples(golden_model_time,
+        loadedGolden, values_golden, abs_err_golden, rel_err_golden, err_golden = T.generate_error_samples(golden_model_time,
                                                                                                file_name, golden=True)
 
         f = open(output_path + file_name + "/" + file_name + "_CDF_summary.out", "w+")
         f.write("Execution Time:" + str(finalTime) + "s \n\n")
         plot_range_analysis_CDF(T.final_quantized_distr, loadedGolden, values_golden, f, file_name, range_my_dict.get(file_name))
         plot_error_analysis_CDF(T, loadedGolden, abs_err_golden, f, file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
+        plot_error_analysis_CDF_no_abs(T, loadedGolden, err_golden, f, file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
         #plot_error_analysis_CDF(T.relative_err_distr, loadedGolden, rel_err_samples, rel_err_golden, f, file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
         f.flush()
         f.close()

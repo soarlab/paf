@@ -4,6 +4,7 @@ from multiprocessing.pool import Pool
 
 from pacal import ConstDistr
 from pychebfun import *
+from sympy.plotting.intervalmath import interval
 
 from AffineArithmeticLibrary import AffineInstance
 from IntervalArithmeticLibrary import Interval, empty_interval, check_zero_is_in_interval, find_min_abs_interval, \
@@ -53,6 +54,7 @@ def dependentIteration(index_left, index_right, smt_manager_input, expression_le
                 # _, upper_concrete = SymbolicToGelpia(upper_expr, symbolic_affine_form.variables, constraint_dict).compute_concrete_bounds()
                 # constraints_interval=Interval(lower_concrete, upper_concrete, True, True, digits_for_range)
                 intersection_interval = intersection_interval.intersection(constraints_interval)
+                print("Error square: ["+str(intersection_interval.lower)+","+str(intersection_interval.upper)+"]")
                 return [index_left, index_right, intersection_interval]
 
             if z3>1 and dreal>1:

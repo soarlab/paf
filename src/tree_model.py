@@ -143,9 +143,11 @@ class TreeModel:
 
         smt_triple = (self.tree.root_value[3], self.tree.root_value[4], smt_manager)
 
-        self.abs_err_distr = UnOpDist(BinOpDist(self.final_exact_distr, "-",
+        self.err_distr=BinOpDist(self.final_exact_distr, "-",
                                                 self.final_quantized_distr, smt_triple, "err_pbox", 100, self.samples_dep_op,
-                                                regularize=True, convolution=False, dependent_mode="p-box", is_error_computation=True), "abs_err_pbox", "abs")
+                                                regularize=True, convolution=False, dependent_mode="p-box", is_error_computation=True)
+
+        self.abs_err_distr = UnOpDist(self.err_distr, "abs_err_pbox", "abs")
 
         #self.lower_error_affine, self.upper_error_affine=self.compute_lower_upper_affine_error()
         #self.lower_error_affine.get_piecewise_cdf()
@@ -304,6 +306,7 @@ class TreeModel:
 
         rel_err = []
         abs_err = []
+        err=[]
         values = []
         set_context_precision(self.precision, self.exponent)
         start_time = time.time()
@@ -313,13 +316,14 @@ class TreeModel:
             sample, lp_sample = self.evaluate_error_at_sample(self.tree)
             values.append(sample)
             tmp_abs = abs(float(printMPFRExactly(lp_sample)) - sample)
+            err.append(sample-float(printMPFRExactly(lp_sample)))
             abs_err.append(tmp_abs)
             rel_err.append(tmp_abs/sample)
             end_time = time.time() - start_time
         self.resetInit(self.tree)
         reset_default_precision()
         print("... Done with generation")
-        return False, np.asarray(values), np.asarray(abs_err), np.asarray(rel_err)
+        return False, np.asarray(values), np.asarray(abs_err), np.asarray(rel_err), np.asarray(err)
 
     def evaluate_error_at_sample(self, tree):
         """ Sample from the leaf then evaluate tree in the tree's working precision"""

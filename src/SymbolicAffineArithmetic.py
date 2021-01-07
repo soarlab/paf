@@ -171,7 +171,7 @@ class SymbolicToGelpia:
                 res=res+self.constraints[constraint][1]+">="+constraint+"; "
         return res
 
-    def compute_concrete_bounds(self, debug=True, zero_output_epsilon=False):
+    def compute_concrete_bounds(self, debug=False, zero_output_epsilon=False):
         variables=self.encode_variables()
         constraints=self.encode_constraints()
         body=variables+str(self.expression)+"; "+constraints
