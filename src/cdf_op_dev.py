@@ -68,9 +68,15 @@ class IndependentOperation:
         self.left_operand = left_operand
         self.right_operand = right_operand
         self.output = None
-        if self.left_operand.n != self.right_operand.n:
-            raise ValueError("Left and right operand must be approximating pairs of the same length.")
-        self.n = self.left_operand.n
+        if isinstance(self.left_operand, ApproximatingPair) and isinstance(self.right_operand, ApproximatingPair):
+            if self.left_operand.n != self.right_operand.n:
+                raise ValueError("Left and right operand must be approximating pairs of the same length.")
+        elif isinstance(self.left_operand, ApproximatingPair):
+            self.n = self.left_operand.n
+        elif isinstance(self.right_operand, ApproximatingPair):
+            self.n = self.right_operand.n
+        else:
+            self.n = 0
         # The error_bound is only used for divisions by a RV whose range includes 0
         self.error_bound = 0.0
 
@@ -78,13 +84,25 @@ class IndependentOperation:
         if self.operation == "+":
             if isinstance(self.left_operand, ApproximatingPair) and isinstance(self.right_operand, ApproximatingPair):
                 self._perform_AP_Addition()
-        if self.operation == "-":
+            elif isinstance(self.left_operand, ApproximatingPair):
+                self._perform_mixed_addition("right")
+            elif isinstance(self.right_operand, ApproximatingPair):
+                self._perform_mixed_addition()
+        elif self.operation == "-":
             if isinstance(self.left_operand, ApproximatingPair) and isinstance(self.right_operand, ApproximatingPair):
                 self._perform_AP_Subtraction()
-        if self.operation == "*":
+            elif isinstance(self.left_operand, ApproximatingPair):
+                self._perform_mixed_subtraction("right")
+            elif isinstance(self.right_operand, ApproximatingPair):
+                self._perform_mixed_subtraction()
+        elif self.operation == "*":
             if isinstance(self.left_operand, ApproximatingPair) and isinstance(self.right_operand, ApproximatingPair):
                 self._perform_AP_Multiplication()
-        if self.operation == "/":
+            elif isinstance(self.left_operand, ApproximatingPair):
+                self._perform_mixed_multiplication("right")
+            elif isinstance(self.right_operand, ApproximatingPair):
+                self._perform_mixed_multiplcation()
+        elif self.operation == "/":
             if isinstance(self.left_operand, ApproximatingPair) and isinstance(self.right_operand, ApproximatingPair):
                 self._perform_AP_Division()
         else:
@@ -221,7 +239,7 @@ class IndependentOperation:
                                                    self.right_operand.range_array)
                         u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
                              self.right_operand.upper_array[j]
-                    elif self.left_operand.range_array[i] < 0:
+                    elif self.left_operand.range_array[i] <= 0:
                         j = self._l_multiplication(self.left_operand.range_array[i - 1], z,
                                                    self.right_operand.range_array)
                         l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
@@ -243,7 +261,7 @@ class IndependentOperation:
                                                    self.right_operand.range_array)
                         u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
                              self.right_operand.upper_array[j]
-                    elif self.left_operand.range_array[i] < 0:
+                    elif self.left_operand.range_array[i] <= 0:
                         j = self._l_multiplication(self.left_operand.range_array[i], z,
                                                    self.right_operand.range_array)
                         l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
@@ -297,6 +315,7 @@ class IndependentOperation:
     # {INFORMAL PRECONDITION: if the range of the right operand Y contains 0, then there must exist discontinuity points
     # u,v just below and just above 0 such that the probability that Y lies between u and v is small.
     # This is because the routine is going to remove the mass in this interval}
+    # {PRECONDITION: if 0 is in the range of left_operand then 0 must be a point of discontinuity of left_operand}
     def _perform_AP_Division(self):
         ax = self.left_operand.a
         bx = self.left_operand.b
@@ -310,10 +329,14 @@ class IndependentOperation:
             y_plus_0 = self.right_operand.upper_array[i - 1]
             y_minus_0 = self.right_operand.lower_array[i - 1]
             u = self.right_operand.range_array[i - 1]
-            v = self.right_operand.range_array[i]
+            if self.right_operand.range_array[i] == 0:
+                imax = i + 1
+            else:
+                imax = i
+            v = self.right_operand.range_array[imax]
             a = min(ax / u, ax / v, bx / u, bx / v)
             b = max(ax / u, ax / v, bx / u, bx / v)
-            self.error_bound = self.right_operand.upper_array[i] - self.right_operand.lower_array[i]
+            self.error_bound = self.right_operand.upper_array[imax] - self.right_operand.lower_array[i-1]
         else:
             a = min(ax / ay, ax / by, bx / ay, bx / by)
             b = max(ax / ay, ax / by, bx / ay, bx / by)
@@ -335,9 +358,9 @@ class IndependentOperation:
             zk.append(z)
             l = 0
             u = 0
-            if z > 0:
+            if z >= 0:
                 for i in range(1, self.n):
-                    if 0 < self.left_operand.range_array[i - 1]:
+                    if 0 <= self.left_operand.range_array[i - 1]:
                         j = self._l_division(self.left_operand.range_array[i], z,
                                              self.right_operand.range_array)
                         l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
@@ -346,7 +369,7 @@ class IndependentOperation:
                                              self.right_operand.range_array)
                         u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
                              ((1 - self.right_operand.lower_array[j]) + y_plus_0)
-                    elif self.left_operand.range_array[i] < 0:
+                    elif self.left_operand.range_array[i] <= 0:
                         j = self._l_division(self.left_operand.range_array[i - 1], z,
                                              self.right_operand.range_array)
                         l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
@@ -355,26 +378,30 @@ class IndependentOperation:
                                              self.right_operand.range_array)
                         u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
                              (self.right_operand.upper_array[j] + (1 - y_minus_0))
+                    else:
+                        raise ValueError("0 must be a discontinuity point")
             else:
                 for i in range(1, self.n):
-                    if 0 < self.left_operand.range_array[i - 1]:
+                    if 0 <= self.left_operand.range_array[i - 1]:
                         j = self._l_division(self.left_operand.range_array[i - 1], z,
                                              self.right_operand.range_array)
                         l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
-                             (1 - self.right_operand.upper_array[j])
+                             (y_plus_0 - self.right_operand.upper_array[j])
                         j = self._u_division(self.left_operand.range_array[i], z,
                                              self.right_operand.range_array)
                         u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
-                             (1 - self.right_operand.lower_array[j])
-                    elif self.left_operand.range_array[i] < 0:
+                             (y_minus_0 - self.right_operand.lower_array[j])
+                    elif self.left_operand.range_array[i] <= 0:
                         j = self._l_division(self.left_operand.range_array[i], z,
                                              self.right_operand.range_array)
                         l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
-                            self.right_operand.lower_array[j]
+                             (self.right_operand.lower_array[j] - y_plus_0)
                         j = self._u_division(self.left_operand.range_array[i - 1], z,
                                              self.right_operand.range_array)
                         u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
-                            self.right_operand.upper_array[j]
+                             (self.right_operand.upper_array[j] - y_minus_0)
+                    else:
+                        raise ValueError("0 must be a discontinuity point")
             uzk.append(min(u, 1))
             lzk.append(max(l, 0))
         self.output = ApproximatingPair(zk, uzk, lzk)
@@ -414,3 +441,138 @@ class IndependentOperation:
                 return i
             else:
                 return 0
+
+    def _perform_mixed_addition(self, exact_side="left"):
+        if exact_side == "left":
+            ax = self.left_operand.range_()[0]
+            bx = self.left_operand.range_()[1]
+            ay = self.right_operand.a
+            by = self.right_operand.b
+        else:
+            ax = self.left_operand.a
+            bx = self.left_operand.b
+            ay = self.right_operand.range_()[0]
+            by = self.right_operand.range_()[1]
+        # Compute range using interval arithmetic
+        a = ax + ay
+        b = bx + by
+        r = (b - a) / (self.n - 1)
+        zk = []
+        uzk = []
+        lzk = []
+        zk.append(a)
+        uzk.append(0.0)
+        lzk.append(0.0)
+        for k in range(1, self.n):
+            z = a + (k * r)
+            zk.append(z)
+            l = 0
+            u = 0
+            if exact_side == "left":
+                l += self.left_operand.cdf(z - by) - self.left_operand.cdf(ax)
+                u = l
+            else:
+                l += self.right_operand.cdf(z - bx) - self.right_operand.cdf(ay)
+                u = l
+            for i in range(1, self.n):
+                if exact_side == "left":
+                    px = self.left_operand.cdf(z - self.right_operand.range_array[i - 1]) - \
+                         self.left_operand.cdf(z - self.right_operand.range_array[i])
+                    l += self.right_operand.lower_array[i - 1] * px
+                    u += self.right_operand.upper_array[i] * px
+                else:
+                    py = self.right_operand.cdf(z - self.left_operand.range_array[i - 1]) - \
+                         self.right_operand.cdf(z - self.left_operand.range_array[i])
+                    l += self.left_operand.lower_array[i - 1] * py
+                    u += self.left_operand.upper_array[i] * py
+            uzk.append(min(u, 1))
+            lzk.append(max(l, 0))
+        self.output = ApproximatingPair(zk, uzk, lzk)
+
+    def _perform_mixed_subtraction(self, exact_side="left"):
+        if exact_side == "left":
+            ax = self.left_operand.range_()[0]
+            bx = self.left_operand.range_()[1]
+            ay = self.right_operand.a
+            by = self.right_operand.b
+        else:
+            ax = self.left_operand.a
+            bx = self.left_operand.b
+            ay = self.right_operand.range_()[0]
+            by = self.right_operand.range_()[1]
+        # Compute range using interval arithmetic
+        a = ax - by
+        b = bx - ay
+        r = (b - a) / (self.n - 1)
+        zk = []
+        uzk = []
+        lzk = []
+        zk.append(a)
+        uzk.append(0.0)
+        lzk.append(0.0)
+        for k in range(1, self.n):
+            z = a + (k * r)
+            zk.append(z)
+            l = 0
+            u = 0
+            if exact_side == "left":
+                l += self.left_operand.cdf(ay + z)
+                u = l
+            else:
+                l += self.right_operand.cdf(by) - self.right_operand.cdf(bx - z)
+                u = l
+            for i in range(1, self.n):
+                if exact_side == "left":
+                    px = self.left_operand.cdf(self.right_operand.range_array[i] + z) - \
+                         self.left_operand.cdf(self.right_operand.range_array[i - 1] + z)
+                    l += (1 - self.right_operand.upper_array[i]) * px
+                    u += (1 - self.right_operand.lower_array[i - 1]) * px
+                else:
+                    py = self.right_operand.cdf(self.left_operand.range_array[i] - z) - \
+                         self.right_operand.cdf(self.left_operand.range_array[i - 1] - z)
+                    l += self.left_operand.lower_array[i - 1] * py
+                    u += self.left_operand.upper_array[i] * py
+            uzk.append(min(u, 1))
+            lzk.append(max(l, 0))
+        self.output = ApproximatingPair(zk, uzk, lzk)
+
+    def _perform_mixed_multiplication(self, exact_side="left"):
+        if exact_side == "left":
+            ax = self.left_operand.range_()[0]
+            bx = self.left_operand.range_()[1]
+            ay = self.right_operand.a
+            by = self.right_operand.b
+        else:
+            ax = self.left_operand.a
+            bx = self.left_operand.b
+            ay = self.right_operand.range_()[0]
+            by = self.right_operand.range_()[1]
+        # Compute range using interval arithmetic
+        a = min(ax * ay, ax * by, bx * ay, bx * by)
+        b = max(ax * ay, ax * by, bx * ay, bx * by)
+        r = (b - a) / (self.n - 1)
+        zk = []
+        uzk = []
+        lzk = []
+        zk.append(a)
+        uzk.append(0.0)
+        lzk.append(0.0)
+        for k in range(1, self.n):
+            z = a + (k * r)
+            zk.append(z)
+            l = self.right_operand.cdf(0) + self.right_operand.cdf(z / bx) - self.right_operand.cdf(max(0, ay))
+            u = l
+            if z >= 0:
+                l += self
+                for i in range(1, self.n):
+                    if 0 <= self.left_operand.range_array[i - 1]:
+                        py = (self.right_operand.cdf(z /  self.left_operand.range_array[i - 1]) -
+                              self.right_operand.cdf(z /  self.left_operand.range_array[i]))
+                        l += self.left_operand.lower_array[i] *  py
+                        u += self.left_operand.upper_array[i] *  py
+                    elif self.left_operand.range_array[i] <= 0:
+                        l -=
+            else:
+                for i in range(1, self.n):
+                    if 0 <= self.left_operand.range_array[i - 1]:
+                    elif self.left_operand.range_array[i] <= 0:
