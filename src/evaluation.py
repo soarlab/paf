@@ -4,6 +4,9 @@ import numpy as np
 import statsmodels.stats
 import scipy.stats
 
+from project_utils import dec2Str
+
+
 def measureDistances(distr_wrapper, fileHook, vals_golden, vals_orig, edges_golden, edges_orig, introStr, pdf=True):
 
     vals_DistrPM = np.asarray(measureDistrVsGoldenEdges(distr_wrapper, edges_golden, pdf))
@@ -100,45 +103,54 @@ def collectInfoAboutCDFDistributionPBox(f, finalDistr_wrapper, name):
     discretization=finalDistr_wrapper.discretization
     probs = ["0.25", "0.5", "0.75", "0.85", "0.95", "0.99", "0.999"]
 
-    reverse_discretization = sorted(discretization.intervals,
-                                  key=lambda x: Decimal(x.cdf_up), reverse=True)
-
-    res=res+"(Reverse) Starting range analysis from: "+str(reverse_discretization[0].interval.upper)+" \n\n"
-    for prob in probs:
-        val=Decimal(0.0)
-        for pbox in reverse_discretization:
-            val=val+(Decimal(pbox.cdf_up)-Decimal(pbox.cdf_low))
-            if val >= Decimal(prob):
-                res = res + "Range: [" + str(pbox.interval.lower) + "," + str(reverse_discretization[0].interval.upper) \
-                                    + "] contains at least " + str(Decimal(prob) * 100) + "% of the distribution (with 100% prob).\n\n"
-                break
-    res=res+"Range: ["+str(reverse_discretization[-1].interval.lower)+","+str(reverse_discretization[0].interval.upper)+"] contains 100% of the distribution.\n\n"
-    res = res+"#############\n\n"
-
-    upper_discretization = sorted(discretization.intervals,
-                                  key=lambda x: Decimal(x.cdf_up), reverse=False)
     lower_discretization = sorted(discretization.intervals,
-                                  key=lambda x: Decimal(x.cdf_low), reverse=False)
-
-    res=res+"(Less than) Starting range analysis from: "+str(upper_discretization[0].interval.lower)+" \n\n\n"
-
-    for prob in probs:
-        for pbox in upper_discretization:
-            if Decimal(pbox.cdf_up) >= Decimal(prob):
-                res = res + "Range: [" + str(upper_discretization[0].interval.lower) + "," + str(pbox.interval.upper) \
-                                    + "] contains less than " + str(Decimal(prob) * 100) + "% of the distribution (with 100% prob).\n\n"
-                break
-
-    res=res+"Range: ["+str(upper_discretization[0].interval.lower)+","+str(upper_discretization[-1].interval.upper)+"] contains 100% of the distribution.\n\n"
-    res = res+"###########################################\n\n"
-
-    res=res+"(At least) Starting range analysis from: "+str(lower_discretization[0].interval.lower)+" \n\n\n"
+                                  key=lambda x: Decimal(x.cdf_low))
+    res=res+"(Left to Right) Starting range analysis from: "+str(lower_discretization[0].interval.lower)+" \n\n\n"
     for prob in probs:
         for pbox in lower_discretization:
             if Decimal(pbox.cdf_low) >= Decimal(prob):
                 res = res + "Range: [" + str(lower_discretization[0].interval.lower) + "," + str(pbox.interval.upper) \
                                     + "] contains at least " + str(Decimal(prob) * 100) + "% of the distribution  (with 100% prob).\n\n"
                 break
+    res=res+"Range: ["+str(lower_discretization[0].interval.lower)+","+str(lower_discretization[-1].interval.upper)+"] contains 100% of the distribution.\n\n"
+    res = res+"###########################################\n\n"
+
+    reverse_discretization = sorted(discretization.intervals,
+                                    key=lambda x: Decimal(x.cdf_up), reverse=True)
+    res = res + "(Right to Left) Starting range analysis from: " + str(
+        reverse_discretization[0].interval.upper) + " \n\n"
+    for prob in probs:
+        val = Decimal(0.0)
+        for pbox in reverse_discretization:
+            val = val + (Decimal(pbox.cdf_up) - Decimal(pbox.cdf_low))
+            if val >= Decimal(prob):
+                res = res + "Range: [" + str(pbox.interval.lower) + "," + str(reverse_discretization[0].interval.upper) \
+                      + "] contains at least " + str(
+                    Decimal(prob) * 100) + "% of the distribution (with 100% prob).\n\n"
+                break
+    res = res + "Range: [" + str(reverse_discretization[-1].interval.lower) + "," + str(
+        reverse_discretization[0].interval.upper) + "] contains 100% of the distribution.\n\n"
+    res = res + "#############\n\n"
+
+    #Order from high probability pbox to low probability pbox
+    mode_discretization = sorted(discretization.intervals,
+                                  key=lambda x: Decimal(x.cdf_up)-Decimal(x.cdf_low), reverse=True)
+
+    res=res+"(Mode) Starting range analysis from box: ["+\
+        str(mode_discretization[0].interval.lower)+", "+str(mode_discretization[0].interval.upper)+"] \n\n\n"
+    my_min= Decimal(mode_discretization[0].interval.lower)
+    my_max = Decimal(mode_discretization[0].interval.upper)
+    for prob in probs:
+        val=Decimal(0.0)
+        for pbox in mode_discretization:
+            val=val+(Decimal(pbox.cdf_up)-Decimal(pbox.cdf_low))
+            my_min=min(my_min, Decimal(pbox.interval.lower))
+            my_max=max(my_max, Decimal(pbox.interval.upper))
+            if val >= Decimal(prob):
+                res = res + "Range: [" + dec2Str(my_min) + "," + dec2Str(my_max) \
+                                    + "] contains at least " + str(Decimal(prob) * 100) + "% of the distribution  (with 100% prob).\n\n"
+                break
+    #This can be the same as before
     res=res+"Range: ["+str(lower_discretization[0].interval.lower)+","+str(lower_discretization[-1].interval.upper)+"] contains 100% of the distribution.\n\n"
     res = res+"###########################################\n\n"
     f.write(res)

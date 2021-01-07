@@ -342,18 +342,21 @@ def from_DSI_to_PBox(edges_lower, values_lower, edges_upper, values_upper):
     #sort by cdf, in case they are equal sort by lower bound
     ret_list.sort(key=lambda x: (float(x.cdf_up), float(x.interval.lower)))
     prec="0.0"
+    done=False
     for elem in ret_list:
-        if not Decimal(prec)==Decimal(elem.cdf_up):
+        if (not Decimal(prec)>=Decimal(elem.cdf_up)) and (not done):
             elem.cdf_low=prec
             prec=elem.cdf_up
         else:
             elem.cdf_low="REMOVE"
+        if elem.cdf_up=="1.0":
+            done=True
     #remove useless
     ret_list= [x for x in ret_list if not x.cdf_low=="REMOVE"]
     ret_list[-1].interval.include_upper=True
 
-    #plot_operation(edges_lower,values_lower,values_upper)
-    #plot_boxing(ret_list)
+    plot_operation(edges_lower,values_lower,values_upper)
+    plot_boxing(ret_list)
 
     sum=0
     for box in ret_list:
