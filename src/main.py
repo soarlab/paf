@@ -21,7 +21,7 @@ from tree_model import TreeModel
 from FPTaylor import getFPTaylorResults
 from tests.tests import test_Approx_Operations, test_Mixed_Operations_Left, test_Mixed_Operations_Right
 
-test_Mixed_Operations_Left()
+test_Mixed_Operations_Right()
 
 def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
     try:

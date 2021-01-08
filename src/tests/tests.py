@@ -55,18 +55,18 @@ def test_Approx_Operations():
 def test_Mixed_Operations_Right():
     n = 20
     epsilon = 0.0
-    left_dist = BetaDistr(8, 8)
-    right_dist = UniformDistr(-2, 4)
+    left_dist = UniformDistr(1, 2)
+    right_dist = UniformDistr(1, 2)
     left_operand = ApproximatingPair(n, left_dist)
     right_operand = right_dist
-    operation = "-"
+    operation = "*"
     left_exact = []
     right_exact = []
     right_range = []
     operation_exact = []
     op = IndependentOperation(operation, left_operand, right_operand)
     op.perform_operation()
-    Z = left_dist - right_dist
+    Z = left_dist * right_dist
     for i in range(0, left_operand.n):
         right_range.append(right_operand.range_()[0] + (i / n) * (right_operand.range_()[1] - right_operand.range_()[0]))
         left_exact.append(left_dist.cdf(left_operand.range_array[i]))
@@ -93,18 +93,18 @@ def test_Mixed_Operations_Right():
 def test_Mixed_Operations_Left():
     n = 20
     epsilon = 0.0
-    left_dist = UniformDistr(2, 3)
+    left_dist = UniformDistr(-1, 3)
     left_operand = left_dist
     right_dist = UniformDistr(-1, 2)
     right_operand = ApproximatingPair(n, right_dist)
-    operation = "-"
+    operation = "*"
     left_exact = []
     right_exact = []
     left_range = []
     operation_exact = []
     op = IndependentOperation(operation, left_operand, right_operand)
     op.perform_operation()
-    Z = left_dist - right_dist
+    Z = left_dist * right_dist
     for i in range(0, right_operand.n):
         left_range.append(left_operand.range_()[0] + (i / n) * (left_operand.range_()[1] - left_operand.range_()[0]))
         right_exact.append(right_dist.cdf(right_operand.range_array[i]))
