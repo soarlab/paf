@@ -355,8 +355,8 @@ def from_DSI_to_PBox(edges_lower, values_lower, edges_upper, values_upper):
     ret_list= [x for x in ret_list if not x.cdf_low=="REMOVE"]
     ret_list[-1].interval.include_upper=True
 
-    plot_operation(edges_lower,values_lower,values_upper)
-    plot_boxing(ret_list)
+    #plot_operation(edges_lower,values_lower,values_upper)
+    #plot_boxing(ret_list)
 
     sum=0
     for box in ret_list:
