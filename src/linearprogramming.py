@@ -98,14 +98,18 @@ class LP_with_SMT():
     '''
     @staticmethod
     def clean_result_of_optimization(out):
-        res = out.decode().strip()
-        if "unknown" in res or "timeout" in res:
-            return "-1.0"
-        new_line_clean=res.replace("\n","")
-        par_res = new_line_clean.split("))")[0]
-        space_res=par_res.split()[-1]
-        marks_clean=space_res.replace("?","")
-        return str(float(marks_clean))
+        try:
+            res = out.decode().strip()
+            if "unknown" in res or "timeout" in res:
+                return "-1.0"
+            new_line_clean=res.replace("\n","")
+            par_res = new_line_clean.split("))")[0]
+            space_res=par_res.split()[-1]
+            marks_clean=space_res.replace("?","")
+            return str(float(marks_clean))
+        except:
+            print(res)
+            exit(-1)
 
     def optimize_max(self):
         edge_cdf=[]

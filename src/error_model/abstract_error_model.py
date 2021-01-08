@@ -164,7 +164,7 @@ class AbstractErrorModel(Distr):
         empirical = (empirical - rounded) / (empirical * (2 ** -precision))
         ks_test = kstest(empirical, cdf)
         x = np.linspace(-1, 1, 201)
-        matplotlib.pyplot.close("all")
+        #matplotlib.pyplot.close("all")
         matplotlib.rcParams.update({'font.size': 12})
         plt.hist(empirical, bins=2 * floor(n ** (1 / 3)), range=[-1, 1], density=True)
         y = pdf(x)
