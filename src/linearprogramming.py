@@ -30,7 +30,7 @@ def min_instance(index_lp, ev_point, insiders, query):
     if len(res_values) > 0:
         encode = "\n\n(minimize " + LP_with_SMT.encode_recursive_addition(res_values) + ")"
         query = query + encode + "\n(check-sat)\n(get-objectives)\n"
-        solver_query = "z3 -T:"+str(timeout_optimization_problem)+" pp.decimal=true -in"
+        solver_query = "z3 -T:"+str(timeout_optimization_problem)+" pp.decimal=true pp.decimal_precision=100 -in"
         proc_run = subprocess.Popen(shlex.split(solver_query),
                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         try:
@@ -55,7 +55,7 @@ def max_instance(index_lp, ev_point, insiders, query):
     res_values = [intern for intern in insiders if (Decimal(intern.interval.lower) <= ev_point)]
     encode = "\n\n(maximize " + LP_with_SMT.encode_recursive_addition(res_values) + ")"
     query = query + encode + "\n(check-sat)\n(get-objectives)\n"
-    solver_query = "z3 -T:"+str(timeout_optimization_problem)+" pp.decimal=true -in"
+    solver_query = "z3 -T:"+str(timeout_optimization_problem)+" pp.decimal=true pp.decimal_precision=100 -in"
     proc_run = subprocess.Popen(shlex.split(solver_query),
                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -224,37 +224,65 @@ class LP_with_SMT():
         return encode_insiders
 
     '''
-    The marginals represent CDF values. So the CDF at the i marginal has to be equal 
-    to the sum of all marginals from 0 to i itself.
-    '''
+        The marginals represent CDF values. So the CDF at the i marginal has to be equal 
+        to the sum of all marginals from 0 to i itself.
+        '''
+
     def encode_marginals_left(self):
-        encode_marginals_left=""
-        so_far_left=self.marginal_left[0].name
-        encode_marginals_left = encode_marginals_left + \
-                                "(assert ( <= " + dec2Str(round_down(self.marginal_left[0].cdf_low, digits_for_Z3_cdf)) + " " + so_far_left + "))\n"
-        encode_marginals_left = encode_marginals_left + \
-                                "(assert ( >= " + dec2Str(round_up(self.marginal_left[0].cdf_up, digits_for_Z3_cdf)) + " " + so_far_left + "))\n"
-        for marginal in self.marginal_left[1:]:
-            so_far_left="(+ "+marginal.name+" "+so_far_left+")"
-            encode_marginals_left=encode_marginals_left+\
-                                  "(assert ( <= "+ dec2Str(round_down(marginal.cdf_low, digits_for_Z3_cdf))+" "+so_far_left+"))\n"
-            encode_marginals_left=encode_marginals_left+\
-                                  "(assert ( >= "+ dec2Str(round_up(marginal.cdf_up, digits_for_Z3_cdf))+" "+so_far_left+"))\n"
+        encode_marginals_left = ""
+        for marginal in self.marginal_left:
+            res=Decimal(marginal.cdf_up)-Decimal(marginal.cdf_low)
+            encode_marginals_left = (encode_marginals_left + "(assert ( <= " +
+                                     dec2Str(round_down(res, digits_for_Z3_cdf)) + " " + marginal.name + "))\n")
+            encode_marginals_left = (encode_marginals_left + "(assert ( >= " +
+                                     dec2Str(round_up(res, digits_for_Z3_cdf)) + " " + marginal.name + "))\n")
+
         encode_marginals_left = encode_marginals_left + "\n\n"
         return encode_marginals_left
 
     def encode_marginals_right(self):
-        encode_marginals_right=""
-        so_far_right=self.marginal_right[0].name
-        encode_marginals_right = encode_marginals_right + \
-                                 "(assert ( <= " + dec2Str(round_down(self.marginal_right[0].cdf_low, digits_for_Z3_cdf)) + " " + so_far_right + "))\n"
-        encode_marginals_right = encode_marginals_right + \
-                                 "(assert ( >= " + dec2Str(round_up(self.marginal_right[0].cdf_up, digits_for_Z3_cdf)) + " " + so_far_right + "))\n"
-        for marginal in self.marginal_right[1:]:
-            so_far_right="(+ "+marginal.name+" "+so_far_right+")"
-            encode_marginals_right=encode_marginals_right+\
-                                  "(assert ( <= "+dec2Str(round_down(marginal.cdf_low, digits_for_Z3_cdf))+" "+so_far_right+"))\n"
-            encode_marginals_right=encode_marginals_right+\
-                                  "(assert ( >= "+dec2Str(round_up(marginal.cdf_up, digits_for_Z3_cdf))+" "+so_far_right+"))\n"
+        encode_marginals_right = ""
+        for marginal in self.marginal_right:
+            res = Decimal(marginal.cdf_up) - Decimal(marginal.cdf_low)
+            encode_marginals_right = (encode_marginals_right + "(assert ( <= " +
+                                     dec2Str(round_down(res, digits_for_Z3_cdf)) + " " + marginal.name + "))\n")
+            encode_marginals_right = (encode_marginals_right + "(assert ( >= " +
+                                     dec2Str(round_up(res, digits_for_Z3_cdf)) + " " + marginal.name + "))\n")
         encode_marginals_right = encode_marginals_right + "\n\n"
         return encode_marginals_right
+
+    # '''
+    # The marginals represent CDF values. So the CDF at the i marginal has to be equal
+    # to the sum of all marginals from 0 to i itself.
+    # '''
+    # def encode_marginals_left(self):
+    #     encode_marginals_left=""
+    #     so_far_left=self.marginal_left[0].name
+    #     encode_marginals_left = encode_marginals_left + \
+    #                             "(assert ( <= " + dec2Str(round_down(self.marginal_left[0].cdf_low, digits_for_Z3_cdf)) + " " + so_far_left + "))\n"
+    #     encode_marginals_left = encode_marginals_left + \
+    #                             "(assert ( >= " + dec2Str(round_up(self.marginal_left[0].cdf_up, digits_for_Z3_cdf)) + " " + so_far_left + "))\n"
+    #     for marginal in self.marginal_left[1:]:
+    #         so_far_left="(+ "+marginal.name+" "+so_far_left+")"
+    #         encode_marginals_left=encode_marginals_left+\
+    #                               "(assert ( <= "+ dec2Str(round_down(marginal.cdf_low, digits_for_Z3_cdf))+" "+so_far_left+"))\n"
+    #         encode_marginals_left=encode_marginals_left+\
+    #                               "(assert ( >= "+ dec2Str(round_up(marginal.cdf_up, digits_for_Z3_cdf))+" "+so_far_left+"))\n"
+    #     encode_marginals_left = encode_marginals_left + "\n\n"
+    #     return encode_marginals_left
+    #
+    # def encode_marginals_right(self):
+    #     encode_marginals_right=""
+    #     so_far_right=self.marginal_right[0].name
+    #     encode_marginals_right = encode_marginals_right + \
+    #                              "(assert ( <= " + dec2Str(round_down(self.marginal_right[0].cdf_low, digits_for_Z3_cdf)) + " " + so_far_right + "))\n"
+    #     encode_marginals_right = encode_marginals_right + \
+    #                              "(assert ( >= " + dec2Str(round_up(self.marginal_right[0].cdf_up, digits_for_Z3_cdf)) + " " + so_far_right + "))\n"
+    #     for marginal in self.marginal_right[1:]:
+    #         so_far_right="(+ "+marginal.name+" "+so_far_right+")"
+    #         encode_marginals_right=encode_marginals_right+\
+    #                               "(assert ( <= "+dec2Str(round_down(marginal.cdf_low, digits_for_Z3_cdf))+" "+so_far_right+"))\n"
+    #         encode_marginals_right=encode_marginals_right+\
+    #                               "(assert ( >= "+dec2Str(round_up(marginal.cdf_up, digits_for_Z3_cdf))+" "+so_far_right+"))\n"
+    #     encode_marginals_right = encode_marginals_right + "\n\n"
+    #     return encode_marginals_right
