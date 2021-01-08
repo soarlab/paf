@@ -42,19 +42,21 @@ def dependentIteration(index_left, index_right, smt_manager_input, expression_le
         if solver_res:
             # now we can clean the domain
             if error_computation:
-                print(index_left, index_right)
                 intersection_interval = intersection_interval.intersection(concrete_symbolic_interval)
-                # self_coefficients = symbolic_affine_form.add_all_coefficients_abs_exact()
-                # lower_expr=symbolic_affine_form.center.subtraction(self_coefficients)
-                # upper_expr=symbolic_affine_form.center.addition(self_coefficients)
+                gelpia_interval=right_op_box_SMT.interval.intersection(left_op_box_SMT.interval)
+                if gelpia_interval==empty_interval:
+                    #In case the two intervals do not overlap it means they are not related
+                    return [None, None, empty_interval]
                 constraint_dict = {
-                    str(constraint_expression): [left_op_box_SMT.interval.lower, left_op_box_SMT.interval.upper]}
+                    str(constraint_expression): [gelpia_interval.lower, gelpia_interval.upper]}
                 constraints_interval = symbolic_affine_form.compute_interval_error(center_interval,constraints=constraint_dict)
-                # lower_concrete, _ = SymbolicToGelpia(lower_expr, symbolic_affine_form.variables, constraint_dict).compute_concrete_bounds()
-                # _, upper_concrete = SymbolicToGelpia(upper_expr, symbolic_affine_form.variables, constraint_dict).compute_concrete_bounds()
-                # constraints_interval=Interval(lower_concrete, upper_concrete, True, True, digits_for_range)
+                print(index_left, index_right, "Interval Left: " + left_op_box_SMT.interval.lower + " " + left_op_box_SMT.interval.upper)
+                print(index_left, index_right, "Interval Right: " + right_op_box_SMT.interval.lower + " " + right_op_box_SMT.interval.upper)
+                print(index_left, index_right, "Gelpia Interval: " + gelpia_interval.lower + " " + gelpia_interval.upper)
+                print(index_left, index_right, "Error from Gelpia : ["+str(constraints_interval.lower)+","+str(constraints_interval.upper)+"]")
+                print(index_left, index_right, "Intersection Interval: "+ intersection_interval.lower + " "+ intersection_interval.upper)
                 intersection_interval = intersection_interval.intersection(constraints_interval)
-                print("Error square: ["+str(intersection_interval.lower)+","+str(intersection_interval.upper)+"]")
+                print(index_left, index_right, "Final Error: ["+str(intersection_interval.lower)+","+str(intersection_interval.upper)+"]")
                 return [index_left, index_right, intersection_interval]
 
             if z3>1 and dreal>1:
@@ -298,7 +300,7 @@ class BinOpDist:
             domain_affine_SMT = self.affine_error
             smt_manager.clean_expressions()
             self.symbolic_affine = self.symbolic_error
-            constraint_expression=self.leftoperand.name #symbolic_affine.center
+            constraint_expression=self.rightoperand.name #symbolic_affine.center
             second_order_lower, second_order_upper = \
                 SymbolicToGelpia(self.symbolic_affine.center,self.symbolic_affine.variables).\
                     compute_concrete_bounds(zero_output_epsilon=True)
@@ -473,8 +475,8 @@ class BinOpDist:
             #At the error computation we have X on the left node and Round(X) on the right node.
             #Each node comes with an error, affine or symbolic.
             if self.is_error_computation:
-                self.affine_error=self.rightoperand.affine_error
-                self.symbolic_error=self.rightoperand.symbolic_error
+                self.affine_error=self.leftoperand.affine_error
+                self.symbolic_error=self.leftoperand.symbolic_error
             else:
                 self.compute_error_affine_form()
                 self.compute_error_symbolic_form()
