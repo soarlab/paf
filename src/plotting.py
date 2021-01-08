@@ -183,10 +183,10 @@ def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_golden, fi
         vals_golden, edges_golden = plotCDF(not_norm_edges_golden, not_norm_vals_golden, normalize=True,
                                                  color="darkgoldenrod", linewidth=3, label="Golden distribution")
 
-    golden_file = open(output_path + file_name + "/golden.txt", "a+")
+    golden_file = open(output_path + file_name + "/golden_range.txt", "a+")
     binLenGolden = len(vals_golden)
     title="CDF Range Analysis with Golden with num. bins: " + str(binLenGolden)
-    collectInfoAboutCDFSampling(golden_file, not_norm_vals_golden, edges_golden, title)
+    collectInfoAboutSampling(golden_file, vals_golden, edges_golden, title, pdf=False, golden_mode_index=0)
     golden_file.close()
 
     title = "CDF Range Analysis with PAF using INV CDF "
@@ -285,10 +285,10 @@ def plot_error_analysis_PDF(abs_err, loadedGolden, abs_err_samples, abs_err_gold
     plt.close()
 
 
-def plot_error_analysis_CDF(tree, loadedGolden, abs_err_golden, summary_file, file_name, abs_fpt, rel_fpt):
+def plot_abs_error_analysis_CDF(tree, loadedGolden, abs_err_golden, summary_file, file_name, abs_fpt, rel_fpt):
     abs_err=tree.abs_err_distr
 
-    print("Generating Graphs Error Analysis CDF\n")
+    print("Generating Graphs Abs Error Analysis CDF\n")
 
     tmp_name = file_name + "_abs_error_CDF_Bins_Auto"
     plt.figure(tmp_name, figsize=(15, 10))
@@ -305,16 +305,16 @@ def plot_error_analysis_CDF(tree, loadedGolden, abs_err_golden, summary_file, fi
                                                  color="darkgoldenrod", linewidth=3, label="Golden distribution")
 
 
-    golden_file = open(output_path + file_name + "/golden.txt", "a+")
+    golden_file = open(output_path + file_name + "/golden_abs_error.txt", "a+")
     binLenGolden = len(vals_golden)
-    title="CDF Error Analysis with Golden with num. bins: " + str(binLenGolden)
+    title="CDF ABS Error Analysis with Golden with num. bins: " + str(binLenGolden)
     collectInfoAboutSampling(golden_file, vals_golden, edges_golden, title, pdf=False, golden_mode_index=0)
     golden_file.close()
 
-    title = "CDF Error Analysis with PAF using INV CDF "
+    title = "CDF ABS Error Analysis with PAF using INV CDF "
     collectInfoAboutCDFDistributionINV(summary_file, abs_err, title)
 
-    title = "CDF Error Analysis with PAF using PBox Discretization"
+    title = "CDF ABS Error Analysis with PAF using PBox Discretization"
     collectInfoAboutCDFDistributionPBox(summary_file, abs_err, title)
 
     #sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
@@ -343,20 +343,19 @@ def plot_error_analysis_CDF(tree, loadedGolden, abs_err_golden, summary_file, fi
 
     plt.ticklabel_format(axis='both', style='sci', scilimits=(0, 0))
     plt.title(tmp_name)
-    plt.xlabel('Error Distribution')
+    plt.xlabel('ABS Error Distribution')
     plt.ylabel('CDF')
     plt.legend(fontsize=25)
     plt.savefig(output_path + file_name + "/" + tmp_name)
     plt.clf()
     plt.close()
 
-def plot_error_analysis_CDF_no_abs(tree, loadedGolden, abs_err_golden, summary_file, file_name, abs_fpt, rel_fpt):
+def plot_error_analysis_CDF(tree, loadedGolden, abs_err_golden, summary_file, file_name, abs_fpt, rel_fpt):
     abs_err=tree.err_distr
 
-    print("Here we are!")
-    print("Generating Graphs No Abs Error Analysis CDF\n")
+    print("Generating Graphs Error Analysis CDF\n")
 
-    tmp_name = file_name + "_error_no_abs_CDF_Bins_Auto"
+    tmp_name = file_name + "_error_CDF_Bins_Auto"
     plt.figure(tmp_name, figsize=(15, 10))
 
     if loadedGolden:
@@ -371,7 +370,7 @@ def plot_error_analysis_CDF_no_abs(tree, loadedGolden, abs_err_golden, summary_f
                                                  color="darkgoldenrod", linewidth=3, label="Golden distribution")
 
 
-    golden_file = open(output_path + file_name + "/golden.txt", "a+")
+    golden_file = open(output_path + file_name + "/golden_error.txt", "a+")
     binLenGolden = len(vals_golden)
     title="CDF Error Analysis with Golden with num. bins: " + str(binLenGolden)
     collectInfoAboutSampling(golden_file, vals_golden, edges_golden, title, pdf=False, golden_mode_index=0)
