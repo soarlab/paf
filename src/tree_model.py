@@ -141,11 +141,12 @@ class TreeModel:
 
         smt_manager=smt_manager_dist.merge_instance(smt_manager_qdist)
 
-        smt_triple = (self.tree.root_value[3], self.tree.root_value[4], smt_manager)
+        smt_triple = (self.tree.root_value[4], self.tree.root_value[3], smt_manager)
 
-        self.err_distr=BinOpDist(self.final_exact_distr, "-",
-                                                self.final_quantized_distr, smt_triple, "err_pbox", 100, self.samples_dep_op,
-                                                regularize=True, convolution=False, dependent_mode="p-box", is_error_computation=True)
+        self.err_distr = BinOpDist(self.final_quantized_distr, "-",
+                                   self.final_exact_distr,
+                                    smt_triple, "err_pbox", 100, self.samples_dep_op,
+                                regularize=True, convolution=False, dependent_mode="p-box", is_error_computation=True)
 
         self.abs_err_distr = UnOpDist(self.err_distr, "abs_err_pbox", "abs")
 
