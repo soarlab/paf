@@ -53,9 +53,9 @@ def test_Approx_Operations():
     exit(0)
 
 def test_Mixed_Operations_Right():
-    n = 20
+    n = 100
     epsilon = 0.0
-    left_dist = UniformDistr(1, 2)
+    left_dist = UniformDistr(-2, 0)
     right_dist = UniformDistr(1, 2)
     left_operand = ApproximatingPair(n, left_dist)
     right_operand = right_dist

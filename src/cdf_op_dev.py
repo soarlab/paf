@@ -564,45 +564,58 @@ class IndependentOperation:
         zk.append(a)
         uzk.append(0.0)
         lzk.append(0.0)
-        for k in range(1, self.n):
+        for k in range(1, self.n - 1):
             z = a + (k * r)
             zk.append(z)
             if z >= 0:
                 l = self.right_operand.cdf(0) + (self.right_operand.cdf(z / bx) - self.right_operand.cdf(max(0, ay)))
                 u = l
-                l += self.left_operand.lower_array[sign_change] * \
-                     (1 - self.right_operand.cdf(z / self.left_operand.range_array[sign_change]))
-                u += self.left_operand.upper_array[sign_change] * \
-                     (1 - self.right_operand.cdf(z / self.left_operand.range_array[sign_change]))
+                if self.left_operand.range_array[sign_change] != 0:
+                    l += self.left_operand.lower_array[sign_change] * \
+                        (1 - self.right_operand.cdf(z / self.left_operand.range_array[sign_change]))
+                    u += self.left_operand.upper_array[sign_change] * \
+                        (1 - self.right_operand.cdf(z / self.left_operand.range_array[sign_change]))
                 for i in range(1, self.n):
                     if 0 <= self.left_operand.range_array[i - 1]:
-                        py = (self.right_operand.cdf(z / self.left_operand.range_array[i - 1]) -
-                              self.right_operand.cdf(z / self.left_operand.range_array[i]))
+                        if self.left_operand.range_array[i - 1] != 0:
+                            py = (self.right_operand.cdf(z / self.left_operand.range_array[i - 1]) -
+                                  self.right_operand.cdf(z / self.left_operand.range_array[i]))
+                        else:
+                            py = 1 - self.right_operand.cdf(z / self.left_operand.range_array[i])
                         l += self.left_operand.lower_array[i - 1] * py
                         u += self.left_operand.upper_array[i] * py
                     elif self.left_operand.range_array[i] <= 0:
-                        py = (self.right_operand.cdf(z / self.left_operand.range_array[i]) -
-                              self.right_operand.cdf(z / self.left_operand.range_array[i - 1]))
+                        if self.left_operand.range_array[i] != 0:
+                            py = (self.right_operand.cdf(z / self.left_operand.range_array[i - 1]) -
+                                  self.right_operand.cdf(z / self.left_operand.range_array[i]))
+                        else:
+                            py = self.right_operand.cdf(z / self.left_operand.range_array[i - 1])
                         l -= self.left_operand.upper_array[i] * py
-                        u -= self.left_operand.lower_array[i] * py
+                        u -= self.left_operand.lower_array[i - 1] * py
             else:
                 l = self.right_operand.cdf(0) - (self.right_operand.cdf(min(0, by)) - self.right_operand.cdf(z / bx))
                 u = l
-                l -= self.left_operand.upper_array[sign_change] * \
-                     (self.right_operand.cdf(z - self.left_operand.range_array[sign_change]))
-                u -= self.left_operand.lower_array[sign_change] * \
-                     (self.right_operand.cdf(z - self.left_operand.range_array[sign_change]))
+                if self.left_operand.range_array[sign_change] != 0:
+                    l -= self.left_operand.upper_array[sign_change] * \
+                        (self.right_operand.cdf(z / self.left_operand.range_array[sign_change]))
+                    u -= self.left_operand.lower_array[sign_change] * \
+                        (self.right_operand.cdf(z / self.left_operand.range_array[sign_change]))
                 for i in range(1, self.n):
                     if 0 <= self.left_operand.range_array[i - 1]:
-                        py = (self.right_operand.cdf(z / self.left_operand.range_array[i - 1]) -
-                              self.right_operand.cdf(z / self.left_operand.range_array[i]))
-                        l -= self.left_operand.upper_array[i] * py
-                        u -= self.left_operand.lower_array[i] * py
+                        if self.left_operand.range_array[i] != 0 and self.left_operand.range_array[i - 1] != 0:
+                            py = (self.right_operand.cdf(z / self.left_operand.range_array[i]) -
+                                  self.right_operand.cdf(z / self.left_operand.range_array[i - 1]))
+                            l -= self.left_operand.upper_array[i] * py
+                            u -= self.left_operand.lower_array[i - 1] * py
                     elif self.left_operand.range_array[i] <= 0:
-                        py = (self.right_operand.cdf(z / self.left_operand.range_array[i]) -
-                              self.right_operand.cdf(z / self.left_operand.range_array[i - 1]))
-                        l += self.left_operand.lower_array[i] * py
-                        u += self.left_operand.upper_array[i] * py
+                        if self.left_operand.range_array[i] != 0 and self.left_operand.range_array[i-1] != 0:
+                            py = (self.right_operand.cdf(z / self.left_operand.range_array[i]) -
+                                  self.right_operand.cdf(z / self.left_operand.range_array[i - 1]))
+                            l += self.left_operand.lower_array[i - 1] * py
+                            u += self.left_operand.upper_array[i] * py
             uzk.append(min(u, 1))
             lzk.append(max(l, 0))
+        zk.append(b)
+        uzk.append(1)
+        lzk.append(1)
         self.output = ApproximatingPair(zk, uzk, lzk)
