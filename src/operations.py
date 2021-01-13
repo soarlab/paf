@@ -23,7 +23,7 @@ from gmpy2 import *
 from setup_utils import global_interpolate, digits_for_input_cdf, discretization_points, divisions_SMT_pruning_error, \
     valid_for_exit_SMT_pruning_error, divisions_SMT_pruning_operation, valid_for_exit_SMT_pruning_operation, \
     recursion_limit_for_pruning_error, recursion_limit_for_pruning_operation, num_processes, \
-    num_processes_dependent_operation, round_constants_to_nearest, MyPool
+    num_processes_dependent_operation, round_constants_to_nearest, MyPool, constraints_probabilities
 
 
 def dependentIteration(index_left, index_right, smt_manager_input, expression_left, expression_center, expression_right,
@@ -232,7 +232,30 @@ class BinOpDist:
         self.do_quantize_operation = True
         self.symbolic_affine = None
         self.symbolic_error = None
+        self.constraints_dict={}
         self.execute()
+        self.collect_constraints()
+
+    def collect_constraints(self):
+        # Order from high probability pbox to low probability pbox
+        if not "*+" in self.name:
+            self.constraints_dict[self.name] = {}
+            self.constraints_dict.update(self.leftoperand.constraints_dict)
+            self.constraints_dict.update(self.rightoperand.constraints_dict)
+            mode_discretization = sorted(self.discretization.intervals,
+                                     key=lambda x: Decimal(x.cdf_up) - Decimal(x.cdf_low), reverse=True)
+
+            my_min = Decimal(mode_discretization[0].interval.lower)
+            my_max = Decimal(mode_discretization[0].interval.upper)
+            for prob in constraints_probabilities:
+                val = Decimal(0.0)
+                for pbox in mode_discretization:
+                    val = val + (Decimal(pbox.cdf_up) - Decimal(pbox.cdf_low))
+                    my_min = min(my_min, Decimal(pbox.interval.lower))
+                    my_max = max(my_max, Decimal(pbox.interval.upper))
+                    if val >= Decimal(prob):
+                        self.constraints_dict[self.name][prob]=(dec2Str(my_min),dec2Str(my_max))
+                        break
 
     def executeConvolution(self):
         if self.operator == "+":
@@ -307,6 +330,7 @@ class BinOpDist:
             center_interval = Interval(second_order_lower, second_order_upper, True, True, digits_for_range)
             concrete_symbolic_interval = self.symbolic_affine.compute_interval_error(center_interval)
             print("Error domain: ["+str(concrete_symbolic_interval.lower)+", "+str(concrete_symbolic_interval.upper)+"]")
+
         else:
             domain_affine_SMT = left_operand_discr_SMT.affine.perform_affine_operation(self.operator,
                                                                                        right_operand_discr_SMT.affine)
@@ -494,6 +518,7 @@ class BinOpDist:
                 self.b = self.bSamp
 
             self.distribution.get_piecewise_pdf()
+            self.collect_constraints()
         return self.distribution
 
     def compute_error_affine_form(self):
@@ -680,6 +705,7 @@ class UnOpDist:
         self.symbolic_error=None
         self.symbolic_affine = None
         self.get_discretization()
+        self.constraints_dict={}
 
     def execute(self):
         return self.distribution
