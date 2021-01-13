@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Rectangle
 
+from IntervalArithmeticLibrary import find_max_abs_interval
 from setup_utils import output_path
 from storage import load_histograms_error_from_disk, \
     load_histograms_range_from_disk, store_histograms_error, store_histograms_range
@@ -27,6 +28,15 @@ def plotTicks(figureName, mark, col, lw, s, ticks, label=""):
         plt.figure(figureName)
         plt.scatter(x=[minVal, maxVal], y=[0, 0], c=col, marker=mark, label="FPTaylor: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=lw, s=s)
 
+def plotConstraints(figureName, mark, col, lw, s, ticks, label=""):
+    if not ticks is None and not None in eval(ticks):
+        values_ticks=eval(ticks)
+        minVal = values_ticks[0]
+        maxVal = values_ticks[1]
+        labelMinVal = str('%.1e' % float(minVal))
+        labelMaxVal = str("%.1e" % float(maxVal))
+        plt.figure(figureName)
+        plt.scatter(x=[minVal, maxVal], y=[0, 0], c=col, marker=mark, label="PAF 99%: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=lw, s=s)
 
 def plotBoundsDistr(figureName, distribution):
     minVal = distribution.range_()[0]
@@ -55,7 +65,7 @@ def plot_range_analysis_PDF(final_distribution, loadedGolden, golden_samples, pa
                                                              color="darkgoldenrod", label="Golden distribution")
         store_histograms_range(file_name,vals_golden, edges_golden, vals_golden_10000, edges_golden_10000)
 
-    golden_file = open(output_path + file_name + "/golden.txt", "a+")
+    golden_file = open(output_path + file_name + "/golden_pdf.txt", "a+")
     binLenGolden = len(vals_golden)
     title="PDF Range Analysis with Golden with num. bins: " + str(binLenGolden)
     golden_mode, golden_ind = collectInfoAboutSampling(golden_file, vals_golden, edges_golden, title, pdf=True)
@@ -167,7 +177,7 @@ def plot_boxing(ret_list):
 def collectInfoAboutErrorWithConstraints(fileHook, error_results):
     fileHook.write("\n#### Error values with Gelpia ####\n\n")
     for value in error_results:
-        fileHook.write(value+"\n")
+        fileHook.write(value+":"+str(error_results[value])+"\n")
     fileHook.write("#############\n\n")
     return
 
@@ -295,7 +305,7 @@ def plot_error_analysis_PDF(abs_err, loadedGolden, abs_err_samples, abs_err_gold
 
 
 def plot_abs_error_analysis_CDF(tree, loadedGolden, abs_err_golden, summary_file, file_name, abs_fpt, rel_fpt):
-    abs_err=tree.abs_err_distr
+    #abs_err=tree.abs_err_distr
 
     print("Generating Graphs Abs Error Analysis CDF\n")
 
@@ -320,11 +330,11 @@ def plot_abs_error_analysis_CDF(tree, loadedGolden, abs_err_golden, summary_file
     collectInfoAboutSampling(golden_file, vals_golden, edges_golden, title, pdf=False, golden_mode_index=0)
     golden_file.close()
 
-    title = "CDF ABS Error Analysis with PAF using INV CDF "
-    collectInfoAboutCDFDistributionINV(summary_file, abs_err, title)
+    #title = "CDF ABS Error Analysis with PAF using INV CDF "
+    #collectInfoAboutCDFDistributionINV(summary_file, abs_err, title)
+    #title = "CDF ABS Error Analysis with PAF using PBox Discretization"
+    #collectInfoAboutCDFDistributionPBox(summary_file, abs_err, title)
 
-    title = "CDF ABS Error Analysis with PAF using PBox Discretization"
-    collectInfoAboutCDFDistributionPBox(summary_file, abs_err, title)
 
     #sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
     #not_norm_vals, not_norm_edges = np.histogram(abs_err_samples, bins='auto', density=True)
@@ -333,22 +343,24 @@ def plot_abs_error_analysis_CDF(tree, loadedGolden, abs_err_golden, summary_file
     #title="CDF Error Analysis with Sampling model with num. bins: " + str(binLenSamp)
     #collectInfoAboutSampling(sampling_file, vals, edges, title, pdf=False, golden_mode_index=0)
     #sampling_file.close()
-
     #title="CDF Measure Distances Error Analysis"
     #measureDistances(abs_err, summary_file, vals_golden, vals, edges_golden, edges, title, pdf=False)
 
+    error_bounds=tree.error_results
     plt.autoscale(enable=True, axis='both', tight=False)
     plt.ylim(bottom=-0.05, top=1.1)
+
     #x = np.linspace(abs_err.a, abs_err.b, 1000)
     #plt.plot(x, abs(abs_err.distribution.get_piecewise_cdf()(x)), linewidth=3, color="red")
     #abs_err.distribution.get_piecewise_cdf().plot(xmin=abs_err.a, xmax=abs_err.b, linewidth=3, color="red")
     #plotBoundsDistr(tmp_name, abs_err.distribution)
     #tree.lower_error_affine.get_piecewise_cdf().plot(xmin=0, xmax=tree.lower_error_affine.range_()[-1], linewidth=3, color="green")
     #tree.upper_error_affine.get_piecewise_cdf().plot(xmin=0, xmax=tree.upper_error_affine.range_()[-1], linewidth=3, color="green")
-
-    plotCDFdiscretization(abs_err.discretization.intervals)
+    #plotCDFdiscretization(abs_err.discretization.intervals)
 
     plotTicks(tmp_name, "X", "green", 4, 500, ticks="[0.0, " + str(abs_fpt) + "]", label="FPT: " + str(abs_fpt))
+    paf_99=error_bounds["0.99"]
+    plotConstraints(tmp_name, "+", "red", 4, 500, ticks="[0.0, " + str(find_max_abs_interval(paf_99)) + "]")
 
     plt.ticklabel_format(axis='both', style='sci', scilimits=(0, 0))
     plt.title(tmp_name)
