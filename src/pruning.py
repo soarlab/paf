@@ -18,14 +18,18 @@ def clean_co_domain(pbox, smt_manager, expression_center, divisions_SMT,
         return pbox
 
     exists_true=0
+    unknown_counter=0
 
     for interval in codomain_intervals:
         tmp_pbox = SMT_Interface.PBoxSolver(interval[0][0],interval[1][0],interval[0][1],interval[1][1])
         smt_manager.set_expression_central(expression_center, tmp_pbox)
-        if not smt_manager.check(debug=False, dReal=dReal):
+        smt_check=smt_manager.check(debug=False, dReal=dReal)
+        if not smt_check:
             if exists_true>=1:
                 break
         else:
+            if smt_check>1:
+                unknown_counter=unknown_counter+1
             interval[2] = True
             exists_true = exists_true+1
 
@@ -37,6 +41,7 @@ def clean_co_domain(pbox, smt_manager, expression_center, divisions_SMT,
         if interval[2]:
             double_check=True
             break
+
     if not double_check:
         smt_manager.operation_center = ()
         print("Problem with cleaning. Z3:" +str(smt_manager.check(debug=False, dReal=False))+", dReal:"+str(smt_manager.check(debug=False, dReal=True)))
@@ -56,11 +61,17 @@ def clean_co_domain(pbox, smt_manager, expression_center, divisions_SMT,
             inc_sup = reversed_codomain[ind + 1][1][1]
         else:
             break
+
     ret_box=Interval(low, sup, inc_low, inc_sup, digits_for_range)
+
     if start_recursion_limit>recursion_limit_for_pruning:
         print("Hit the recursion limit for pruning!!")
         print("Limit:"+str(recursion_limit_for_pruning))
         print("Low,Sup",low,sup)
+
+    if unknown_counter>0:
+        return ret_box
+
     if exists_true<=valid_for_exit_pruning and start_recursion_limit<=recursion_limit_for_pruning:
         return clean_co_domain(ret_box, smt_manager, expression_center,
                                divisions_SMT, valid_for_exit_pruning,
