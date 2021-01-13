@@ -90,7 +90,11 @@ class SMT_Instance():
         else:
             solver_query = "z3 -in"
 
-        proc_run = subprocess.Popen(shlex.split(solver_query), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc_run = subprocess.Popen(shlex.split(solver_query),
+                                    stdin=subprocess.PIPE,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    preexec_fn=os.setsid)
         try:
             out, err = proc_run.communicate(input=str.encode(query), timeout=hard_timeout)
             if not err.decode() == "":
@@ -99,6 +103,8 @@ class SMT_Instance():
         except subprocess.TimeoutExpired:
             try:
                 os.kill(proc_run.pid, signal.SIGINT) # send signal to the process group
+                os.killpg(os.getpgid(proc_run.pid), signal.SIGINT)
+                out_bkp, err_bkp = proc_run.communicate()
                 os.killpg(proc_run.pid, signal.SIGINT) # send signal to the process group
             except OSError:
                 # silently fail if the subprocess has exited already
