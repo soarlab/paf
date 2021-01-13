@@ -163,7 +163,16 @@ def plot_boxing(ret_list):
     plt.legend()
     return
 
-def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_golden, fileHook, file_name, range_fpt):
+
+def collectInfoAboutErrorWithConstraints(fileHook, error_results):
+    fileHook.write("\n#### Error values with Gelpia ####\n\n")
+    for value in error_results:
+        fileHook.write(value+"\n")
+    fileHook.write("#############\n\n")
+    return
+
+def plot_range_analysis_CDF(T, loadedGolden, samples_golden, fileHook, file_name, range_fpt):
+    final_distribution=T.final_quantized_distr
     a = final_distribution.a
     b = final_distribution.b
 
@@ -194,7 +203,7 @@ def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_golden, fi
 
     title = "CDF Range Analysis with PAF using PBox Discretization"
     collectInfoAboutCDFDistributionPBox(fileHook, final_distribution, title)
-
+    collectInfoAboutErrorWithConstraints(fileHook, T.error_results)
     #sampling_file = open(output_path + file_name + "/sampling.txt", "a+")
     #notnorm_vals, notnorm_edges = np.histogram(samples_short, bins='auto', density=True)
     #vals, edges = plotCDF(notnorm_edges, notnorm_vals, normalize=True, color="blue", label="Sampled distribution", linewidth=3)
