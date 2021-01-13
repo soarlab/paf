@@ -27,7 +27,7 @@ benchmarks_path=home_directory_project+"benchmarks_tmp/"
 storage_path=home_directory_project+"storage/"
 fptaylor_path=home_directory_project+"FPTaylor/"
 output_path=home_directory_project+"results/"
-fptaylor_exe="/home/roki/GIT/FPTaylor/./fptaylor"
+fptaylor_exe="./fptaylor"
 pran_exe=""
 num_processes_dependent_operation=int(multiprocessing.cpu_count())
 #memory_limit_optimization=((psutil.virtual_memory().total//1024)//1024)
@@ -37,10 +37,10 @@ use_powers_of_two_spacing=False
 
 digits_for_input_discretization=20
 digits_for_range=50
-digits_for_input_cdf=10
-digits_for_Z3_cdf=10
+digits_for_input_cdf=15
+digits_for_Z3_cdf=20
 
-discretization_points=50
+discretization_points= 50
 hard_timeout= 10
 soft_timeout= hard_timeout * 1000
 eps_for_LP= 2**-20
@@ -50,16 +50,19 @@ divisions_SMT_pruning_error=10
 valid_for_exit_SMT_pruning_error=9
 gap_cdf_regularizer = 1.0/discretization_points
 golden_model_time=10
-timeout_gelpia_constraints=10
-timeout_gelpia_standard=20
+timeout_gelpia_constraints=120
+timeout_gelpia_standard=30
 timeout_optimization_problem=300
 round_constants_to_nearest=True
+constraints_probabilities=["0.99"]
 
 abs_prefix="ABS_"
 SMT_exponent_function_name= "find_exponent"
 GELPHIA_exponent_function_name= "floor_power2"
 path_to_gelpia_executor="python3.7 /proj/QNNandAAs/rocco/gelpia/bin/gelpia.py "
 path_to_gelpia_constraints_executor="python3.7 /proj/QNNandAAs/rocco/gelpia_constraints_orig/bin/gelpia.py "
+
+
 
 recursion_limit_for_pruning_operation=10
 recursion_limit_for_pruning_error=20
