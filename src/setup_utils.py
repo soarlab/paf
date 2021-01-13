@@ -49,12 +49,12 @@ valid_for_exit_SMT_pruning_operation=6
 divisions_SMT_pruning_error=10
 valid_for_exit_SMT_pruning_error=9
 gap_cdf_regularizer = 1.0/discretization_points
-golden_model_time=10
+golden_model_time=120
 timeout_gelpia_constraints=120
 timeout_gelpia_standard=30
 timeout_optimization_problem=300
 round_constants_to_nearest=True
-constraints_probabilities=["0.99"]
+constraints_probabilities=["0.99", "0.95", "0.85"]
 
 abs_prefix="ABS_"
 SMT_exponent_function_name= "find_exponent"
