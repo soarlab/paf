@@ -147,7 +147,7 @@ class TreeModel:
 
         quantized_interval=self.final_quantized_distr.symbolic_affine.compute_interval()
         print("FP Range Quantized Distribution: "+str(quantized_interval.lower)+", "+str(quantized_interval.upper))
-        self.error_results=self.elaborate_Gelpia_error_intervals(self.final_exact_distr.constraints_dict, self.final_quantized_distr.symbolic_error)
+        self.error_results, self.logging_constraints=self.elaborate_Gelpia_error_intervals(self.final_exact_distr.constraints_dict, self.final_quantized_distr.symbolic_error)
 
         #self.err_distr = BinOpDist(self.final_quantized_distr, "-",
         #                           self.final_exact_distr,
@@ -333,24 +333,30 @@ class TreeModel:
         return False, np.asarray(values), np.asarray(abs_err), np.asarray(rel_err), np.asarray(err)
 
     def elaborate_Gelpia_error_intervals(self, constraints, symbolic_affine):
-        results=[]
+        results={}
+        logging_constraints=[]
         second_order_lower, second_order_upper = \
             SymbolicToGelpia(symbolic_affine.center, symbolic_affine.variables). \
                 compute_concrete_bounds(debug=True, zero_output_epsilon=True)
         center_interval = Interval(second_order_lower, second_order_upper, True, True, digits_for_range)
         concrete_symbolic_interval = symbolic_affine.compute_interval_error(center_interval)
-        results.append("Error domain 100%: [" + str(concrete_symbolic_interval.lower) + ", " +
-                                                str(concrete_symbolic_interval.upper) + "]")
+        results["1"] = Interval(str(concrete_symbolic_interval.lower),
+                                str(concrete_symbolic_interval.upper),
+                                True,True,digits_for_range)
+
         for prob in constraints_probabilities:
             print("Error for prob: "+str(prob))
             constraint_dict = {}
             for constraint in constraints:
                 values=constraints[constraint][prob]
                 constraint_dict[str(constraint)]=[values[0], values[1]]
+            logging_constraints.append((prob, constraint_dict))
             constraints_interval = symbolic_affine.compute_interval_error(center_interval, constraints=constraint_dict)
-            results.append("Error domain "+str(prob)+": [" + str(constraints_interval.lower) + ", " +
-                       str(constraints_interval.upper) + "]")
-        return results
+            results[str(prob)]=Interval(str(constraints_interval.lower),
+                                        str(constraints_interval.upper),
+                                        True,True,digits_for_range)
+
+        return results, logging_constraints
 
     def evaluate_error_at_sample(self, tree):
         """ Sample from the leaf then evaluate tree in the tree's working precision"""
