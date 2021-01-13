@@ -279,6 +279,9 @@ class Interval:
                 include_max = self.include_upper or interval.include_upper
         return Interval(min,max,include_min,include_max, self.digits)
 
+    def __str__(self):
+        return ("["+str(self.lower)+", "+str(self.upper)+"]")
+
     def __eq__(self, other):
         if not isinstance(other, Interval):
             return False
