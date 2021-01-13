@@ -48,10 +48,13 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
         loadedGolden, values_golden, abs_err_golden, rel_err_golden, err_golden = T.generate_error_samples(golden_model_time,
                                                                                                file_name, golden=True)
 
+        with open(output_path + file_name + "/" + file_name + "_constraints_log.out", "w+") as log:
+            print(T.logging_constraints, file=log)
+
         f = open(output_path + file_name + "/" + file_name + "_CDF_summary.out", "w+")
         f.write("Execution Time:" + str(finalTime) + "s \n\n")
         plot_range_analysis_CDF(T, loadedGolden, values_golden, f, file_name, range_my_dict.get(file_name))
-        #plot_abs_error_analysis_CDF(T, loadedGolden, abs_err_golden, f, file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
+        plot_abs_error_analysis_CDF(T, loadedGolden, abs_err_golden, f, file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
         #plot_error_analysis_CDF(T, loadedGolden, err_golden, f, file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
         #plot_abs_error_analysis_CDF(T.relative_err_distr, loadedGolden, rel_err_samples, rel_err_golden, f, file_name, abs_my_dict.get(file_name), rel_my_dict.get(file_name))
         f.flush()
