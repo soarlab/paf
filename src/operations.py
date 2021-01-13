@@ -59,7 +59,9 @@ def dependentIteration(index_left, index_right, smt_manager_input, expression_le
                 print(index_left, index_right, "Final Error: ["+str(intersection_interval.lower)+","+str(intersection_interval.upper)+"]")
                 return [index_left, index_right, intersection_interval]
 
-            if z3>1 and dreal>1:
+            intersection_interval = intersection_interval.intersection(concrete_symbolic_interval)
+
+            if dreal>1:
                 return [index_left, index_right, intersection_interval]
 
             clean_intersection_interval = \
