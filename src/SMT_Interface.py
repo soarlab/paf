@@ -103,6 +103,7 @@ class SMT_Instance():
             try:
                 #os.kill(proc_run.pid, signal.SIGINT) # send signal to the process group
                 #os.killpg(os.getpgid(proc_run.pid), signal.SIGINT)
+                proc_run.kill()
                 out_bkp, err_bkp = proc_run.communicate()
                 #os.killpg(proc_run.pid, signal.SIGINT) # send signal to the process group
             except:

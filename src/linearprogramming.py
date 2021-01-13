@@ -40,6 +40,7 @@ def min_instance(index_lp, ev_point, insiders, query):
             res = out
         except subprocess.TimeoutExpired:
             try:
+                proc_run.kill()
                 #os.kill(proc_run.pid, signal.SIGINT) # send signal to the process group
                 #os.killpg(proc_run.pid, signal.SIGINT) # send signal to the process group
                 out_bkp, err_bkp=proc_run.communicate()
@@ -69,6 +70,7 @@ def max_instance(index_lp, ev_point, insiders, query):
         try:
             # os.kill(proc_run.pid, signal.SIGINT) # send signal to the process group
             # os.killpg(proc_run.pid, signal.SIGINT) # send signal to the process group
+            proc_run.kill()
             out_bkp, err_bkp = proc_run.communicate()
         except OSError:
             # silently fail if the subprocess has exited already
