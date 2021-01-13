@@ -93,8 +93,7 @@ class SMT_Instance():
         proc_run = subprocess.Popen(shlex.split(solver_query),
                                     stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE,
-                                    preexec_fn=os.setsid)
+                                    stderr=subprocess.PIPE)
         try:
             out, err = proc_run.communicate(input=str.encode(query), timeout=hard_timeout)
             if not err.decode() == "":
@@ -102,11 +101,11 @@ class SMT_Instance():
             res = out.decode().strip()
         except subprocess.TimeoutExpired:
             try:
-                os.kill(proc_run.pid, signal.SIGINT) # send signal to the process group
-                os.killpg(os.getpgid(proc_run.pid), signal.SIGINT)
+                #os.kill(proc_run.pid, signal.SIGINT) # send signal to the process group
+                #os.killpg(os.getpgid(proc_run.pid), signal.SIGINT)
                 out_bkp, err_bkp = proc_run.communicate()
-                os.killpg(proc_run.pid, signal.SIGINT) # send signal to the process group
-            except OSError:
+                #os.killpg(proc_run.pid, signal.SIGINT) # send signal to the process group
+            except:
                 # silently fail if the subprocess has exited already
                 pass
             res="timeout"
