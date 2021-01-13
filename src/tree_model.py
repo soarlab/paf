@@ -5,11 +5,13 @@ import time
 import os
 
 import SMT_Interface
+from IntervalArithmeticLibrary import Interval
+from SymbolicAffineArithmetic import SymbolicToGelpia
 from error_model import HighPrecisionErrorModel, LowPrecisionErrorModel, FastTypicalErrorModel, ErrorModelPointMass, \
     ErrorModelWrapper, TypicalErrorModel
 from model import UnaryOperation
 from operations import quantizedPointMass, BinOpDist, UnOpDist, pacal, plt, ConstantManager
-from setup_utils import loadIfExists, storage_path, global_interpolate
+from setup_utils import loadIfExists, storage_path, global_interpolate, constraints_probabilities, digits_for_range
 from project_utils import printMPFRExactly, reset_default_precision, set_context_precision, isNumeric
 
 
@@ -143,12 +145,16 @@ class TreeModel:
 
         smt_triple = (self.tree.root_value[4], self.tree.root_value[3], smt_manager)
 
-        self.err_distr = BinOpDist(self.final_quantized_distr, "-",
-                                   self.final_exact_distr,
-                                    smt_triple, "err_pbox", 100, self.samples_dep_op,
-                                regularize=True, convolution=False, dependent_mode="p-box", is_error_computation=True)
+        quantized_interval=self.final_quantized_distr.symbolic_affine.compute_interval()
+        print("FP Range Quantized Distribution: "+str(quantized_interval.lower)+", "+str(quantized_interval.upper))
+        self.error_results=self.elaborate_Gelpia_error_intervals(self.final_exact_distr.constraints_dict, self.final_quantized_distr.symbolic_error)
 
-        self.abs_err_distr = UnOpDist(self.err_distr, "abs_err_pbox", "abs")
+        #self.err_distr = BinOpDist(self.final_quantized_distr, "-",
+        #                           self.final_exact_distr,
+        #                            smt_triple, "err_pbox", 100, self.samples_dep_op,
+        #                        regularize=True, convolution=False, dependent_mode="p-box", is_error_computation=True)
+
+        #self.abs_err_distr = UnOpDist(self.err_distr, "abs_err_pbox", "abs")
 
         #self.lower_error_affine, self.upper_error_affine=self.compute_lower_upper_affine_error()
         #self.lower_error_affine.get_piecewise_cdf()
@@ -325,6 +331,26 @@ class TreeModel:
         reset_default_precision()
         print("... Done with generation")
         return False, np.asarray(values), np.asarray(abs_err), np.asarray(rel_err), np.asarray(err)
+
+    def elaborate_Gelpia_error_intervals(self, constraints, symbolic_affine):
+        results=[]
+        second_order_lower, second_order_upper = \
+            SymbolicToGelpia(symbolic_affine.center, symbolic_affine.variables). \
+                compute_concrete_bounds(debug=True, zero_output_epsilon=True)
+        center_interval = Interval(second_order_lower, second_order_upper, True, True, digits_for_range)
+        concrete_symbolic_interval = symbolic_affine.compute_interval_error(center_interval)
+        results.append("Error domain 100%: [" + str(concrete_symbolic_interval.lower) + ", " +
+                                                str(concrete_symbolic_interval.upper) + "]")
+        for prob in constraints_probabilities:
+            print("Error for prob: "+str(prob))
+            constraint_dict = {}
+            for constraint in constraints:
+                values=constraints[constraint][prob]
+                constraint_dict[str(constraint)]=[values[0], values[1]]
+            constraints_interval = symbolic_affine.compute_interval_error(center_interval, constraints=constraint_dict)
+            results.append("Error domain "+str(prob)+": [" + str(constraints_interval.lower) + ", " +
+                       str(constraints_interval.upper) + "]")
+        return results
 
     def evaluate_error_at_sample(self, tree):
         """ Sample from the leaf then evaluate tree in the tree's working precision"""
