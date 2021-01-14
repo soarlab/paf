@@ -22,7 +22,7 @@ def copy_tree(my_tree):
         else:
             copied_tree = BinaryTree(my_tree.value.operator, None,
                                      copy_tree(my_tree.children[0]),
-                                     copy_tree(my_tree.children[1]), my_tree.value.indipendent)
+                                     copy_tree(my_tree.children[1]), my_tree.value.independent)
     return copied_tree
 
 
@@ -143,12 +143,12 @@ class TreeModel:
 
         smt_triple = (self.tree.root_value[4], self.tree.root_value[3], smt_manager)
 
-        self.err_distr = BinOpDist(self.final_quantized_distr, "-",
-                                   self.final_exact_distr,
-                                    smt_triple, "err_pbox", 100, self.samples_dep_op,
-                                regularize=True, convolution=False, dependent_mode="p-box", is_error_computation=True)
+        #self.err_distr = BinOpDist(self.final_quantized_distr, "-",
+        #                           self.final_exact_distr,
+        #                            smt_triple, "err_pbox", 100, self.samples_dep_op,
+        #                        regularize=True, convolution=False, dependent_mode="p-box", is_error_computation=True)
 
-        self.abs_err_distr = UnOpDist(self.err_distr, "abs_err_pbox", "abs")
+        #self.abs_err_distr = UnOpDist(self.err_distr, "abs_err_pbox", "abs")
 
         #self.lower_error_affine, self.upper_error_affine=self.compute_lower_upper_affine_error()
         #self.lower_error_affine.get_piecewise_cdf()
@@ -166,8 +166,8 @@ class TreeModel:
 
             dist = self.manager.createUnaryOperation(tree.root_value, tree.root_name)
 
-            smt_manager_dist=SMT_Interface.SMT_Instance()
-            smt_manager_qdist=SMT_Interface.SMT_Instance()
+            smt_manager_dist = SMT_Interface.SMT_Instance()
+            smt_manager_qdist = SMT_Interface.SMT_Instance()
 
             if smt_manager_dist.check_string_number_is_exp_notation(tree.root_name):
                 scientific_name = ConstantManager.get_new_constant_index()
@@ -187,13 +187,13 @@ class TreeModel:
                 if isPointMassDistr(dist):
                     error = ErrorModelPointMass(dist, self.precision, self.exponent)
                     quantized_distribution = quantizedPointMass(dist, self.precision, self.exponent)
-                    quantized_value_name=ConstantManager.get_new_constant_index()
+                    quantized_value_name = ConstantManager.get_new_constant_index()
                     smt_manager_qdist.add_var(quantized_value_name, quantized_distribution.discretization.lower, quantized_distribution.discretization.upper)
                     qdist_smt_query = SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(quantized_value_name)
                 else:
                     error = self.manager.createErrorModel(dist, self.precision, self.exponent, self.poly_precision, self.interp_precision,
                                                           self.error_model)
-                    exact_affine_forms=[dist.discretization.affine, None,
+                    exact_affine_forms = [dist.discretization.affine, None,
                                         dist.symbolic_affine, None]
                     quantized_distribution = self.manager.createBinOperation(dist, "*+", error, self.interp_precision, exact_affine_forms=exact_affine_forms)
                     error_name_SMT=SMT_Interface.clean_var_name_SMT(error.distribution.name)

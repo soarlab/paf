@@ -40,7 +40,7 @@ class NodeManager:
         newNode=Node(idtmp, value, children)
         '''If there are multiple occurences of the same id it means the operation is DEPENDENT'''
         if len(newNode.id) != len(set(newNode.id)):
-            newNode.value.indipendent = False
+            newNode.value.independent = False
             newNode.id=list(set(newNode.id))
         return newNode
 
@@ -123,21 +123,24 @@ class N(stats.rv_continuous, Distr):
         self.name = name
         self.sampleInit = True
         self.isScalar = False
-        self.sampleSet=[]
-        self.indipendent=True
+        self.sampleSet = []
+        self.independent = True
         self.a = float(a)
         self.b = float(b)
-        self.a_real=a
-        self.b_real=b
-        self.mean=0
-        self.sigma=1
-        self.interpolation_points=500
+        self.a_real = a
+        self.b_real = b
+        self.mean = 0
+        self.sigma = 1
+        self.interpolation_points = 500
         self.discretization = None
         self.affine_error = None
         self.symbolic_error = None
         self.symbolic_affine = None
+        self.bounding_pair = BoundingPair()
         self.init_piecewise_pdf()
         self.get_discretization()
+        self.bounding_pair.instantiate_from_distribution(self)
+
 
     def resetSampleInit(self):
         self.sampleInit = True
@@ -201,7 +204,7 @@ class B(BetaDistr):
         self.b=self.range_()[-1]
         self.a_real=a
         self.b_real=b
-        self.indipendent=True
+        self.independent=True
         self.sampleInit = True
         self.isScalar = False
         self.sampleSet=[]
@@ -313,7 +316,7 @@ class CustomDistr(stats.rv_continuous, Distr):
         self.sampleInit = True
         self.isScalar = False
         self.sampleSet=[]
-        self.indipendent=True
+        self.independent=True
         self.a = edges[0]
         self.b = edges[-1]
         self.edges=edges
@@ -440,20 +443,22 @@ class U(UniformDistr):
     def __init__(self,name,a,b):
         super().__init__(a=float(a), b=float(b))
         self.name = name
-        self.a=self.range_()[0]
-        self.b=self.range_()[-1]
-        self.a_real=a
-        self.b_real=b
-        self.indipendent = True
+        self.a = self.range_()[0]
+        self.b = self.range_()[-1]
+        self.a_real = a
+        self.b_real = b
+        self.independent = True
         self.sampleInit = True
         self.isScalar = False
-        self.sampleSet=[]
+        self.sampleSet = []
         self.discretization = None
-        self.affine_error=None
-        self.symbolic_error=None
-        self.symbolic_affine=None
+        self.affine_error = None
+        self.symbolic_error = None
+        self.symbolic_affine = None
+        self.bounding_pair = BoundingPair()
 
         self.get_discretization()
+        self.bounding_pair.instantiate_from_distribution(self)
 
     def execute(self):
         return self
@@ -462,9 +467,9 @@ class U(UniformDistr):
         return self.name
 
     def get_discretization(self):
-        if self.discretization==None and self.affine_error==None and self.symbolic_error==None:
+        if self.discretization is None and self.affine_error is None and self.symbolic_error is None:
             self.discretization = createDSIfromDistribution(self, n=discretization_points)
-            self.affine_error= createAffineErrorForLeaf()
+            self.affine_error = createAffineErrorForLeaf()
             self.symbolic_affine = \
                 CreateSymbolicErrorForDistributions(self.name, self.discretization.intervals[0].interval.lower, self.discretization.intervals[-1].interval.upper)
             self.symbolic_error = CreateSymbolicZero()
@@ -511,8 +516,8 @@ class Number(ConstDistr):
         pass
 
     def get_discretization(self):
-        if self.discretization==None:
-            self.discretization=self.create_discretization()
+        if self.discretization is None:
+            self.discretization = self.create_discretization()
             self.affine_error= createAffineErrorForLeaf()
             self.symbolic_affine = SymbolicAffineInstance(SymExpression(self.name), {}, {})
             self.symbolic_error = CreateSymbolicZero()
@@ -521,6 +526,116 @@ class Number(ConstDistr):
     def create_discretization(self):
         return MixedArithmetic(self.name, self.name,
                                [PBox(Interval(self.name, self.name, True, True, digits_for_range), "0.0", "1.0")])
+
+
+# Class representing a pair of cdfs bounding a known or unknown cdf from below and from above.
+# The evaluate_xxx methods will give sound lower and/or upper bounds to P[X < x] (and thus P[X > x])
+# The xxx_bound_probability will give sound lower and/or upper bounds to P[x0 < X < x1]
+class BoundingPair:
+    def __init__(self):
+        # Number of **intervals**. Number of points in the discretization = self.n + 1
+        self.n = discretization_points
+        self.a = None
+        self.b = None
+        self.support = None
+        self.lower_cdf = None
+        self.upper_cdf = None
+        self.is_exact = None
+
+    def instantiate_from_distribution(self, distribution):
+        # This constructor create a discretization which is exact on the discretization points
+        self.is_exact = False
+        self.a = distribution.range_()[0]
+        self.b = distribution.range_()[1]
+        r = (self.b - self.a) / self.n
+        self.support = []
+        self.lower_cdf = []
+        self.upper_cdf = []
+
+        for i in range(0, self.n + 1):
+            x = self.a + (i * r)
+            self.support.append(x)
+            self.lower_cdf.append(distribution.cdf(x))
+            self.upper_cdf.append(self.lower_cdf[i])
+
+    def instantiate_from_arrays(self, support, lower_cdf, upper_cdf):
+        # This constructor is meant to create bounding pairs which are not exact on discretization points
+        self.is_exact = False
+        self.n = len(support) - 1
+        self.a = support[0]
+        self.b = support[self.n]
+        self.support = support
+        self.lower_cdf = lower_cdf
+        self.upper_cdf = upper_cdf
+
+    # Not sure this constructor will be necessary.
+    def instantiate_from_pboxes(self, pboxes):
+        self.n = len(pboxes.intervals)
+        self.a = pboxes.intervals[0].interval.lower
+        self.b = pboxes.intervals[self.n - 1].interval.upper
+        self.support.append(self.a)
+        self.lower_cdf.append(pboxes.intervals[0].cdf_low)
+        self.upper_cdf.append(pboxes.intervals[0].cdf_up)
+        for i in range(1, self.n):
+            self.support.append(pboxes.intervals[i].interval.upper)
+            self.lower_cdf.append(pboxes.intervals[i].cdf_low)
+            self.upper_cdf.append(pboxes.intervals[i].cdf_up)
+
+    def evaluate_lower(self, x):
+        if x <= self.a:
+            return 0
+        elif x >= self.b:
+            return 1
+        else:
+            i = 0
+            while self.support[i] < x:
+                i += 1
+            return self.lower_cdf[i - 1]
+
+    def evaluate_upper(self, x):
+        if x <= self.a:
+            return 0
+        elif x >= self.b:
+            return 1
+        else:
+            i = 0
+            while self.support[i] < x:
+                i += 1
+            return self.upper_cdf[i - 1]
+
+    def evaluate_lower_upper(self, x):
+        if x <= self.a:
+            return 0, 0
+        elif x >= self.b:
+            return 1, 1
+        else:
+            i = 0
+            while self.support[i] < x:
+                i += 1
+            return self.lower_cdf[i - 1], self.upper_cdf[i - 1]
+
+    def lower_bound_probability(self, x, y):
+        if x == y:
+            # We're dealing strictly with continuous distributions here
+            return 0
+        else:
+            return self.evaluate_lower(y) - self.evaluate_upper(x)
+
+    def upper_bound_probability(self, x, y):
+        if x == y:
+            # We're dealing strictly with continuous distributions here
+            return 0
+        else:
+            return self.evaluate_upper(y) - self.evaluate_lower(x)
+
+    def lower_upper_bound_probability(self, x, y):
+        if x == y:
+            # We're dealing strictly with continuous distributions here
+            return 0
+        else:
+            xb = self.evaluate_lower_upper(x)
+            yb = self.evaluate_lower_upper(y)
+            return yb[0] - xb[1], yb[1] - xb[0]
 
 # Classes which re-implement or customize PaCal classes
 import warnings
@@ -989,7 +1104,7 @@ class Operation:
         self.leftoperand=leftoperand
         self.operator=operator
         self.rightoperand=rightoperand
-        self.indipendent=True
+        self.independent=True
         self.isScalar=False
         if leftoperand.isScalar and rightoperand.isScalar:
             self.isScalar = True
@@ -999,7 +1114,7 @@ class UnaryOperation:
         self.name = operator+"(" + operand.name + ")"
         self.operand=operand
         self.operator=operator
-        self.indipendent=True
+        self.independent=True
         self.isScalar=False
         if operand.isScalar:
             self.isScalar = True

@@ -9,6 +9,8 @@ from sympy.plotting.intervalmath import interval
 from AffineArithmeticLibrary import AffineInstance
 from IntervalArithmeticLibrary import Interval, empty_interval, check_zero_is_in_interval, find_min_abs_interval, \
     check_sterbenz_apply
+
+#from model import BoundingPair
 import model
 from SMT_Interface import create_exp_for_BinaryOperation_SMT_LIB
 from SymbolicAffineArithmetic import SymbolicAffineInstance, SymbolicAffineManager, SymExpression, SymbolicToGelpia
@@ -24,6 +26,10 @@ from setup_utils import global_interpolate, digits_for_input_cdf, discretization
     valid_for_exit_SMT_pruning_error, divisions_SMT_pruning_operation, valid_for_exit_SMT_pruning_operation, \
     recursion_limit_for_pruning_error, recursion_limit_for_pruning_operation, num_processes, \
     num_processes_dependent_operation, round_constants_to_nearest, MyPool
+
+
+import matplotlib.pyplot as plt
+import matplotlib
 
 
 def dependentIteration(index_left, index_right, smt_manager_input, expression_left, expression_center, expression_right,
@@ -99,8 +105,8 @@ class quantizedPointMass:
         self.sampleInit = True
         self.distribution = ConstDistr(float(self.qValue))
         self.distribution.get_piecewise_pdf()
-        self.discretization=None
-        self.affine_error =None
+        self.discretization = None
+        self.affine_error = None
         self.symbolic_error = None
         self.symbolic_affine=None
         self.get_discretization()
@@ -124,8 +130,8 @@ class quantizedPointMass:
         return self.name
 
     def get_discretization(self):
-        if self.discretization==None:
-            self.discretization =self.create_discretization()
+        if self.discretization is None:
+            self.discretization = self.create_discretization()
             self.affine_error = self.createAffineErrorForValue()
             self.symbolic_affine = self.createSymbolicAffineInstance()
             self.symbolic_error = self.wrapperInputDistribution.symbolic_affine.\
@@ -142,8 +148,8 @@ class quantizedPointMass:
         return error
 
     def create_discretization(self):
-        lower=self.wrapperInputDistribution.discretization.intervals[0].interval.lower
-        upper=self.wrapperInputDistribution.discretization.intervals[-1].interval.upper
+        lower = self.wrapperInputDistribution.discretization.intervals[0].interval.lower
+        upper = self.wrapperInputDistribution.discretization.intervals[-1].interval.upper
         with gmpy2.local_context(set_context_precision(self.precision, self.exp),
                                  round=(gmpy2.RoundDown if not round_constants_to_nearest else gmpy2.RoundToNearest)) as ctx:
             lower=round_number_down_to_digits(mpfr(lower), digits_for_range)
@@ -227,11 +233,12 @@ class BinOpDist:
         self.distributionConv = None
         self.distributionSamp = None
         self.sampleInit = True
-        self.discretization=None
-        self.affine_error=None
+        self.discretization = None
+        self.affine_error = None
         self.do_quantize_operation = True
         self.symbolic_affine = None
         self.symbolic_error = None
+        self.bounding_pair = None
         self.execute()
 
     def executeConvolution(self):
@@ -286,8 +293,8 @@ class BinOpDist:
         self.bSamp = self.distributionSamp.range_()[-1]
 
     def _pbox_dependent_execution(self):
-        left_operand_discr_SMT=copy.deepcopy(self.leftoperand.get_discretization())
-        right_operand_discr_SMT=copy.deepcopy(self.rightoperand.get_discretization())
+        left_operand_discr_SMT = copy.deepcopy(self.leftoperand.get_discretization())
+        right_operand_discr_SMT = copy.deepcopy(self.rightoperand.get_discretization())
 
         expression_left=self.smt_triple[0]
         expression_right=self.smt_triple[1]
@@ -310,11 +317,11 @@ class BinOpDist:
         else:
             domain_affine_SMT = left_operand_discr_SMT.affine.perform_affine_operation(self.operator,
                                                                                        right_operand_discr_SMT.affine)
-            self.symbolic_affine = self.leftoperand.symbolic_affine.perform_affine_operation(self.operator,
-                                                                                    self.rightoperand.symbolic_affine)
+            self.symbolic_affine = None #self.leftoperand.symbolic_affine.perform_affine_operation(self.operator,
+                                                                                   # self.rightoperand.symbolic_affine)
             constraint_expression=None
             center_interval=None
-            concrete_symbolic_interval = self.symbolic_affine.compute_interval()
+            concrete_symbolic_interval = None #self.symbolic_affine.compute_interval()
         insides_SMT = []
         tmp_insides_SMT = []
 
@@ -333,7 +340,7 @@ class BinOpDist:
                     interval.perform_interval_operation(self.operator,right_op_box_SMT.interval)
                 intersection_interval = domain_interval.intersection(domain_affine_SMT.interval)
                 if not intersection_interval == empty_interval:
-                    intersection_interval = intersection_interval.intersection(concrete_symbolic_interval)
+                    #intersection_interval = intersection_interval.intersection(concrete_symbolic_interval)
                     if not intersection_interval == empty_interval:
                         tmp_results.append(
                             pool.apply_async(dependentIteration,
@@ -359,9 +366,9 @@ class BinOpDist:
 
         evaluation_points = sorted(evaluation_points)
 
-        if len(evaluation_points)>discretization_points and not self.is_error_computation:
+        if len(evaluation_points) > discretization_points and not self.is_error_computation:
             step = round(len(evaluation_points) / discretization_points)
-            step = max(1,step)
+            step = max(1, step)
             evaluation_points = sorted(set(evaluation_points[::step]+[evaluation_points[-1]]))
 
         lp_inst_SMT=LP_with_SMT(self.leftoperand.name,self.rightoperand.name,
@@ -379,7 +386,7 @@ class BinOpDist:
         val_cdf_low=lower_bound_cdf_val_SMT
         val_cdf_up=upper_bound_cdf_val_SMT
         pboxes=from_DSI_to_PBox(edge_cdf, val_cdf_low, edge_cdf, val_cdf_up)
-        self.discretization =MixedArithmetic.clone_MixedArith_from_Args(domain_affine_SMT, pboxes)
+        self.discretization = MixedArithmetic.clone_MixedArith_from_Args(domain_affine_SMT, pboxes)
 
 
     def executeDependent(self):
@@ -388,34 +395,20 @@ class BinOpDist:
         elif self.dependent_mode == "p-box":
             self._full_mc_dependent_execution()
             self._pbox_dependent_execution()
-            self._min_max_dependent_operation()
 
     def executeIndependent(self):
         self.executeConvolution()
         self.executeIndPBox()
-        self._min_max_independent_operation()
-
-    def _min_max_independent_operation(self):
-        pass
-
-    def _min_max_dependent_operation(self):
-        '''
-        FRED: here you can implement your new methods.
-        You need to add proper fields to the BinOp and UnOp (something like self.min_distribution
-        and self.max_distribution). In a similar way, you probably need to add one or more fields to Uniform/Normal
-        classes in the file model.py. Same thing for the WrapperErrorDistribution.
-        So basically, do the same thing we did for the field "distribution" in BinOp.
-        General rule: in case you need something please ADD IT, do not modify existing code
-        even in case you figure out some information might be redundant.
-        '''
-        pass
+        bounding_pair_operation = BoundingPairOperation(self.operator, self.leftoperand, self.rightoperand)
+        bounding_pair_operation.perform_operation()
+        self.bounding_pair = bounding_pair_operation.output
 
     def executeIndPBox(self):
         left_op=copy.deepcopy(self.leftoperand.get_discretization())
         right_op=copy.deepcopy(self.rightoperand.get_discretization())
         domain_affine = left_op.affine.perform_affine_operation(self.operator, right_op.affine)
-        self.symbolic_affine = self.leftoperand.symbolic_affine.perform_affine_operation\
-                                        (self.operator, self.rightoperand.symbolic_affine)
+        self.symbolic_affine = None #self.leftoperand.symbolic_affine.perform_affine_operation\
+                                        #(self.operator, self.rightoperand.symbolic_affine)
         insiders=[]
         evaluation_points=set()
 
@@ -479,7 +472,7 @@ class BinOpDist:
                 self.symbolic_error=self.leftoperand.symbolic_error
             else:
                 self.compute_error_affine_form()
-                self.compute_error_symbolic_form()
+                #self.compute_error_symbolic_form()
             if self.convolution:
                 self.executeIndependent()
                 self.distributionValues = self.operationDependent()
@@ -670,16 +663,19 @@ class UnOpDist:
 
         self.operand = operand
         self.name = name
-        self.operation=operation
-        self.sampleInit=True
+        self.operation = operation
+        self.sampleInit = True
         self.a = self.distribution.range_()[0]
         self.b = self.distribution.range_()[-1]
-        self.discretization=None
-        self.affine_error=None
-        self.do_quantize_operation=True
-        self.symbolic_error=None
+        self.discretization = None
+        self.approximating_pair = None
+        self.affine_error = None
+        self.do_quantize_operation = True
+        self.symbolic_error = None
         self.symbolic_affine = None
         self.get_discretization()
+        self.bounding_pair = model.BoundingPair()
+        self.bounding_pair.instantiate_from_distribution(self.distribution)
 
     def execute(self):
         return self.distribution
@@ -707,9 +703,605 @@ class UnOpDist:
         return self.name
 
     def get_discretization(self):
-        if self.discretization==None and self.affine_error == None:
+        if self.discretization is None and self.affine_error is None:
             self.discretization = self.distribution.get_discretization()
             self.affine_error = self.distribution.affine_error
             self.symbolic_error = self.distribution.symbolic_error
             self.symbolic_affine=self.distribution.symbolic_affine
         return self.discretization
+
+
+# Class implementing arithmetic between either (i) two BoundingPair objects or
+# (ii) a BoundingPair object and a distribution object
+class BoundingPairOperation:
+    def __init__(self, operation, left_operand, right_operand):
+        self.operation = operation
+        self.left_operand = left_operand
+        self.right_operand = right_operand
+        self.output = None
+        if not (self.left_operand.bounding_pair.is_exact or self.right_operand.bounding_pair.is_exact):
+            if self.left_operand.bounding_pair.n != self.right_operand.bounding_pair.n:
+                raise ValueError("Left and right operand must be approximating pairs of the same length.")
+            else:
+                self.n = self.left_operand.bounding_pair.n
+        elif self.right_operand.bounding_pair.is_exact:
+            self.n = self.left_operand.bounding_pair.n
+        elif self.left_operand.bounding_pair.is_exact:
+            self.n = self.right_operand.bounding_pair.n
+        else:
+            self.n = 0
+        # The error_bound is only used for divisions by a RV whose range includes 0
+        self.error_bound = 0.0
+
+    def perform_operation(self):
+        if self.operation == "+":
+            if not (self.left_operand.bounding_pair.is_exact or self.right_operand.bounding_pair.is_exact):
+                self._perform_AP_Addition(self.left_operand.bounding_pair, self.right_operand.bounding_pair)
+            elif self.right_operand.bounding_pair.is_exact:
+                self._perform_mixed_addition("right")
+            elif self.left_operand.bounding_pair.is_exact:
+                self._perform_mixed_addition("left")
+        elif self.operation == "-":
+            if not (self.left_operand.bounding_pair.is_exact or self.right_operand.bounding_pair.is_exact):
+                self._perform_AP_Subtraction(self.left_operand.bounding_pair, self.right_operand.bounding_pair)
+            elif self.right_operand.bounding_pair.is_exact:
+                self._perform_mixed_subtraction("right")
+            elif self.left_operand.bounding_pair.is_exact:
+                self._perform_mixed_subtraction("left")
+        elif self.operation == "*":
+            if not (self.left_operand.bounding_pair.is_exact or self.right_operand.bounding_pair.is_exact):
+                self._perform_AP_Multiplication(self.left_operand.bounding_pair, self.right_operand.bounding_pair)
+            elif self.right_operand.bounding_pair.is_exact:
+                self._perform_mixed_multiplication("right")
+            elif self.left_operand.bounding_pair.is_exact:
+                self._perform_mixed_multiplcation("left")
+        elif self.operation == "/":
+            if not (self.left_operand.bounding_pair.is_exact or self.right_operand.bounding_pair.is_exact):
+                self._perform_AP_Division(self.left_operand.bounding_pair, self.right_operand.bounding_pair)
+        else:
+            raise ValueError("Operation must be +, - , * or /")
+
+        left_exact = []
+        right_exact = []
+        operation_exact = []
+        Z = self.left_operand.distribution + self.right_operand.distribution
+        for i in range(0, self.n + 1):
+            left_exact.append(self.left_operand.distribution.cdf(self.left_operand.bounding_pair.support[i]))
+            right_exact.append(self.right_operand.distribution.cdf(self.right_operand.bounding_pair.support[i]))
+            operation_exact.append(Z.cdf(self.output.support[i]))
+        plt.close("all")
+        matplotlib.rcParams.update({'font.size': 10})
+        fig, a = plt.subplots(3)
+        a[0].plot(self.left_operand.bounding_pair.support, self.left_operand.bounding_pair.lower_cdf, "r", drawstyle='steps-post')
+        a[0].plot(self.left_operand.bounding_pair.support, self.left_operand.bounding_pair.upper_cdf, "g", drawstyle='steps-pre')
+        a[0].plot(self.left_operand.bounding_pair.support, left_exact, "b")
+        a[0].set_title("Left operand:" + self.left_operand.distribution.getName())
+        a[1].plot(self.right_operand.bounding_pair.support, self.right_operand.bounding_pair.lower_cdf, "r", drawstyle='steps-post')
+        a[1].plot(self.right_operand.bounding_pair.support, self.right_operand.bounding_pair.upper_cdf, "g", drawstyle='steps-pre')
+        a[1].plot(self.right_operand.bounding_pair.support, right_exact, "b")
+        a[1].set_title("Right operand:" + self.left_operand.distribution.getName())
+        a[2].plot(self.output.support, self.output.lower_cdf, "r", drawstyle='steps-post')
+        a[2].plot(self.output.support, self.output.upper_cdf, "g", drawstyle='steps-pre')
+        a[2].plot(self.output.support, operation_exact, "b")
+        a[2].set_title("Operation:" + self.left_operand.distribution.getName() + self.operation + self.right_operand.distribution.getName())
+        plt.show()
+
+    def _perform_AP_Addition(self, left_bp, right_bp):
+        ax = left_bp.a
+        bx = left_bp.b
+        ay = right_bp.a
+        by = right_bp.b
+        # Compute range using interval arithmetic
+        a = ax + ay
+        b = bx + by
+        r = (b - a) / self.n
+        zk = []
+        uzk = []
+        lzk = []
+        zk.append(a)
+        uzk.append(0.0)
+        lzk.append(0.0)
+        for k in range(1, self.n):
+            z = a + (k * r)
+            zk.append(z)
+            l = 0
+            u = 0
+            for i in range(1, self.n + 1):
+                j = self._l_addition(left_bp.support[i], z, right_bp.support)
+                l += (left_bp.lower_cdf[i] - left_bp.upper_cdf[i - 1]) * right_bp.lower_cdf[j]
+                j = self._u_addition(left_bp.support[i - 1], z, right_bp.support)
+                u += (left_bp.upper_cdf[i] - left_bp.lower_cdf[i - 1]) * right_bp.upper_cdf[j]
+            uzk.append(min(u, 1))
+            lzk.append(max(l, 0))
+        zk.append(b)
+        uzk.append(1.0)
+        lzk.append(1.0)
+        self.output = model.BoundingPair()
+        self.output.instantiate_from_arrays(zk, uzk, lzk)
+
+    def _u_addition(self, x, z, y_array):
+        i = 0
+        while i < self.n + 1 and x + y_array[i] < z:
+            i = i + 1
+        if i < self.n + 1:
+            return i
+        else:
+            return self.n
+
+    def _l_addition(self, x, z, y_array):
+        i = self.n
+        while i >= 0 and z < x + y_array[i]:
+            i = i - 1
+        if i >= 0:
+            return i
+        else:
+            return 0
+
+    def _perform_AP_Subtraction(self, left_bp, right_bp):
+        ax = self.left_operand.a
+        bx = self.left_operand.b
+        ay = self.right_operand.a
+        by = self.right_operand.b
+        # Compute range using interval arithmetic
+        a = ax - by
+        b = bx - ay
+        r = (b - a) / (self.n - 1)
+        zk = []
+        uzk = []
+        lzk = []
+        zk.append(a)
+        uzk.append(0.0)
+        lzk.append(0.0)
+        for k in range(1, self.n):
+            z = a + (k * r)
+            zk.append(z)
+            l = 0
+            u = 0
+            for i in range(1, self.n):
+                j = self._l_subtraction(self.left_operand.range_array[i], z, self.right_operand.range_array)
+                l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * (
+                        1 - self.right_operand.upper_array[j])
+                j = self._u_subtraction(self.left_operand.range_array[i - 1], z, self.right_operand.range_array)
+                u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * (
+                        1 - self.right_operand.lower_array[j])
+            uzk.append(min(u, 1))
+            lzk.append(max(l, 0))
+        self.output = model.BoundingPair()
+        self.output.instantiate_from_arrays(zk, uzk, lzk)
+
+    def _u_subtraction(self, x, z, y_array):
+        i = self.n - 1
+        while i >= 0 and x - z < y_array[i]:
+            i = i - 1
+        if i >= 0:
+            return i
+        else:
+            return 0
+
+    def _l_subtraction(self, x, z, y_array):
+        i = 0
+        while i < self.n and y_array[i] < x - z:
+            i = i + 1
+        if i < self.n:
+            return i
+        else:
+            return self.n - 1
+
+    # {PRECONDITION: if 0 is in the range of left_operand then 0 must be a point of discontinuity of left_operand}
+    def _perform_AP_Multiplication(self, left_bp, right_bp):
+        ax = self.left_operand.a
+        bx = self.left_operand.b
+        ay = self.right_operand.a
+        by = self.right_operand.b
+        # Compute range using interval arithmetic
+        a = min(ax * ay, ax * by, bx * ay, bx * by)
+        b = max(ax * ay, ax * by, bx * ay, bx * by)
+        r = (b - a) / (self.n - 1)
+        zk = []
+        uzk = []
+        lzk = []
+        zk.append(a)
+        uzk.append(0.0)
+        lzk.append(0.0)
+        for k in range(1, self.n):
+            z = a + (k * r)
+            zk.append(z)
+            l = 0
+            u = 0
+            if z >= 0:
+                for i in range(1, self.n):
+                    if 0 <= self.left_operand.range_array[i - 1]:
+                        j = self._l_multiplication(self.left_operand.range_array[i], z,
+                                                   self.right_operand.range_array)
+                        l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
+                             self.right_operand.lower_array[j]
+                        j = self._u_multiplication(self.left_operand.range_array[i - 1], z,
+                                                   self.right_operand.range_array)
+                        u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
+                             self.right_operand.upper_array[j]
+                    elif self.left_operand.range_array[i] <= 0:
+                        j = self._l_multiplication(self.left_operand.range_array[i - 1], z,
+                                                   self.right_operand.range_array)
+                        l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
+                             (1 - self.right_operand.upper_array[j])
+                        j = self._u_multiplication(self.left_operand.range_array[i], z,
+                                                   self.right_operand.range_array)
+                        u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
+                             (1 - self.right_operand.lower_array[j])
+                    else:
+                        raise ValueError("0 must be a discontinuity point")
+            else:
+                for i in range(1, self.n):
+                    if 0 <= self.left_operand.range_array[i - 1]:
+                        j = self._l_multiplication(self.left_operand.range_array[i], z,
+                                                   self.right_operand.range_array)
+                        l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
+                             self.right_operand.upper_array[j]
+                        j = self._u_multiplication(self.left_operand.range_array[i - 1], z,
+                                                   self.right_operand.range_array)
+                        u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
+                             self.right_operand.upper_array[j]
+                    elif self.left_operand.range_array[i] <= 0:
+                        j = self._l_multiplication(self.left_operand.range_array[i], z,
+                                                   self.right_operand.range_array)
+                        l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
+                             (1 - self.right_operand.upper_array[j])
+                        j = self._u_multiplication(self.left_operand.range_array[i - 1], z,
+                                                   self.right_operand.range_array)
+                        u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
+                             (1 - self.right_operand.lower_array[j])
+                    else:
+                        raise ValueError("0 must be a discontinuity point")
+            uzk.append(min(u, 1))
+            lzk.append(max(l, 0))
+        self.output = model.BoundingPair()
+        self.output.instantiate_from_arrays(zk, uzk, lzk)
+
+    def _u_multiplication(self, x, z, y_array):
+        if x >= 0:
+            i = self.n - 1
+            while i >= 0 and z / x <= y_array[i]:
+                i = i - 1
+            if i >= 0:
+                return i
+            else:
+                return 0
+        else:
+            i = 0
+            while i < self.n and y_array[i] < z / x:
+                i = i + 1
+            if i < self.n:
+                return i
+            else:
+                return self.n - 1
+
+    def _l_multiplication(self, x, z, y_array):
+        if x >= 0:
+            i = 0
+            while i < self.n and y_array[i] < z / x:
+                i = i + 1
+            if i < self.n:
+                return i
+            else:
+                return self.n - 1
+        else:
+            i = self.n - 1
+            while i >= 0 and z / x <= y_array[i]:
+                i = i - 1
+            if i >= 0:
+                return i
+            else:
+                return 0
+
+    # {INFORMAL PRECONDITION: if the range of the right operand Y contains 0, then there must exist discontinuity points
+    # u,v just below and just above 0 such that the probability that Y lies between u and v is small.
+    # This is because the routine is going to remove the mass in this interval}
+    # {PRECONDITION: if 0 is in the range of left_operand then 0 must be a point of discontinuity of left_operand}
+    def _perform_AP_Division(self, left_bp, right_bp):
+        ax = self.left_operand.a
+        bx = self.left_operand.b
+        ay = self.right_operand.a
+        by = self.right_operand.b
+        # Compute the upper or lower cdf of the right operand at zero and the range of values
+        if ay < 0 < by:
+            i = 0
+            while self.right_operand.range_array[i] < 0:
+                i += 1
+            y_plus_0 = self.right_operand.upper_array[i - 1]
+            y_minus_0 = self.right_operand.lower_array[i - 1]
+            u = self.right_operand.range_array[i - 1]
+            if self.right_operand.range_array[i] == 0:
+                imax = i + 1
+            else:
+                imax = i
+            v = self.right_operand.range_array[imax]
+            a = min(ax / u, ax / v, bx / u, bx / v)
+            b = max(ax / u, ax / v, bx / u, bx / v)
+            self.error_bound = self.right_operand.upper_array[imax] - self.right_operand.lower_array[i-1]
+        else:
+            a = min(ax / ay, ax / by, bx / ay, bx / by)
+            b = max(ax / ay, ax / by, bx / ay, bx / by)
+            if 0 < ay:
+                y_plus_0 = 0
+                y_minus_0 = 0
+            elif by < 1:
+                y_plus_0 = 1
+                y_minus_0 = 1
+        r = (b - a) / (self.n - 1)
+        zk = []
+        uzk = []
+        lzk = []
+        zk.append(a)
+        uzk.append(0.0)
+        lzk.append(0.0)
+        for k in range(1, self.n):
+            z = a + (k * r)
+            zk.append(z)
+            l = 0
+            u = 0
+            if z >= 0:
+                for i in range(1, self.n):
+                    if 0 <= self.left_operand.range_array[i - 1]:
+                        j = self._l_division(self.left_operand.range_array[i], z,
+                                             self.right_operand.range_array)
+                        l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
+                             ((1 - self.right_operand.upper_array[j]) + y_minus_0)
+                        j = self._u_division(self.left_operand.range_array[i - 1], z,
+                                             self.right_operand.range_array)
+                        u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
+                             ((1 - self.right_operand.lower_array[j]) + y_plus_0)
+                    elif self.left_operand.range_array[i] <= 0:
+                        j = self._l_division(self.left_operand.range_array[i - 1], z,
+                                             self.right_operand.range_array)
+                        l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
+                             (self.right_operand.lower_array[j] + (1 - y_plus_0))
+                        j = self._u_division(self.left_operand.range_array[i], z,
+                                             self.right_operand.range_array)
+                        u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
+                             (self.right_operand.upper_array[j] + (1 - y_minus_0))
+                    else:
+                        raise ValueError("0 must be a discontinuity point")
+            else:
+                for i in range(1, self.n):
+                    if 0 <= self.left_operand.range_array[i - 1]:
+                        j = self._l_division(self.left_operand.range_array[i - 1], z,
+                                             self.right_operand.range_array)
+                        l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
+                             (y_plus_0 - self.right_operand.upper_array[j])
+                        j = self._u_division(self.left_operand.range_array[i], z,
+                                             self.right_operand.range_array)
+                        u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
+                             (y_minus_0 - self.right_operand.lower_array[j])
+                    elif self.left_operand.range_array[i] <= 0:
+                        j = self._l_division(self.left_operand.range_array[i], z,
+                                             self.right_operand.range_array)
+                        l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
+                             (self.right_operand.lower_array[j] - y_plus_0)
+                        j = self._u_division(self.left_operand.range_array[i - 1], z,
+                                             self.right_operand.range_array)
+                        u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
+                             (self.right_operand.upper_array[j] - y_minus_0)
+                    else:
+                        raise ValueError("0 must be a discontinuity point")
+            uzk.append(min(u, 1))
+            lzk.append(max(l, 0))
+        self.output = model.BoundingPair()
+        self.output.instantiate_from_arrays(zk, uzk, lzk)
+
+    def _u_division(self, x, z, y_array):
+        if x < 0:
+            i = self.n - 1
+            while i >= 0 and x / z <= y_array[i]:
+                i = i - 1
+            if i >= 0:
+                return i
+            else:
+                return 0
+        else:
+            i = 0
+            while i < self.n and y_array[i] < x / z:
+                i = i + 1
+            if i < self.n:
+                return i
+            else:
+                return self.n - 1
+
+    def _l_division(self, x, z, y_array):
+        if x < 0:
+            i = 0
+            while i < self.n and y_array[i] < x / z:
+                i = i + 1
+            if i < self.n:
+                return i
+            else:
+                return self.n - 1
+        else:
+            i = self.n - 1
+            while i >= 0 and x / z <= y_array[i]:
+                i = i - 1
+            if i >= 0:
+                return i
+            else:
+                return 0
+
+    def _perform_mixed_addition(self, exact_side="left"):
+        if exact_side == "left":
+            ax = self.left_operand.range_()[0]
+            bx = self.left_operand.range_()[1]
+            ay = self.right_operand.a
+            by = self.right_operand.b
+        else:
+            ax = self.left_operand.a
+            bx = self.left_operand.b
+            ay = self.right_operand.range_()[0]
+            by = self.right_operand.range_()[1]
+        # Compute range using interval arithmetic
+        a = ax + ay
+        b = bx + by
+        r = (b - a) / (self.n - 1)
+        zk = []
+        uzk = []
+        lzk = []
+        zk.append(a)
+        uzk.append(0.0)
+        lzk.append(0.0)
+        for k in range(1, self.n):
+            z = a + (k * r)
+            zk.append(z)
+            l = 0
+            u = 0
+            if exact_side == "left":
+                l += self.left_operand.cdf(z - by) - self.left_operand.cdf(ax)
+                u = l
+            else:
+                l += self.right_operand.cdf(z - bx) - self.right_operand.cdf(ay)
+                u = l
+            for i in range(1, self.n):
+                if exact_side == "left":
+                    px = self.left_operand.cdf(z - self.right_operand.range_array[i - 1]) - \
+                         self.left_operand.cdf(z - self.right_operand.range_array[i])
+                    l += self.right_operand.lower_array[i - 1] * px
+                    u += self.right_operand.upper_array[i] * px
+                else:
+                    py = self.right_operand.cdf(z - self.left_operand.range_array[i - 1]) - \
+                         self.right_operand.cdf(z - self.left_operand.range_array[i])
+                    l += self.left_operand.lower_array[i - 1] * py
+                    u += self.left_operand.upper_array[i] * py
+            uzk.append(min(u, 1))
+            lzk.append(max(l, 0))
+        self.output = model.BoundingPair()
+        self.output.instantiate_from_arrays(zk, uzk, lzk)
+
+    def _perform_mixed_subtraction(self, exact_side="left"):
+        if exact_side == "left":
+            ax = self.left_operand.range_()[0]
+            bx = self.left_operand.range_()[1]
+            ay = self.right_operand.a
+            by = self.right_operand.b
+        else:
+            ax = self.left_operand.a
+            bx = self.left_operand.b
+            ay = self.right_operand.range_()[0]
+            by = self.right_operand.range_()[1]
+        # Compute range using interval arithmetic
+        a = ax - by
+        b = bx - ay
+        r = (b - a) / (self.n - 1)
+        zk = []
+        uzk = []
+        lzk = []
+        zk.append(a)
+        uzk.append(0.0)
+        lzk.append(0.0)
+        for k in range(1, self.n):
+            z = a + (k * r)
+            zk.append(z)
+            l = 0
+            u = 0
+            if exact_side == "left":
+                l += self.left_operand.cdf(ay + z)
+                u = l
+            else:
+                l += self.right_operand.cdf(by) - self.right_operand.cdf(bx - z)
+                u = l
+            for i in range(1, self.n):
+                if exact_side == "left":
+                    px = self.left_operand.cdf(self.right_operand.range_array[i] + z) - \
+                         self.left_operand.cdf(self.right_operand.range_array[i - 1] + z)
+                    l += (1 - self.right_operand.upper_array[i]) * px
+                    u += (1 - self.right_operand.lower_array[i - 1]) * px
+                else:
+                    py = self.right_operand.cdf(self.left_operand.range_array[i] - z) - \
+                         self.right_operand.cdf(self.left_operand.range_array[i - 1] - z)
+                    l += self.left_operand.lower_array[i - 1] * py
+                    u += self.left_operand.upper_array[i] * py
+            uzk.append(min(u, 1))
+            lzk.append(max(l, 0))
+        self.output = model.BoundingPair()
+        self.output.instantiate_from_arrays(zk, uzk, lzk)
+
+    def _perform_mixed_multiplication(self, exact_side="left"):
+        if exact_side == "left":
+            ax = self.left_operand.range_()[0]
+            bx = self.left_operand.range_()[1]
+            ay = self.right_operand.a
+            by = self.right_operand.b
+            sign_change = 0
+            while (self.right_operand.range_array[sign_change]) < 0:
+                sign_change += 1
+        else:
+            ax = self.left_operand.a
+            bx = self.left_operand.b
+            ay = self.right_operand.range_()[0]
+            by = self.right_operand.range_()[1]
+            # Find if and where the left operand changes sign
+            sign_change = 0
+            while (self.left_operand.range_array[sign_change]) < 0:
+                sign_change += 1
+        # Compute range using interval arithmetic
+        a = min(ax * ay, ax * by, bx * ay, bx * by)
+        b = max(ax * ay, ax * by, bx * ay, bx * by)
+        r = (b - a) / (self.n - 1)
+        zk = []
+        uzk = []
+        lzk = []
+        zk.append(a)
+        uzk.append(0.0)
+        lzk.append(0.0)
+        for k in range(1, self.n - 1):
+            z = a + (k * r)
+            zk.append(z)
+            if z >= 0:
+                l = self.right_operand.cdf(0) + (self.right_operand.cdf(z / bx) - self.right_operand.cdf(max(0, ay)))
+                u = l
+                if self.left_operand.range_array[sign_change] != 0:
+                    l += self.left_operand.lower_array[sign_change] * \
+                        (1 - self.right_operand.cdf(z / self.left_operand.range_array[sign_change]))
+                    u += self.left_operand.upper_array[sign_change] * \
+                        (1 - self.right_operand.cdf(z / self.left_operand.range_array[sign_change]))
+                for i in range(1, self.n):
+                    if 0 <= self.left_operand.range_array[i - 1]:
+                        if self.left_operand.range_array[i - 1] != 0:
+                            py = (self.right_operand.cdf(z / self.left_operand.range_array[i - 1]) -
+                                  self.right_operand.cdf(z / self.left_operand.range_array[i]))
+                        else:
+                            py = 1 - self.right_operand.cdf(z / self.left_operand.range_array[i])
+                        l += self.left_operand.lower_array[i - 1] * py
+                        u += self.left_operand.upper_array[i] * py
+                    elif self.left_operand.range_array[i] <= 0:
+                        if self.left_operand.range_array[i] != 0:
+                            py = (self.right_operand.cdf(z / self.left_operand.range_array[i - 1]) -
+                                  self.right_operand.cdf(z / self.left_operand.range_array[i]))
+                        else:
+                            py = self.right_operand.cdf(z / self.left_operand.range_array[i - 1])
+                        l -= self.left_operand.upper_array[i] * py
+                        u -= self.left_operand.lower_array[i - 1] * py
+            else:
+                l = self.right_operand.cdf(0) - (self.right_operand.cdf(min(0, by)) - self.right_operand.cdf(z / bx))
+                u = l
+                if self.left_operand.range_array[sign_change] != 0:
+                    l -= self.left_operand.upper_array[sign_change] * \
+                        (self.right_operand.cdf(z / self.left_operand.range_array[sign_change]))
+                    u -= self.left_operand.lower_array[sign_change] * \
+                        (self.right_operand.cdf(z / self.left_operand.range_array[sign_change]))
+                for i in range(1, self.n):
+                    if 0 <= self.left_operand.range_array[i - 1]:
+                        if self.left_operand.range_array[i] != 0 and self.left_operand.range_array[i - 1] != 0:
+                            py = (self.right_operand.cdf(z / self.left_operand.range_array[i]) -
+                                  self.right_operand.cdf(z / self.left_operand.range_array[i - 1]))
+                            l -= self.left_operand.upper_array[i] * py
+                            u -= self.left_operand.lower_array[i - 1] * py
+                    elif self.left_operand.range_array[i] <= 0:
+                        if self.left_operand.range_array[i] != 0 and self.left_operand.range_array[i-1] != 0:
+                            py = (self.right_operand.cdf(z / self.left_operand.range_array[i]) -
+                                  self.right_operand.cdf(z / self.left_operand.range_array[i - 1]))
+                            l += self.left_operand.lower_array[i - 1] * py
+                            u += self.left_operand.upper_array[i] * py
+            uzk.append(min(u, 1))
+            lzk.append(max(l, 0))
+        zk.append(b)
+        uzk.append(1)
+        lzk.append(1)
+        self.output = model.BoundingPair()
+        self.output.instantiate_from_arrays(zk, uzk, lzk)
+

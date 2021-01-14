@@ -40,10 +40,10 @@ digits_for_range=50
 digits_for_input_cdf=10
 digits_for_Z3_cdf=10
 
-discretization_points=50
-hard_timeout= 10
-soft_timeout= hard_timeout * 1000
-eps_for_LP= 2**-20
+discretization_points = 16
+hard_timeout = 10
+soft_timeout = hard_timeout * 1000
+eps_for_LP = 2**-20
 divisions_SMT_pruning_operation=10
 valid_for_exit_SMT_pruning_operation=6
 divisions_SMT_pruning_error=10
