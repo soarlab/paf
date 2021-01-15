@@ -764,7 +764,7 @@ class BoundingPairOperation:
         left_exact = []
         right_exact = []
         operation_exact = []
-        Z = self.left_operand.distribution - self.right_operand.distribution
+        Z = self.left_operand.distribution * self.right_operand.distribution
         for i in range(0, self.n + 1):
             left_exact.append(self.left_operand.distribution.cdf(self.left_operand.bounding_pair.support[i]))
             right_exact.append(self.right_operand.distribution.cdf(self.right_operand.bounding_pair.support[i]))
@@ -892,14 +892,14 @@ class BoundingPairOperation:
 
     # {PRECONDITION: if 0 is in the range of left_operand then 0 must be a point of discontinuity of left_operand}
     def _perform_AP_Multiplication(self, left_bp, right_bp):
-        ax = self.left_operand.a
-        bx = self.left_operand.b
-        ay = self.right_operand.a
-        by = self.right_operand.b
+        ax = left_bp.a
+        bx = left_bp.b
+        ay = right_bp.a
+        by = right_bp.b
         # Compute range using interval arithmetic
         a = min(ax * ay, ax * by, bx * ay, bx * by)
         b = max(ax * ay, ax * by, bx * ay, bx * by)
-        r = (b - a) / (self.n - 1)
+        r = (b - a) / self.n
         zk = []
         uzk = []
         lzk = []
@@ -912,57 +912,44 @@ class BoundingPairOperation:
             l = 0
             u = 0
             if z >= 0:
-                for i in range(1, self.n):
-                    if 0 <= self.left_operand.range_array[i - 1]:
-                        j = self._l_multiplication(self.left_operand.range_array[i], z,
-                                                   self.right_operand.range_array)
-                        l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
-                             self.right_operand.lower_array[j]
-                        j = self._u_multiplication(self.left_operand.range_array[i - 1], z,
-                                                   self.right_operand.range_array)
-                        u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
-                             self.right_operand.upper_array[j]
-                    elif self.left_operand.range_array[i] <= 0:
-                        j = self._l_multiplication(self.left_operand.range_array[i - 1], z,
-                                                   self.right_operand.range_array)
-                        l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
-                             (1 - self.right_operand.upper_array[j])
-                        j = self._u_multiplication(self.left_operand.range_array[i], z,
-                                                   self.right_operand.range_array)
-                        u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
-                             (1 - self.right_operand.lower_array[j])
+                for i in range(1, self.n + 1):
+                    if 0 <= left_bp.support[i - 1]:
+                        j = self._l_multiplication(left_bp.support[i], z, right_bp.support)
+                        l += (left_bp.lower_cdf[i] - left_bp.upper_cdf[i - 1]) * right_bp.lower_cdf[j]
+                        j = self._u_multiplication(left_bp.support[i - 1], z, right_bp.support)
+                        u += (left_bp.upper_cdf[i] - left_bp.lower_cdf[i - 1]) * right_bp.upper_cdf[j]
+                    elif left_bp.support[i] <= 0:
+                        j = self._l_multiplication(left_bp.support[i - 1], z, right_bp.support)
+                        l += (left_bp.lower_cdf[i] - left_bp.upper_cdf[i - 1]) * (1 - right_bp.upper_cdf[j])
+                        j = self._u_multiplication(left_bp.support[i], z, right_bp.support)
+                        u += (left_bp.upper_cdf[i] - left_bp.lower_cdf[i - 1]) * (1 - right_bp.lower_cdf[j])
                     else:
                         raise ValueError("0 must be a discontinuity point")
             else:
-                for i in range(1, self.n):
-                    if 0 <= self.left_operand.range_array[i - 1]:
-                        j = self._l_multiplication(self.left_operand.range_array[i], z,
-                                                   self.right_operand.range_array)
-                        l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
-                             self.right_operand.upper_array[j]
-                        j = self._u_multiplication(self.left_operand.range_array[i - 1], z,
-                                                   self.right_operand.range_array)
-                        u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
-                             self.right_operand.upper_array[j]
-                    elif self.left_operand.range_array[i] <= 0:
-                        j = self._l_multiplication(self.left_operand.range_array[i], z,
-                                                   self.right_operand.range_array)
-                        l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
-                             (1 - self.right_operand.upper_array[j])
-                        j = self._u_multiplication(self.left_operand.range_array[i - 1], z,
-                                                   self.right_operand.range_array)
-                        u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
-                             (1 - self.right_operand.lower_array[j])
+                for i in range(1, self.n + 1):
+                    if 0 <= left_bp.support[i - 1]:
+                        j = self._l_multiplication(left_bp.support[i], z, right_bp.support)
+                        l += (left_bp.lower_cdf[i] - left_bp.upper_cdf[i - 1]) * right_bp.lower_cdf[j]
+                        j = self._u_multiplication(left_bp.support[i - 1], z, right_bp.support)
+                        u += (left_bp.upper_cdf[i] - left_bp.lower_cdf[i - 1]) * right_bp.upper_cdf[j]
+                    elif left_bp.support[i] <= 0:
+                        j = self._l_multiplication(left_bp.support[i], z, right_bp.support)
+                        l += (left_bp.lower_cdf[i] - left_bp.upper_cdf[i - 1]) * (1 - right_bp.upper_cdf[j])
+                        j = self._u_multiplication(left_bp.support[i - 1], z, right_bp.support)
+                        u += (left_bp.upper_cdf[i] - left_bp.lower_cdf[i - 1]) * (1 - right_bp.lower_cdf[j])
                     else:
                         raise ValueError("0 must be a discontinuity point")
             uzk.append(min(u, 1))
             lzk.append(max(l, 0))
+        zk.append(b)
+        uzk.append(1.0)
+        lzk.append(1.0)
         self.output = model.BoundingPair()
         self.output.instantiate_from_arrays(zk, lzk, uzk)
 
     def _u_multiplication(self, x, z, y_array):
         if x >= 0:
-            i = self.n - 1
+            i = self.n
             while i >= 0 and z / x <= y_array[i]:
                 i = i - 1
             if i >= 0:
@@ -971,24 +958,24 @@ class BoundingPairOperation:
                 return 0
         else:
             i = 0
-            while i < self.n and y_array[i] < z / x:
+            while i < self.n + 1 and y_array[i] < z / x:
                 i = i + 1
-            if i < self.n:
+            if i < self.n + 1:
                 return i
             else:
-                return self.n - 1
+                return self.n
 
     def _l_multiplication(self, x, z, y_array):
         if x >= 0:
             i = 0
-            while i < self.n and y_array[i] < z / x:
+            while i < self.n + 1 and y_array[i] < z / x:
                 i = i + 1
-            if i < self.n:
+            if i < self.n + 1:
                 return i
             else:
-                return self.n - 1
+                return self.n
         else:
-            i = self.n - 1
+            i = self.n
             while i >= 0 and z / x <= y_array[i]:
                 i = i - 1
             if i >= 0:
