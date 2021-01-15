@@ -399,7 +399,12 @@ class BinOpDist:
     def executeIndependent(self):
         self.executeConvolution()
         self.executeIndPBox()
-        bounding_pair_operation = BoundingPairOperation(self.operator, self.leftoperand, self.rightoperand)
+        # operator to multiply by a relative error
+        if self.operator == "*+":
+            error = 1.0 + (self.rightoperand.unit_roundoff * self.rightoperand.execute())
+            bounding_pair_operation = BoundingPairOperation("*", self.leftoperand, error)
+        else:
+            bounding_pair_operation = BoundingPairOperation(self.operator, self.leftoperand, self.rightoperand)
         bounding_pair_operation.perform_operation()
         self.bounding_pair = bounding_pair_operation.output
 
@@ -734,30 +739,32 @@ class BoundingPairOperation:
         self.error_bound = 0.0
 
     def perform_operation(self):
+        self.left_operand.bounding_pair.set_exactness(True)
+        #self.right_operand.bounding_pair.set_exactness(True)
         if self.operation == "+":
             if not (self.left_operand.bounding_pair.is_exact or self.right_operand.bounding_pair.is_exact):
-                self._perform_AP_Addition(self.left_operand.bounding_pair, self.right_operand.bounding_pair)
+                self._perform_bp_addition(self.left_operand.bounding_pair, self.right_operand.bounding_pair)
             elif self.right_operand.bounding_pair.is_exact:
-                self._perform_mixed_addition("right")
+                self._perform_mixed_addition("right", self.left_operand.bounding_pair, self.right_operand.distribution)
             elif self.left_operand.bounding_pair.is_exact:
-                self._perform_mixed_addition("left")
+                self._perform_mixed_addition("left", self.left_operand.distribution, self.right_operand.bounding_pair)
         elif self.operation == "-":
             if not (self.left_operand.bounding_pair.is_exact or self.right_operand.bounding_pair.is_exact):
-                self._perform_AP_Subtraction(self.left_operand.bounding_pair, self.right_operand.bounding_pair)
+                self._perform_bp_subtraction(self.left_operand.bounding_pair, self.right_operand.bounding_pair)
             elif self.right_operand.bounding_pair.is_exact:
-                self._perform_mixed_subtraction("right")
+                self._perform_mixed_subtraction("right", self.left_operand.bounding_pair, self.right_operand.distribution)
             elif self.left_operand.bounding_pair.is_exact:
-                self._perform_mixed_subtraction("left")
+                self._perform_mixed_subtraction("left", self.left_operand.distribution, self.right_operand.bounding_pair)
         elif self.operation == "*":
             if not (self.left_operand.bounding_pair.is_exact or self.right_operand.bounding_pair.is_exact):
-                self._perform_AP_Multiplication(self.left_operand.bounding_pair, self.right_operand.bounding_pair)
+                self._perform_bp_multiplication(self.left_operand.bounding_pair, self.right_operand.bounding_pair)
             elif self.right_operand.bounding_pair.is_exact:
-                self._perform_mixed_multiplication("right")
+                self._perform_mixed_multiplication("right", self.left_operand.bounding_pair, self.right_operand.distribution)
             elif self.left_operand.bounding_pair.is_exact:
-                self._perform_mixed_multiplcation("left")
+                self._perform_mixed_multiplication("left", self.left_operand.distribution, self.right_operand.bounding_pair)
         elif self.operation == "/":
             if not (self.left_operand.bounding_pair.is_exact or self.right_operand.bounding_pair.is_exact):
-                self._perform_AP_Division(self.left_operand.bounding_pair, self.right_operand.bounding_pair)
+                self._perform_bp_division(self.left_operand.bounding_pair, self.right_operand.bounding_pair)
         else:
             raise ValueError("Operation must be +, - , * or /")
 
@@ -785,8 +792,9 @@ class BoundingPairOperation:
         a[2].plot(self.output.support, operation_exact, "b")
         a[2].set_title("Operation:" + self.left_operand.distribution.getName() + self.operation + self.right_operand.distribution.getName())
         plt.show()
+        exit(0)
 
-    def _perform_AP_Addition(self, left_bp, right_bp):
+    def _perform_bp_addition(self, left_bp, right_bp):
         ax = left_bp.a
         bx = left_bp.b
         ay = right_bp.a
@@ -839,7 +847,7 @@ class BoundingPairOperation:
         else:
             return 0
 
-    def _perform_AP_Subtraction(self, left_bp, right_bp):
+    def _perform_bp_subtraction(self, left_bp, right_bp):
         ax = left_bp.a
         bx = left_bp.b
         ay = right_bp.a
@@ -891,7 +899,7 @@ class BoundingPairOperation:
             return self.n
 
     # {PRECONDITION: if 0 is in the range of left_operand then 0 must be a point of discontinuity of left_operand}
-    def _perform_AP_Multiplication(self, left_bp, right_bp):
+    def _perform_bp_multiplication(self, left_bp, right_bp):
         ax = left_bp.a
         bx = left_bp.b
         ay = right_bp.a
@@ -912,28 +920,48 @@ class BoundingPairOperation:
             l = 0
             u = 0
             if z >= 0:
-                for i in range(1, self.n + 1):
-                    if 0 <= left_bp.support[i - 1]:
-                        j = self._l_multiplication(left_bp.support[i], z, right_bp.support)
-                        l += (left_bp.lower_cdf[i] - left_bp.upper_cdf[i - 1]) * right_bp.lower_cdf[j]
-                        j = self._u_multiplication(left_bp.support[i - 1], z, right_bp.support)
-                        u += (left_bp.upper_cdf[i] - left_bp.lower_cdf[i - 1]) * right_bp.upper_cdf[j]
-                    elif left_bp.support[i] <= 0:
-                        j = self._l_multiplication(left_bp.support[i - 1], z, right_bp.support)
-                        l += (left_bp.lower_cdf[i] - left_bp.upper_cdf[i - 1]) * (1 - right_bp.upper_cdf[j])
-                        j = self._u_multiplication(left_bp.support[i], z, right_bp.support)
-                        u += (left_bp.upper_cdf[i] - left_bp.lower_cdf[i - 1]) * (1 - right_bp.lower_cdf[j])
-                    else:
-                        raise ValueError("0 must be a discontinuity point")
+                if z == 0:
+                    left_zero_d = left_bp.evaluate_lower(0)
+                    left_zero_u = left_bp.evaluate_upper(0)
+                    right_zero_d = right_bp.evaluate_lower(0)
+                    right_zero_u = right_bp.evaluate_upper(0)
+                    l = 1 + 2 * left_zero_d * right_zero_d - left_zero_u - right_zero_u
+                    u = 1 + 2 * left_zero_u * right_zero_u - left_zero_d - right_zero_d
+                else:
+                    for i in range(1, self.n + 1):
+                        if 0 <= left_bp.support[i - 1]:
+                            j = self._l_multiplication(left_bp.support[i], z, right_bp.support)
+                            l += (left_bp.lower_cdf[i] - left_bp.upper_cdf[i - 1]) * right_bp.lower_cdf[j]
+                            if left_bp.support[i - 1] == 0:
+                                j = self.n
+                            else:
+                                j = self._u_multiplication(left_bp.support[i - 1], z, right_bp.support)
+                            u += (left_bp.upper_cdf[i] - left_bp.lower_cdf[i - 1]) * right_bp.upper_cdf[j]
+                        elif left_bp.support[i] <= 0:
+                            j = self._l_multiplication(left_bp.support[i - 1], z, right_bp.support)
+                            l += (left_bp.lower_cdf[i] - left_bp.upper_cdf[i - 1]) * (1 - right_bp.upper_cdf[j])
+                            if left_bp.support[i] == 0:
+                                j = 0
+                            else:
+                                j = self._u_multiplication(left_bp.support[i], z, right_bp.support)
+                            u += (left_bp.upper_cdf[i] - left_bp.lower_cdf[i - 1]) * (1 - right_bp.lower_cdf[j])
+                        else:
+                            raise ValueError("0 must be a discontinuity point")
             else:
                 for i in range(1, self.n + 1):
                     if 0 <= left_bp.support[i - 1]:
                         j = self._l_multiplication(left_bp.support[i], z, right_bp.support)
                         l += (left_bp.lower_cdf[i] - left_bp.upper_cdf[i - 1]) * right_bp.lower_cdf[j]
-                        j = self._u_multiplication(left_bp.support[i - 1], z, right_bp.support)
+                        if left_bp.support[i - 1] == 0:
+                            j = 0
+                        else:
+                            j = self._u_multiplication(left_bp.support[i - 1], z, right_bp.support)
                         u += (left_bp.upper_cdf[i] - left_bp.lower_cdf[i - 1]) * right_bp.upper_cdf[j]
                     elif left_bp.support[i] <= 0:
-                        j = self._l_multiplication(left_bp.support[i], z, right_bp.support)
+                        if left_bp.support[i] == 0:
+                            j = self.n
+                        else:
+                            j = self._l_multiplication(left_bp.support[i], z, right_bp.support)
                         l += (left_bp.lower_cdf[i] - left_bp.upper_cdf[i - 1]) * (1 - right_bp.upper_cdf[j])
                         j = self._u_multiplication(left_bp.support[i - 1], z, right_bp.support)
                         u += (left_bp.upper_cdf[i] - left_bp.lower_cdf[i - 1]) * (1 - right_bp.lower_cdf[j])
@@ -952,62 +980,62 @@ class BoundingPairOperation:
             i = self.n
             while i >= 0 and z / x <= y_array[i]:
                 i = i - 1
-            if i >= 0:
-                return i
+            if i < self.n:
+                return i + 1
             else:
-                return 0
+                return i
         else:
             i = 0
-            while i < self.n + 1 and y_array[i] < z / x:
+            while i < self.n + 1 and y_array[i] <= z / x:
                 i = i + 1
-            if i < self.n + 1:
-                return i
+            if i == 0:
+                return 0
             else:
-                return self.n
+                return i - 1
 
     def _l_multiplication(self, x, z, y_array):
         if x >= 0:
             i = 0
-            while i < self.n + 1 and y_array[i] < z / x:
+            while i < self.n + 1 and y_array[i] <= z / x:
                 i = i + 1
-            if i < self.n + 1:
-                return i
+            if i == 0:
+                return 0
             else:
-                return self.n
+                return i - 1
         else:
             i = self.n
             while i >= 0 and z / x <= y_array[i]:
                 i = i - 1
-            if i >= 0:
-                return i
+            if i < self.n:
+                return i + 1
             else:
-                return 0
+                return i
 
     # {INFORMAL PRECONDITION: if the range of the right operand Y contains 0, then there must exist discontinuity points
     # u,v just below and just above 0 such that the probability that Y lies between u and v is small.
     # This is because the routine is going to remove the mass in this interval}
     # {PRECONDITION: if 0 is in the range of left_operand then 0 must be a point of discontinuity of left_operand}
-    def _perform_AP_Division(self, left_bp, right_bp):
-        ax = self.left_operand.a
-        bx = self.left_operand.b
-        ay = self.right_operand.a
-        by = self.right_operand.b
+    def _perform_bp_division(self, left_bp, right_bp):
+        ax = left_bp.a
+        bx = left_bp.b
+        ay = right_bp.a
+        by = right_bp.b
         # Compute the upper or lower cdf of the right operand at zero and the range of values
         if ay < 0 < by:
             i = 0
-            while self.right_operand.range_array[i] < 0:
+            while right_bp.support[i] < 0:
                 i += 1
-            y_plus_0 = self.right_operand.upper_array[i - 1]
-            y_minus_0 = self.right_operand.lower_array[i - 1]
-            u = self.right_operand.range_array[i - 1]
-            if self.right_operand.range_array[i] == 0:
+            y_plus_0 = right_bp.upper_cdf[i - 1]
+            y_minus_0 = right_bp.lower_cdf[i - 1]
+            u = right_bp.support[i - 1]
+            if right_bp.support[i] == 0:
                 imax = i + 1
             else:
                 imax = i
-            v = self.right_operand.range_array[imax]
+            v = right_bp.support[imax]
             a = min(ax / u, ax / v, bx / u, bx / v)
             b = max(ax / u, ax / v, bx / u, bx / v)
-            self.error_bound = self.right_operand.upper_array[imax] - self.right_operand.lower_array[i-1]
+            self.error_bound = right_bp.upper_cdf[imax] - right_bp.lower_cdf[i-1]
         else:
             a = min(ax / ay, ax / by, bx / ay, bx / by)
             b = max(ax / ay, ax / by, bx / ay, bx / by)
@@ -1017,7 +1045,7 @@ class BoundingPairOperation:
             elif by < 1:
                 y_plus_0 = 1
                 y_minus_0 = 1
-        r = (b - a) / (self.n - 1)
+        r = (b - a) / self.n
         zk = []
         uzk = []
         lzk = []
@@ -1030,105 +1058,102 @@ class BoundingPairOperation:
             l = 0
             u = 0
             if z >= 0:
-                for i in range(1, self.n):
-                    if 0 <= self.left_operand.range_array[i - 1]:
-                        j = self._l_division(self.left_operand.range_array[i], z,
-                                             self.right_operand.range_array)
-                        l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
-                             ((1 - self.right_operand.upper_array[j]) + y_minus_0)
-                        j = self._u_division(self.left_operand.range_array[i - 1], z,
-                                             self.right_operand.range_array)
-                        u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
-                             ((1 - self.right_operand.lower_array[j]) + y_plus_0)
-                    elif self.left_operand.range_array[i] <= 0:
-                        j = self._l_division(self.left_operand.range_array[i - 1], z,
-                                             self.right_operand.range_array)
-                        l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
-                             (self.right_operand.lower_array[j] + (1 - y_plus_0))
-                        j = self._u_division(self.left_operand.range_array[i], z,
-                                             self.right_operand.range_array)
-                        u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
-                             (self.right_operand.upper_array[j] + (1 - y_minus_0))
-                    else:
-                        raise ValueError("0 must be a discontinuity point")
+                if z == 0:
+                    left_zero_d = left_bp.evaluate_lower(0)
+                    left_zero_u = left_bp.evaluate_upper(0)
+                    right_zero_d = right_bp.evaluate_lower(0)
+                    right_zero_u = right_bp.evaluate_upper(0)
+                    l = 1 + 2 * left_zero_d * right_zero_d - left_zero_u - right_zero_u
+                    u = 1 + 2 * left_zero_u * right_zero_u - left_zero_d - right_zero_d
+                else:
+                    for i in range(1, self.n + 1):
+                        if 0 <= left_bp.support[i - 1]:
+                            j = self._l_division(left_bp.support[i], z, right_bp.support)
+                            l += (left_bp.lower_cdf[i] - left_bp.upper_cdf[i - 1]) * (1 - right_bp.upper_cdf[j] + y_minus_0)
+                            j = self._u_division(left_bp.support[i - 1], z, right_bp.support)
+                            u += (left_bp.upper_cdf[i] - left_bp.lower_cdf[i - 1]) * (1 - right_bp.lower_cdf[j] + y_plus_0)
+                        elif left_bp.support[i] <= 0:
+                            j = self._l_division(left_bp.support[i - 1], z, right_bp.support)
+                            l += (left_bp.lower_cdf[i] - left_bp.upper_cdf[i - 1]) * (right_bp.lower_cdf[j] + 1 - y_plus_0)
+                            j = self._u_division(left_bp.support[i], z, right_bp.support)
+                            u += (left_bp.upper_cdf[i] - left_bp.lower_cdf[i - 1]) * (right_bp.upper_cdf[j] + 1 - y_minus_0)
+                        else:
+                            raise ValueError("0 must be a discontinuity point")
             else:
-                for i in range(1, self.n):
-                    if 0 <= self.left_operand.range_array[i - 1]:
-                        j = self._l_division(self.left_operand.range_array[i - 1], z,
-                                             self.right_operand.range_array)
-                        l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
-                             (y_plus_0 - self.right_operand.upper_array[j])
-                        j = self._u_division(self.left_operand.range_array[i], z,
-                                             self.right_operand.range_array)
-                        u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
-                             (y_minus_0 - self.right_operand.lower_array[j])
-                    elif self.left_operand.range_array[i] <= 0:
-                        j = self._l_division(self.left_operand.range_array[i], z,
-                                             self.right_operand.range_array)
-                        l += (self.left_operand.lower_array[i] - self.left_operand.upper_array[i - 1]) * \
-                             (self.right_operand.lower_array[j] - y_plus_0)
-                        j = self._u_division(self.left_operand.range_array[i - 1], z,
-                                             self.right_operand.range_array)
-                        u += (self.left_operand.upper_array[i] - self.left_operand.lower_array[i - 1]) * \
-                             (self.right_operand.upper_array[j] - y_minus_0)
+                for i in range(1, self.n + 1):
+                    if 0 <= left_bp.support[i - 1]:
+                        j = self._l_division(left_bp.support[i - 1], z, right_bp.support)
+                        l += (left_bp.lower_cdf[i] - left_bp.upper_cdf[i - 1]) * (y_plus_0 - right_bp.upper_cdf[j])
+                        j = self._u_division(left_bp.support[i], z, right_bp.support)
+                        u += (left_bp.upper_cdf[i] - left_bp.lower_cdf[i - 1]) * (y_minus_0 - right_bp.lower_cdf[j])
+                    elif left_bp.support[i] <= 0:
+                        j = self._l_division(left_bp.support[i], z, right_bp.support)
+                        l += (left_bp.lower_cdf[i] - left_bp.upper_cdf[i - 1]) * (right_bp.lower_cdf[j] - y_plus_0)
+                        j = self._u_division(left_bp.support[i - 1], z, right_bp.support)
+                        u += (left_bp.upper_cdf[i] - left_bp.lower_cdf[i - 1]) * (right_bp.upper_cdf[j] - y_minus_0)
                     else:
                         raise ValueError("0 must be a discontinuity point")
             uzk.append(min(u, 1))
             lzk.append(max(l, 0))
+        zk.append(b)
+        uzk.append(1.0)
+        lzk.append(1.0)
         self.output = model.BoundingPair()
         self.output.instantiate_from_arrays(zk, lzk, uzk)
 
     def _u_division(self, x, z, y_array):
         if x < 0:
-            i = self.n - 1
+            i = self.n
             while i >= 0 and x / z <= y_array[i]:
                 i = i - 1
-            if i >= 0:
-                return i
+            if i < self.n:
+                return i + 1
             else:
-                return 0
+                return i
         else:
             i = 0
-            while i < self.n and y_array[i] < x / z:
+            while i < self.n + 1 and y_array[i] < x / z:
                 i = i + 1
-            if i < self.n:
-                return i
+            if i == 0:
+                return 0
             else:
-                return self.n - 1
+                return i - 1
 
     def _l_division(self, x, z, y_array):
         if x < 0:
             i = 0
-            while i < self.n and y_array[i] < x / z:
+            while i < self.n + 1 and y_array[i] < x / z:
                 i = i + 1
-            if i < self.n:
-                return i
+            if i == 0:
+                return 0
             else:
-                return self.n - 1
+                return i - 1
         else:
-            i = self.n - 1
+            i = self.n
             while i >= 0 and x / z <= y_array[i]:
                 i = i - 1
-            if i >= 0:
-                return i
+            if i < self.n:
+                return i + 1
             else:
-                return 0
+                return i
 
-    def _perform_mixed_addition(self, exact_side="left"):
+    def _perform_mixed_addition(self, exact_side, left_operand, right_operand):
         if exact_side == "left":
-            ax = self.left_operand.range_()[0]
-            bx = self.left_operand.range_()[1]
-            ay = self.right_operand.a
-            by = self.right_operand.b
+            ax = left_operand.range_()[0]
+            bx = left_operand.range_()[1]
+            ay = right_operand.a
+            by = right_operand.b
+        elif exact_side == "right":
+            ax = left_operand.a
+            bx = left_operand.b
+            ay = right_operand.range_()[0]
+            by = right_operand.range_()[1]
         else:
-            ax = self.left_operand.a
-            bx = self.left_operand.b
-            ay = self.right_operand.range_()[0]
-            by = self.right_operand.range_()[1]
+            raise ValueError("exact_side must be `left' or `right'")
         # Compute range using interval arithmetic
         a = ax + ay
         b = bx + by
-        r = (b - a) / (self.n - 1)
+        r = (b - a) / self.n
         zk = []
         uzk = []
         lzk = []
@@ -1141,42 +1166,47 @@ class BoundingPairOperation:
             l = 0
             u = 0
             if exact_side == "left":
-                l += self.left_operand.cdf(z - by) - self.left_operand.cdf(ax)
+                l += left_operand.cdf(z - by) - left_operand.cdf(ax)
                 u = l
             else:
-                l += self.right_operand.cdf(z - bx) - self.right_operand.cdf(ay)
+                l += right_operand.cdf(z - bx) - right_operand.cdf(ay)
                 u = l
-            for i in range(1, self.n):
+            for i in range(1, self.n + 1):
                 if exact_side == "left":
-                    px = self.left_operand.cdf(z - self.right_operand.range_array[i - 1]) - \
-                         self.left_operand.cdf(z - self.right_operand.range_array[i])
-                    l += self.right_operand.lower_array[i - 1] * px
-                    u += self.right_operand.upper_array[i] * px
+                    px = left_operand.cdf(z - right_operand.support[i - 1]) - \
+                         left_operand.cdf(z - right_operand.support[i])
+                    l += right_operand.lower_cdf[i - 1] * px
+                    u += right_operand.upper_cdf[i] * px
                 else:
-                    py = self.right_operand.cdf(z - self.left_operand.range_array[i - 1]) - \
-                         self.right_operand.cdf(z - self.left_operand.range_array[i])
-                    l += self.left_operand.lower_array[i - 1] * py
-                    u += self.left_operand.upper_array[i] * py
+                    py = right_operand.cdf(z - left_operand.support[i - 1]) - \
+                         right_operand.cdf(z - left_operand.support[i])
+                    l += left_operand.lower_cdf[i - 1] * py
+                    u += left_operand.upper_cdf[i] * py
             uzk.append(min(u, 1))
             lzk.append(max(l, 0))
+        zk.append(b)
+        uzk.append(1.0)
+        lzk.append(1.0)
         self.output = model.BoundingPair()
         self.output.instantiate_from_arrays(zk, lzk, uzk)
 
-    def _perform_mixed_subtraction(self, exact_side="left"):
+    def _perform_mixed_subtraction(self, exact_side, left_operand, right_operand):
         if exact_side == "left":
-            ax = self.left_operand.range_()[0]
-            bx = self.left_operand.range_()[1]
+            ax = left_operand.range_()[0]
+            bx = left_operand.range_()[1]
             ay = self.right_operand.a
             by = self.right_operand.b
+        elif exact_side == "right":
+            ax = left_operand.a
+            bx = left_operand.b
+            ay = right_operand.range_()[0]
+            by = right_operand.range_()[1]
         else:
-            ax = self.left_operand.a
-            bx = self.left_operand.b
-            ay = self.right_operand.range_()[0]
-            by = self.right_operand.range_()[1]
+            raise ValueError("exact_side must be `left' or `right'")
         # Compute range using interval arithmetic
         a = ax - by
         b = bx - ay
-        r = (b - a) / (self.n - 1)
+        r = (b - a) / self.n
         zk = []
         uzk = []
         lzk = []
@@ -1189,104 +1219,169 @@ class BoundingPairOperation:
             l = 0
             u = 0
             if exact_side == "left":
-                l += self.left_operand.cdf(ay + z)
+                l += left_operand.cdf(ay + z)
                 u = l
             else:
-                l += self.right_operand.cdf(by) - self.right_operand.cdf(bx - z)
+                l += right_operand.cdf(by) - right_operand.cdf(bx - z)
                 u = l
-            for i in range(1, self.n):
+            for i in range(1, self.n + 1):
                 if exact_side == "left":
-                    px = self.left_operand.cdf(self.right_operand.range_array[i] + z) - \
-                         self.left_operand.cdf(self.right_operand.range_array[i - 1] + z)
-                    l += (1 - self.right_operand.upper_array[i]) * px
-                    u += (1 - self.right_operand.lower_array[i - 1]) * px
+                    px = left_operand.cdf(right_operand.support[i] + z) - \
+                         left_operand.cdf(right_operand.support[i - 1] + z)
+                    l += (1 - right_operand.upper_cdf[i]) * px
+                    u += (1 - right_operand.lower_cdf[i - 1]) * px
                 else:
-                    py = self.right_operand.cdf(self.left_operand.range_array[i] - z) - \
-                         self.right_operand.cdf(self.left_operand.range_array[i - 1] - z)
-                    l += self.left_operand.lower_array[i - 1] * py
-                    u += self.left_operand.upper_array[i] * py
+                    py = right_operand.cdf(left_operand.support[i] - z) - \
+                         right_operand.cdf(left_operand.support[i - 1] - z)
+                    l += left_operand.lower_cdf[i - 1] * py
+                    u += left_operand.upper_cdf[i] * py
             uzk.append(min(u, 1))
             lzk.append(max(l, 0))
+        zk.append(b)
+        uzk.append(1.0)
+        lzk.append(1.0)
         self.output = model.BoundingPair()
         self.output.instantiate_from_arrays(zk, lzk, uzk)
 
-    def _perform_mixed_multiplication(self, exact_side="left"):
+    def _perform_mixed_multiplication(self, exact_side, left_operand, right_operand):
         if exact_side == "left":
-            ax = self.left_operand.range_()[0]
-            bx = self.left_operand.range_()[1]
-            ay = self.right_operand.a
-            by = self.right_operand.b
+            ax = left_operand.range_()[0]
+            bx = left_operand.range_()[1]
+            ay = right_operand.a
+            by = right_operand.b
             sign_change = 0
-            while (self.right_operand.range_array[sign_change]) < 0:
+            # Find if and where the right operand changes sign
+            while (right_operand.support[sign_change]) < 0:
                 sign_change += 1
-        else:
-            ax = self.left_operand.a
-            bx = self.left_operand.b
-            ay = self.right_operand.range_()[0]
-            by = self.right_operand.range_()[1]
+        elif exact_side == "right":
+            ax = left_operand.a
+            bx = left_operand.b
+            ay = right_operand.range_()[0]
+            by = right_operand.range_()[1]
             # Find if and where the left operand changes sign
             sign_change = 0
-            while (self.left_operand.range_array[sign_change]) < 0:
+            while (left_operand.support[sign_change]) < 0:
                 sign_change += 1
+        else:
+            raise ValueError("exact_side must be `left' or `right'")
         # Compute range using interval arithmetic
         a = min(ax * ay, ax * by, bx * ay, bx * by)
         b = max(ax * ay, ax * by, bx * ay, bx * by)
-        r = (b - a) / (self.n - 1)
+        r = (b - a) / self.n
         zk = []
         uzk = []
         lzk = []
         zk.append(a)
         uzk.append(0.0)
         lzk.append(0.0)
-        for k in range(1, self.n - 1):
+        for k in range(1, self.n):
             z = a + (k * r)
             zk.append(z)
             if z >= 0:
-                l = self.right_operand.cdf(0) + (self.right_operand.cdf(z / bx) - self.right_operand.cdf(max(0, ay)))
-                u = l
-                if self.left_operand.range_array[sign_change] != 0:
-                    l += self.left_operand.lower_array[sign_change] * \
-                        (1 - self.right_operand.cdf(z / self.left_operand.range_array[sign_change]))
-                    u += self.left_operand.upper_array[sign_change] * \
-                        (1 - self.right_operand.cdf(z / self.left_operand.range_array[sign_change]))
-                for i in range(1, self.n):
-                    if 0 <= self.left_operand.range_array[i - 1]:
-                        if self.left_operand.range_array[i - 1] != 0:
-                            py = (self.right_operand.cdf(z / self.left_operand.range_array[i - 1]) -
-                                  self.right_operand.cdf(z / self.left_operand.range_array[i]))
-                        else:
-                            py = 1 - self.right_operand.cdf(z / self.left_operand.range_array[i])
-                        l += self.left_operand.lower_array[i - 1] * py
-                        u += self.left_operand.upper_array[i] * py
-                    elif self.left_operand.range_array[i] <= 0:
-                        if self.left_operand.range_array[i] != 0:
-                            py = (self.right_operand.cdf(z / self.left_operand.range_array[i - 1]) -
-                                  self.right_operand.cdf(z / self.left_operand.range_array[i]))
-                        else:
-                            py = self.right_operand.cdf(z / self.left_operand.range_array[i - 1])
-                        l -= self.left_operand.upper_array[i] * py
-                        u -= self.left_operand.lower_array[i - 1] * py
+                if z == 0:
+                    if exact_side == "left":
+                        left_zero = left_operand.cdf(0)
+                        right_zero_d = right_operand.evaluate_lower(0)
+                        right_zero_u = right_operand.evaluate_upper(0)
+                        l = 1 + 2 * left_zero * right_zero_d - left_zero - right_zero_u
+                        u = 1 + 2 * left_zero * right_zero_u - left_zero - right_zero_d
+                    else:
+                        left_zero_d = left_operand.evaluate_lower(0)
+                        left_zero_u = left_operand.evaluate_upper(0)
+                        right_zero = right_operand.cdf(0)
+                        l = 1 + 2 * left_zero_d * right_zero - left_zero_u - right_zero
+                        u = 1 + 2 * left_zero_u * right_zero - left_zero_d - right_zero
+                else:
+                    if exact_side == "left":
+                        l = left_operand.cdf(0) + (left_operand.cdf(z / by) - left_operand.cdf(max(0, ax)))
+                        u = l
+                        if right_operand.support[sign_change] != 0:
+                            l += right_operand.lower_cdf[sign_change] * \
+                                 (1 - left_operand.cdf(z / right_operand.support[sign_change]))
+                            u += right_operand.upper_cdf[sign_change] * \
+                                 (1 - left_operand.cdf(z / right_operand.support[sign_change]))
+                        for i in range(1, self.n + 1):
+                            if 0 <= right_operand.support[i - 1]:
+                                if right_operand.support[i - 1] != 0:
+                                    px = (left_operand.cdf(z / right_operand.support[i - 1]) -
+                                          left_operand.cdf(z / right_operand.support[i]))
+                                else:
+                                    px = 1 - left_operand.cdf(z / right_operand.support[i])
+                                l += right_operand.lower_cdf[i - 1] * px
+                                u += right_operand.upper_cdf[i] * px
+                            elif right_operand.support[i] <= 0:
+                                if right_operand.support[i] != 0:
+                                    px = (left_operand.cdf(z / right_operand.support[i - 1]) -
+                                          left_operand.cdf(z / right_operand.support[i]))
+                                else:
+                                    px = left_operand.cdf(z / right_operand.support[i - 1])
+                                l -= right_operand.upper_cdf[i] * px
+                                u -= right_operand.lower_cdf[i - 1] * px
+                    else:
+                        l = right_operand.cdf(0) + (right_operand.cdf(z / bx) - right_operand.cdf(max(0, ay)))
+                        u = l
+                        if left_operand.support[sign_change] != 0:
+                            l += left_operand.lower_cdf[sign_change] * \
+                                (1 - right_operand.cdf(z / left_operand.support[sign_change]))
+                            u += left_operand.upper_cdf[sign_change] * \
+                                (1 - right_operand.cdf(z / left_operand.support[sign_change]))
+                        for i in range(1, self.n + 1):
+                            if 0 <= left_operand.support[i - 1]:
+                                if left_operand.support[i - 1] != 0:
+                                    py = (right_operand.cdf(z / left_operand.support[i - 1]) -
+                                          right_operand.cdf(z / left_operand.support[i]))
+                                else:
+                                    py = 1 - right_operand.cdf(z / left_operand.support[i])
+                                l += left_operand.lower_cdf[i - 1] * py
+                                u += left_operand.upper_cdf[i] * py
+                            elif left_operand.support[i] <= 0:
+                                if left_operand.support[i] != 0:
+                                    py = (right_operand.cdf(z / left_operand.support[i - 1]) -
+                                          right_operand.cdf(z / left_operand.support[i]))
+                                else:
+                                    py = right_operand.cdf(z / left_operand.support[i - 1])
+                                l -= left_operand.upper_cdf[i] * py
+                                u -= left_operand.lower_cdf[i - 1] * py
             else:
-                l = self.right_operand.cdf(0) - (self.right_operand.cdf(min(0, by)) - self.right_operand.cdf(z / bx))
-                u = l
-                if self.left_operand.range_array[sign_change] != 0:
-                    l -= self.left_operand.upper_array[sign_change] * \
-                        (self.right_operand.cdf(z / self.left_operand.range_array[sign_change]))
-                    u -= self.left_operand.lower_array[sign_change] * \
-                        (self.right_operand.cdf(z / self.left_operand.range_array[sign_change]))
-                for i in range(1, self.n):
-                    if 0 <= self.left_operand.range_array[i - 1]:
-                        if self.left_operand.range_array[i] != 0 and self.left_operand.range_array[i - 1] != 0:
-                            py = (self.right_operand.cdf(z / self.left_operand.range_array[i]) -
-                                  self.right_operand.cdf(z / self.left_operand.range_array[i - 1]))
-                            l -= self.left_operand.upper_array[i] * py
-                            u -= self.left_operand.lower_array[i - 1] * py
-                    elif self.left_operand.range_array[i] <= 0:
-                        if self.left_operand.range_array[i] != 0 and self.left_operand.range_array[i-1] != 0:
-                            py = (self.right_operand.cdf(z / self.left_operand.range_array[i]) -
-                                  self.right_operand.cdf(z / self.left_operand.range_array[i - 1]))
-                            l += self.left_operand.lower_array[i - 1] * py
-                            u += self.left_operand.upper_array[i] * py
+                if exact_side == "left":
+                    l = left_operand.cdf(0) - (left_operand.cdf(min(0, bx)) - left_operand.cdf(z / by))
+                    u = l
+                    if right_operand.support[sign_change] != 0:
+                        l -= right_operand.upper_cdf[sign_change] * (left_operand.cdf(z / right_operand.support[sign_change]))
+                        u -= right_operand.lower_cdf[sign_change] * (
+                             left_operand.cdf(z / right_operand.support[sign_change]))
+                    for i in range(1, self.n + 1):
+                        if 0 <= right_operand.support[i - 1]:
+                            if right_operand.support[i] != 0 and right_operand.support[i - 1] != 0:
+                                px = (left_operand.cdf(z / right_operand.support[i]) -
+                                      left_operand.cdf(z / right_operand.support[i - 1]))
+                                l -= right_operand.upper_cdf[i] * px
+                                u -= right_operand.lower_cdf[i - 1] * px
+                        elif right_operand.support[i] <= 0:
+                            if right_operand.support[i] != 0 and right_operand.support[i - 1] != 0:
+                                px = (left_operand.cdf(z / right_operand.support[i]) -
+                                      left_operand.cdf(z / right_operand.support[i - 1]))
+                                l += right_operand.lower_cdf[i - 1] * px
+                                u += right_operand.upper_cdf[i] * px
+                else:
+                    l = right_operand.cdf(0) - (right_operand.cdf(min(0, by)) - right_operand.cdf(z / bx))
+                    u = l
+                    if left_operand.support[sign_change] != 0:
+                        l -= left_operand.upper_cdf[sign_change] * (right_operand.cdf(z / left_operand.support[sign_change]))
+                        u -= left_operand.lower_cdf[sign_change] * (right_operand.cdf(z / left_operand.support[sign_change]))
+                    for i in range(1, self.n + 1):
+                        if 0 <= left_operand.support[i - 1]:
+                            if left_operand.support[i] != 0 and left_operand.support[i - 1] != 0:
+                                py = (right_operand.cdf(z / left_operand.support[i]) -
+                                      right_operand.cdf(z / left_operand.support[i - 1]))
+                                l -= left_operand.upper_cdf[i] * py
+                                u -= left_operand.lower_cdf[i - 1] * py
+                        elif left_operand.support[i] <= 0:
+                            if left_operand.support[i] != 0 and left_operand.support[i-1] != 0:
+                                py = (right_operand.cdf(z / left_operand.support[i]) -
+                                      right_operand.cdf(z / left_operand.support[i - 1]))
+                                l += left_operand.lower_cdf[i - 1] * py
+                                u += left_operand.upper_cdf[i] * py
             uzk.append(min(u, 1))
             lzk.append(max(l, 0))
         zk.append(b)

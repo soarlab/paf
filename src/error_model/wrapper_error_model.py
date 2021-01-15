@@ -6,6 +6,7 @@ from error_model import HighPrecisionErrorModel, LowPrecisionErrorModel, Typical
 from mixedarithmetic import createDSIfromDistribution, createAffineErrorForLeaf
 from project_utils import dec2Str
 from setup_utils import discretization_points, digits_for_range
+from model import BoundingPair
 
 
 class ErrorModelWrapper:
@@ -19,10 +20,12 @@ class ErrorModelWrapper:
         self.sampleInit = True
         self.unit_roundoff = error_model.unit_roundoff
         self.name = error_model.getName()
-        self.discretization=None
+        self.discretization = None
         self.affine_error = None
         self.symbolic_error = None
+        self.bounding_pair = BoundingPair()
         self.get_discretization()
+        self.bounding_pair.instantiate_from_distribution(error_model)
 
     def __str__(self):
         return self.name

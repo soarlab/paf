@@ -542,6 +542,9 @@ class BoundingPair:
         self.upper_cdf = None
         self.is_exact = None
 
+    def set_exactness(self, value):
+        self.is_exact = value
+
     def instantiate_from_distribution(self, distribution):
         # This constructor create a discretization which is exact on the discretization points
         self.is_exact = False
@@ -588,7 +591,7 @@ class BoundingPair:
             return 1
         else:
             i = 0
-            while self.support[i] < x:
+            while self.support[i] <= x:
                 i += 1
             return self.lower_cdf[i - 1]
 
@@ -599,7 +602,7 @@ class BoundingPair:
             return 1
         else:
             i = 0
-            while self.support[i] < x:
+            while self.support[i] <= x:
                 i += 1
             return self.upper_cdf[i - 1]
 
@@ -610,7 +613,7 @@ class BoundingPair:
             return 1, 1
         else:
             i = 0
-            while self.support[i] < x:
+            while self.support[i] <= x:
                 i += 1
             return self.lower_cdf[i - 1], self.upper_cdf[i - 1]
 
