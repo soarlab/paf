@@ -183,8 +183,6 @@ def collectInfoAboutErrorWithConstraints(fileHook, error_results):
 
 def plot_range_analysis_CDF(T, loadedGolden, samples_golden, fileHook, file_name, range_fpt):
     final_distribution=T.final_quantized_distr
-    a = final_distribution.a
-    b = final_distribution.b
 
     print("Generating Graphs Range Analysis CDF\n")
 
@@ -208,8 +206,8 @@ def plot_range_analysis_CDF(T, loadedGolden, samples_golden, fileHook, file_name
     collectInfoAboutSampling(golden_file, vals_golden, edges_golden, title, pdf=False, golden_mode_index=0)
     golden_file.close()
 
-    title = "CDF Range Analysis with PAF using INV CDF "
-    collectInfoAboutCDFDistributionINV(fileHook, final_distribution, title)
+    #title = "CDF Range Analysis with PAF using INV CDF "
+    #collectInfoAboutCDFDistributionINV(fileHook, final_distribution, title)
 
     title = "CDF Range Analysis with PAF using PBox Discretization"
     collectInfoAboutCDFDistributionPBox(fileHook, final_distribution, title)
