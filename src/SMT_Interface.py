@@ -124,11 +124,11 @@ class SMT_Instance():
         elif "error" in res:
             print("Error output from the solver!!!\n\n\n")
             print(res)
-            exit(-1)
+            return 2
         else:
             print("Misterious output from the solver!!!\n\n\n")
             print(res)
-            exit(-1)
+            return 2
 
     def check_string_number_is_exp_notation(self, number):
         if isNumeric(number) and ("e" in number or "E" in number):
