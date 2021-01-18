@@ -35,7 +35,7 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
         f.close()
         myYacc = FPRyacc(text, False)
         start_time = time.time()
-        T = TreeModel(myYacc, mantissa, exp, [40, 10], 50, 250000, initialize=True)#, error_model="typical", dependent_mode="p-box")
+        T = TreeModel(myYacc, mantissa, exp, [40, 10], 50, 250000, initialize=False)#, error_model="typical", dependent_mode="p-box")
         end_time = time.time()
         print("Exe time --- %s seconds ---" % (end_time - start_time))
         finalTime = end_time - start_time

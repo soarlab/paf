@@ -40,7 +40,7 @@ digits_for_range=50
 digits_for_input_cdf=10
 digits_for_Z3_cdf=10
 
-discretization_points = 16
+discretization_points = 64
 hard_timeout = 10
 soft_timeout = hard_timeout * 1000
 eps_for_LP = 2**-20

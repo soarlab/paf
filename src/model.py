@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import pacal
 from pacal import UniformDistr, ConstDistr, BetaDistr
-from pacal.distr import Distr
+from pacal.distr import Distr, ShiftedScaledDistr
 from pychebfun import chebfun
 from scipy.stats import truncnorm, norm
 
@@ -209,7 +209,10 @@ class B(BetaDistr):
         self.isScalar = False
         self.sampleSet=[]
         self.discretization = None
+        self.bounding_pair = BoundingPair()
+
         self.get_discretization()
+        self.bounding_pair.instantiate_from_distribution(self)
 
     def getName(self):
         return self.name
@@ -325,7 +328,10 @@ class CustomDistr(stats.rv_continuous, Distr):
         self.discretization = []
         self.init_piecewise_pdf()
         self.get_piecewise_cdf()
+        self.bounding_pair = BoundingPair()
+
         self.get_discretization()
+        self.bounding_pair.instantiate_from_distribution(self)
 
     def get_piecewise_pdf(self):
         """return PDF function as a PiecewiseDistribution object"""
@@ -547,7 +553,7 @@ class BoundingPair:
 
     def instantiate_from_distribution(self, distribution):
         # This constructor create a discretization which is exact on the discretization points
-        self.is_exact = False
+        self.is_exact = True
         self.a = distribution.range_()[0]
         self.b = distribution.range_()[1]
         r = (self.b - self.a) / self.n
@@ -639,6 +645,20 @@ class BoundingPair:
             xb = self.evaluate_lower_upper(x)
             yb = self.evaluate_lower_upper(y)
             return yb[0] - xb[1], yb[1] - xb[0]
+
+    def l1_error(self):
+        err = 0
+        for i in range(0, self.n + 1):
+            err += (self.upper_cdf[i] - self.lower_cdf[i])
+        return err
+
+    def linfty_error(self):
+        err1 = self.upper_cdf[0] - self.lower_cdf[0]
+        for i in range(1, self.n + 1):
+            err2 = (self.upper_cdf[i] - self.lower_cdf[i])
+            if err2 > err1:
+                err1 = err2
+        return err1
 
 # Classes which re-implement or customize PaCal classes
 import warnings
@@ -773,7 +793,7 @@ class ExpDistr(Distr):
         self.discretization=None
 
     def get_discretization(self):
-        if self.discretization==None:
+        if self.discretization is None:
             self.discretization = createDSIfromDistribution(self, n=discretization_points)
         return self.discretization
 
@@ -1019,11 +1039,36 @@ class AbsDistr(AbsDistr):
         pboxes = from_DSI_to_PBox(edge_cdf, val_cdf_low, edge_cdf, val_cdf_up)
         self.discretization=MixedArithmetic.clone_MixedArith_from_Args(discretization.affine,pboxes)
 
+
+class ShiftedScaledDistribution(ShiftedScaledDistr):
+    def __init__(self, d, shift, scale):
+        super(ShiftedScaledDistribution, self).__init__(d, shift=shift, scale=scale)
+        self.name = str(shift) + "+ (" + str(scale) + "*" + d.name + ")"
+        self.a_real = self.range_()[0]
+        self.b_real = self.range_()[1]
+        self.independent = True
+        self.sampleInit = True
+        self.isScalar = False
+        self.sampleSet = []
+        self.discretization = None
+        self.affine_error = None
+        self.symbolic_error = None
+        self.symbolic_affine = None
+
+        self.get_discretization()
+
+    def get_discretization(self):
+        if self.discretization is None:
+            self.discretization = createDSIfromDistribution(self, n=discretization_points)
+        return self.discretization
+
+
 def sin(d):
     """Overload the sin function."""
     if isinstance(d, Distr):
         return SineDistr(d)
     return numpy.sin(d)
+
 
 def abs(d):
     """Overload the sin function."""
@@ -1050,6 +1095,11 @@ def exp(d):
     if isinstance(d, Distr):
         return ExpDistr(d)
     return numpy.exp(d)
+
+def shift_and_scale(d, shift, scale):
+    if isinstance(d, Distr):
+        return ShiftedScaledDistribution(d, shift, scale)
+    return scale * d + shift
 
 
 def testExp():

@@ -395,14 +395,18 @@ class BinOpDist:
         elif self.dependent_mode == "p-box":
             self._full_mc_dependent_execution()
             self._pbox_dependent_execution()
+            self.bounding_pair = model.BoundingPair()
+            self.bounding_pair.instantiate_from_pboxes(self.discretization)
+
 
     def executeIndependent(self):
         self.executeConvolution()
         self.executeIndPBox()
         # operator to multiply by a relative error
         if self.operator == "*+":
-            error = 1.0 + (self.rightoperand.unit_roundoff * self.rightoperand.execute())
-            bounding_pair_operation = BoundingPairOperation("*", self.leftoperand, error)
+            shifted_scaled_operand = UnOpDist(self.rightoperand, self.rightoperand.name, self.operator,
+                                              1, self.rightoperand.unit_roundoff)
+            bounding_pair_operation = BoundingPairOperation("*", self.leftoperand, shifted_scaled_operand)
         else:
             bounding_pair_operation = BoundingPairOperation(self.operator, self.leftoperand, self.rightoperand)
         bounding_pair_operation.perform_operation()
@@ -647,7 +651,7 @@ class UnOpDist:
     Wrapper class for the result of unary operation on a PaCal distribution
     """
 
-    def __init__(self, operand, name, operation=None):
+    def __init__(self, operand, name, operation=None, shift=None, scale=None):
         if operation is None:
             self.distribution = operand.execute()
         elif operation is "exp":
@@ -662,6 +666,9 @@ class UnOpDist:
         elif operation is "abs":
             self.distribution = model.abs(operand)
             self.distribution.get_piecewise_pdf()
+        elif not(shift is None or scale is None):
+            self.distribution = model.shift_and_scale(operand.execute(), shift, scale)
+            self.distribution.get_piecewise_pdf()
         else:
             print("Unary operation not yet supported")
             exit(-1)
@@ -673,7 +680,6 @@ class UnOpDist:
         self.a = self.distribution.range_()[0]
         self.b = self.distribution.range_()[-1]
         self.discretization = None
-        self.approximating_pair = None
         self.affine_error = None
         self.do_quantize_operation = True
         self.symbolic_error = None
@@ -739,60 +745,80 @@ class BoundingPairOperation:
         self.error_bound = 0.0
 
     def perform_operation(self):
-        self.left_operand.bounding_pair.set_exactness(True)
-        #self.right_operand.bounding_pair.set_exactness(True)
         if self.operation == "+":
+            #Z = self.left_operand.distribution + self.right_operand.distribution
             if not (self.left_operand.bounding_pair.is_exact or self.right_operand.bounding_pair.is_exact):
-                self._perform_bp_addition(self.left_operand.bounding_pair, self.right_operand.bounding_pair)
-            elif self.right_operand.bounding_pair.is_exact:
-                self._perform_mixed_addition("right", self.left_operand.bounding_pair, self.right_operand.distribution)
-            elif self.left_operand.bounding_pair.is_exact:
+                # Best approximating pair (as measure in l1 distance) to the left: that is where errors accumulate
+                if self.left_operand.bounding_pair.l1_error() < self.right_operand.bounding_pair.l1_error():
+                    self._perform_bp_addition(self.left_operand.bounding_pair, self.right_operand.bounding_pair)
+                else:
+                    self._perform_bp_addition(self.right_operand.bounding_pair, self.left_operand.bounding_pair)
+            elif self.left_operand.bounding_pair.is_exact: #and not self.right_operand.bounding_pair.is_exact:
                 self._perform_mixed_addition("left", self.left_operand.distribution, self.right_operand.bounding_pair)
+            elif self.right_operand.bounding_pair.is_exact: #and not self.left_operand.bounding_pair.is_exact:
+                self._perform_mixed_addition("right", self.left_operand.bounding_pair, self.right_operand.distribution)
+            # else:
+            #     self.output = model.BoundingPair()
+            #     self.output.instantiate_from_distribution(self.left_operand.distribution + self.right_operand.distribution)
         elif self.operation == "-":
+            #Z = self.left_operand.distribution - self.right_operand.distribution
             if not (self.left_operand.bounding_pair.is_exact or self.right_operand.bounding_pair.is_exact):
                 self._perform_bp_subtraction(self.left_operand.bounding_pair, self.right_operand.bounding_pair)
-            elif self.right_operand.bounding_pair.is_exact:
+            elif self.right_operand.bounding_pair.is_exact and not self.left_operand.bounding_pair.is_exact:
                 self._perform_mixed_subtraction("right", self.left_operand.bounding_pair, self.right_operand.distribution)
-            elif self.left_operand.bounding_pair.is_exact:
+            elif self.left_operand.bounding_pair.is_exact and not self.right_operand.bounding_pair.is_exact:
                 self._perform_mixed_subtraction("left", self.left_operand.distribution, self.right_operand.bounding_pair)
+            else:
+                self.output = model.BoundingPair()
+                self.output.instantiate_from_distribution(self.left_operand.distribution - self.right_operand.distribution)
         elif self.operation == "*":
+            #Z = self.left_operand.distribution * self.right_operand.distribution
             if not (self.left_operand.bounding_pair.is_exact or self.right_operand.bounding_pair.is_exact):
-                self._perform_bp_multiplication(self.left_operand.bounding_pair, self.right_operand.bounding_pair)
-            elif self.right_operand.bounding_pair.is_exact:
-                self._perform_mixed_multiplication("right", self.left_operand.bounding_pair, self.right_operand.distribution)
-            elif self.left_operand.bounding_pair.is_exact:
+                # Best approximating pair (as measured in l1 distance) to the left: that is where errors accumulate
+                if self.left_operand.bounding_pair.l1_error() < self.right_operand.bounding_pair.l1_error():
+                    self._perform_bp_multiplication(self.left_operand.bounding_pair, self.right_operand.bounding_pair)
+                else:
+                    self._perform_bp_multiplication(self.right_operand.bounding_pair, self.left_operand.bounding_pair)
+            elif self.left_operand.bounding_pair.is_exact and not self.right_operand.bounding_pair.is_exact:
                 self._perform_mixed_multiplication("left", self.left_operand.distribution, self.right_operand.bounding_pair)
+            elif self.right_operand.bounding_pair.is_exact and not self.left_operand.bounding_pair.is_exact:
+                self._perform_mixed_multiplication("right", self.left_operand.bounding_pair, self.right_operand.distribution)
+            else:
+                self.output = model.BoundingPair()
+                self.output.instantiate_from_distribution(self.left_operand.distribution * self.right_operand.distribution)
         elif self.operation == "/":
+            #Z = self.left_operand.distribution / self.right_operand.distribution
             if not (self.left_operand.bounding_pair.is_exact or self.right_operand.bounding_pair.is_exact):
                 self._perform_bp_division(self.left_operand.bounding_pair, self.right_operand.bounding_pair)
         else:
             raise ValueError("Operation must be +, - , * or /")
 
-        left_exact = []
-        right_exact = []
-        operation_exact = []
-        Z = self.left_operand.distribution * self.right_operand.distribution
-        for i in range(0, self.n + 1):
-            left_exact.append(self.left_operand.distribution.cdf(self.left_operand.bounding_pair.support[i]))
-            right_exact.append(self.right_operand.distribution.cdf(self.right_operand.bounding_pair.support[i]))
-            operation_exact.append(Z.cdf(self.output.support[i]))
-        plt.close("all")
-        matplotlib.rcParams.update({'font.size': 10})
-        fig, a = plt.subplots(3)
-        a[0].plot(self.left_operand.bounding_pair.support, self.left_operand.bounding_pair.lower_cdf, "r", drawstyle='steps-post')
-        a[0].plot(self.left_operand.bounding_pair.support, self.left_operand.bounding_pair.upper_cdf, "g", drawstyle='steps-pre')
-        a[0].plot(self.left_operand.bounding_pair.support, left_exact, "b")
-        a[0].set_title("Left operand:" + self.left_operand.distribution.getName())
-        a[1].plot(self.right_operand.bounding_pair.support, self.right_operand.bounding_pair.lower_cdf, "r", drawstyle='steps-post')
-        a[1].plot(self.right_operand.bounding_pair.support, self.right_operand.bounding_pair.upper_cdf, "g", drawstyle='steps-pre')
-        a[1].plot(self.right_operand.bounding_pair.support, right_exact, "b")
-        a[1].set_title("Right operand:" + self.left_operand.distribution.getName())
-        a[2].plot(self.output.support, self.output.lower_cdf, "r", drawstyle='steps-post')
-        a[2].plot(self.output.support, self.output.upper_cdf, "g", drawstyle='steps-pre')
-        a[2].plot(self.output.support, operation_exact, "b")
-        a[2].set_title("Operation:" + self.left_operand.distribution.getName() + self.operation + self.right_operand.distribution.getName())
-        plt.show()
-        exit(0)
+        # left_exact = []
+        # right_exact = []
+        # operation_exact = []
+        # for i in range(0, self.n + 1):
+        #     left_exact.append(self.left_operand.distribution.cdf(self.left_operand.bounding_pair.support[i]))
+        #     right_exact.append(self.right_operand.distribution.cdf(self.right_operand.bounding_pair.support[i]))
+        #     operation_exact.append(Z.cdf(self.output.support[i]))
+        # plt.close("all")
+        # matplotlib.rcParams.update({'font.size': 10})
+        # fig, a = plt.subplots(3)
+        # a[0].plot(self.left_operand.bounding_pair.support, self.left_operand.bounding_pair.lower_cdf, "r", drawstyle='steps-post')
+        # a[0].plot(self.left_operand.bounding_pair.support, self.left_operand.bounding_pair.upper_cdf, "g", drawstyle='steps-pre')
+        # a[0].plot(self.left_operand.bounding_pair.support, left_exact, "b")
+        # a[0].set_title("Left operand:" + self.left_operand.distribution.getName())
+        # a[1].plot(self.right_operand.bounding_pair.support, self.right_operand.bounding_pair.lower_cdf, "r", drawstyle='steps-post')
+        # a[1].plot(self.right_operand.bounding_pair.support, self.right_operand.bounding_pair.upper_cdf, "g", drawstyle='steps-pre')
+        # a[1].plot(self.right_operand.bounding_pair.support, right_exact, "b")
+        # a[1].set_title("Right operand:" + self.right_operand.distribution.getName())
+        # a[2].plot(self.output.support, self.output.lower_cdf, "r", drawstyle='steps-post')
+        # a[2].plot(self.output.support, self.output.upper_cdf, "g", drawstyle='steps-pre')
+        # a[2].plot(self.output.support, operation_exact, "b")
+        # a[2].set_title("Operation:" + self.left_operand.distribution.getName() + self.operation + self.right_operand.distribution.getName())
+        # plt.show()
+        print(self.left_operand.name + self.operation + self.right_operand.name +
+              "     l1 error: " + str(self.output.l1_error()))
+        pass
 
     def _perform_bp_addition(self, left_bp, right_bp):
         ax = left_bp.a
