@@ -16,7 +16,7 @@ from mixedarithmetic import createDSIfromDistribution, MixedArithmetic, dec2Str,
     from_DSI_to_PBox, createAffineErrorForLeaf
 from plotting import plot_operation, plot_boxing
 from project_utils import MyFunDistr, normalizeDistribution
-from setup_utils import global_interpolate, discretization_points, digits_for_range
+from setup_utils import global_interpolate, discretization_points, digits_for_range, sigma_for_normal_distribution
 from scipy import stats
 
 
@@ -79,19 +79,22 @@ class TruncNormal(object):
         self.interp_trunc_norm=chebfun(self.truncatedNormal, domain=[self.lower, self.upper], N=self.interp_points)
 
     def truncatedNormal(self, x):
-        tmp = pacal.NormalDistr(self.mean, self.sigma)
+        a_trans = (self.lower - self.mean) / self.sigma
+        b_trans = (self.upper - self.mean) / self.sigma
+        tmp_dist = truncnorm(a_trans, b_trans, loc=self.mean, scale=self.sigma)
+
         if isinstance(x, float) or isinstance(x, int) or len(x) == 1:
             if x < self.lower or x > self.upper:
                 return 0
             else:
-                return tmp.get_piecewise_pdf()(x)
+                return tmp_dist.pdf(x)
         else:
             res = np.zeros(len(x))
             for index, ti in enumerate(x):
                 if ti < self.lower or ti > self.upper:
                     res[index] = 0
                 else:
-                    res[index] = tmp.get_piecewise_pdf()(ti)
+                    res[index] = tmp_dist.pdf(ti)
             return res
         # return data representation for pickled object
 
@@ -129,9 +132,12 @@ class N(stats.rv_continuous, Distr):
         self.b = float(b)
         self.a_real=a
         self.b_real=b
-        self.mean=0
-        self.sigma=1
-        self.interpolation_points=500
+        if self.a<0 and self.b>0:
+            self.mean=0
+        else:
+            self.mean= self.a if self.a<self.b else self.b
+        self.sigma=sigma_for_normal_distribution
+        self.interpolation_points=50
         self.discretization = None
         self.affine_error = None
         self.symbolic_error = None
@@ -159,12 +165,15 @@ class N(stats.rv_continuous, Distr):
         piecewise_pdf.addSegment(Segment(a=self.a, b=self.b,f =hidden_pdf.get_piecewise_pdf()))
         self.piecewise_pdf = piecewise_pdf
 
-    def get_piecewise_cdf(self):
+    def get_my_truncnorm(self):
         a_trans = (self.a - self.mean) / self.sigma
         b_trans = (self.b - self.mean) / self.sigma
-        tmp_dist = truncnorm(a_trans, b_trans)
-        scipy_cdf=tmp_dist.cdf
-        return scipy_cdf
+        tmp_dist = truncnorm(a_trans, b_trans, loc=self.mean, scale=self.sigma)
+        return tmp_dist
+
+    def get_piecewise_cdf(self):
+        tn=self.get_my_truncnorm()
+        return tn.cdf
 
     def get_discretization(self):
         if self.discretization==None and self.affine_error==None and self.symbolic_error==None:
@@ -186,9 +195,9 @@ class N(stats.rv_continuous, Distr):
     def getSampleSet(self,n=100000):
         #it remembers values for future operations
         if self.sampleInit:
-            a_trans= (self.a - self.mean) / self.sigma
-            b_trans= (self.b - self.mean) / self.sigma
-            tmp_dist = truncnorm(a_trans, b_trans)
+            #a_trans= (self.a - self.mean) / self.sigma
+            #b_trans= (self.b - self.mean) / self.sigma
+            tmp_dist = self.get_my_truncnorm() #truncnorm(a_trans, b_trans, loc=self.mean, scale=self.sigma)
             self.sampleSet = tmp_dist.rvs(size=n)
             self.sampleInit = False
         return self.sampleSet
