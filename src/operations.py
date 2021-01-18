@@ -108,6 +108,7 @@ class quantizedPointMass:
         self.get_discretization()
         self.a = self.distribution.range_()[0]
         self.b = self.distribution.range_()[-1]
+        self.constraints_dict={}
 
     def execute(self):
         return self.distribution
