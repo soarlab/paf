@@ -553,7 +553,7 @@ class BoundingPair:
 
     def instantiate_from_distribution(self, distribution):
         # This constructor create a discretization which is exact on the discretization points
-        self.is_exact = True
+        self.is_exact = False
         self.a = distribution.range_()[0]
         self.b = distribution.range_()[1]
         r = (self.b - self.a) / self.n

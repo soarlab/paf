@@ -817,7 +817,7 @@ class BoundingPairOperation:
         # a[2].set_title("Operation:" + self.left_operand.distribution.getName() + self.operation + self.right_operand.distribution.getName())
         # plt.show()
         print(self.left_operand.name + self.operation + self.right_operand.name +
-              "     l1 error: " + str(self.output.l1_error()))
+              "     l1 error: " + str(self.output.linfty_error()))
         pass
 
     def _perform_bp_addition(self, left_bp, right_bp):
