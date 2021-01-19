@@ -3,7 +3,7 @@
 import ply.yacc as yacc
 
 from fprlex import *
-from model import NodeManager, CustomDistr, U, N, B, Operation, Number, UnaryOperation
+from model import NodeManager, CustomDistr, U, N, B, Operation, Number, UnaryOperation, L, E
 from project_utils import remove_starting_minus_from_string
 
 uniqueLexer = FPRlex()
@@ -129,6 +129,31 @@ class FPRyacc:
         distr = N(str(p[1]), str(p[5]), str(p[7]))
         self.addVariable(str(p[1]), distr)
         self.myPrint("Normal", p)
+
+    def p_Exp(self, p):
+        ''' Distribution : WORD COLON E LPAREN POSNUMBER COMMA POSNUMBER RPAREN
+        '''
+
+        distr = E(str(p[1]), str(p[5]), str(p[7]))
+        self.addVariable(str(p[1]), distr)
+        self.myPrint("Exp", p)
+
+    def p_Exp1(self, p):
+        ''' Distribution : WORD COLON E LPAREN NEGNUMBER COMMA POSNUMBER RPAREN
+        '''
+
+        distr = L(str(p[1]), str(p[5]), str(p[7]))
+        self.addVariable(str(p[1]), distr)
+        self.myPrint("Exp1-Laplace", p)
+
+    def p_Exp2(self, p):
+        ''' Distribution : WORD COLON E LPAREN NEGNUMBER COMMA NEGNUMBER RPAREN
+        '''
+        print("Not yet supported negative exponential!")
+        exit(-1)
+        #distr = L(str(p[1]), str(p[5]), str(p[7]))
+        #self.addVariable(str(p[1]), distr)
+        #self.myPrint("Exp2", p)
 
     def p_Beta(self, p):
         ''' Distribution : WORD COLON B LPAREN POSNUMBER COMMA POSNUMBER RPAREN
