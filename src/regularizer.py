@@ -145,8 +145,8 @@ def chebfunInterpDistr(distr, limitSegments):
     except:
         return distr
     if len(segs)>=limitSegments:
-        approxLimit= 10000 * np.finfo(np.float32).eps
-        jumpLimit = np.finfo(np.float32).eps * 1000.0
-        deltavLimit =  np.finfo(np.float32).eps * 10000.0#
+        approxLimit= np.finfo(np.float32).eps * 100000 #Note: 10000 number for uniform and gaussian
+        jumpLimit = np.finfo(np.float32).eps * 10000 #Note: 1000.0 number for uniform and gaussian
+        deltavLimit =  np.finfo(np.float32).eps * 100000 #Note: 10000.0 number for uniform and gaussian
         return regularizeDistribution(distr, approxLimit, jumpLimit, deltavLimit)
     return distr
