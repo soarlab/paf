@@ -280,7 +280,7 @@ class BinOpDist:
         self.distributionConv.get_piecewise_pdf()
 
         if self.regularize:
-            self.distributionConv = chebfunInterpDistr(self.distributionConv, 10)
+            self.distributionConv = chebfunInterpDistr(self.distributionConv, 5)
             self.distributionConv = normalizeDistribution(self.distributionConv)
 
         self.aConv = self.distributionConv.range_()[0]
