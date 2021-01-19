@@ -8,7 +8,8 @@ from setup_utils import output_path
 from storage import load_histograms_error_from_disk, \
     load_histograms_range_from_disk, store_histograms_error, store_histograms_range
 from evaluation import collectInfoAboutSampling, collectInfoAboutCDFDistributionINV, measureDistances, \
-    collectInfoAboutCDFDistributionNaive, collectInfoAboutCDFSampling, collectInfoAboutCDFDistributionPBox
+    collectInfoAboutCDFDistributionNaive, collectInfoAboutCDFSampling, collectInfoAboutCDFDistributionPBox, \
+    bound_range_from_mode
 
 plt.rcParams.update({'font.size': 30})
 plt.rcParams.update({'figure.autolayout': True})
@@ -231,6 +232,13 @@ def plot_range_analysis_CDF(T, loadedGolden, samples_golden, fileHook, file_name
     #plotBoundsDistr(tmp_filename, final_distribution.distribution)
 
     plotCDFdiscretization(final_distribution.discretization.intervals)
+
+    _,dict=bound_range_from_mode(final_distribution.discretization,["0.99"],"","")
+    min_cntr = dict["0.99"][0]
+    max_cntr = dict["0.99"][1]
+
+    #plotConstraints(tmp_name, "+", "red", 4, 500, ticks="[0.0, " + str(find_max_abs_interval(paf_99)) + "]")
+    plotConstraints(tmp_filename, "+", "red", 4, 500, ticks="["+min_cntr+", "+ max_cntr+ "]")
 
     plotTicks(tmp_filename, "X", "green", 4, 500, ticks=range_fpt, label="FPT: " + str(range_fpt))
     plt.xlabel('Distribution Range')
