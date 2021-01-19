@@ -132,7 +132,19 @@ def collectInfoAboutCDFDistributionPBox(f, finalDistr_wrapper, name):
         reverse_discretization[0].interval.upper) + "] contains 100% of the distribution.\n\n"
     res = res + "#############\n\n"
 
+    res_tmp, dict=bound_range_from_mode(discretization,
+                                   probs,
+                                   lower_discretization[0].interval.lower,
+                                   lower_discretization[-1].interval.upper)
+    res=res+res_tmp
+    f.write(res)
+    return
+
+
+def bound_range_from_mode(discretization, probs, min_val, max_val):
     #Order from high probability pbox to low probability pbox
+    res=""
+    dict={}
     mode_discretization = sorted(discretization.intervals,
                                   key=lambda x: Decimal(x.cdf_up)-Decimal(x.cdf_low), reverse=True)
 
@@ -149,12 +161,12 @@ def collectInfoAboutCDFDistributionPBox(f, finalDistr_wrapper, name):
             if val >= Decimal(prob):
                 res = res + "Range: [" + dec2Str(my_min) + "," + dec2Str(my_max) \
                                     + "] contains at least " + str(Decimal(prob) * 100) + "% of the distribution  (with 100% prob).\n\n"
+                dict[str(prob)]=[dec2Str(my_min), dec2Str(my_max)]
                 break
     #This can be the same as before
-    res=res+"Range: ["+str(lower_discretization[0].interval.lower)+","+str(lower_discretization[-1].interval.upper)+"] contains 100% of the distribution.\n\n"
+    res=res+"Range: ["+str(min_val)+","+str(max_val)+"] contains 100% of the distribution.\n\n"
     res = res+"###########################################\n\n"
-    f.write(res)
-    return
+    return res, dict
 
 def collectInfoAboutCDFDistributionNaive(f, finalDistr_wrapper, name, distr_mode, bin_len):
     res="###### Info about "+name+"#######:\n\n"
