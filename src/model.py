@@ -499,14 +499,17 @@ class Number(ConstDistr):
         super().__init__(c = float(label))
         self.name = label
         self.value = float(label)
-        self.isScalar=True
-        self.a=self.range_()[0]
-        self.b=self.range_()[-1]
-        self.discretization=None
-        self.affine_error=None
-        self.symbolic_error=None
-        self.symbolic_affine=None
+        self.isScalar = True
+        self.a = self.range_()[0]
+        self.b = self.range_()[-1]
+        self.discretization = None
+        self.affine_error = None
+        self.symbolic_error = None
+        self.symbolic_affine = None
+        self.bounding_pair = BoundingPair()
+
         self.get_discretization()
+        self.bounding_pair.instantiate_from_distribution(self)
 
     def execute(self):
         return self
@@ -553,7 +556,7 @@ class BoundingPair:
 
     def instantiate_from_distribution(self, distribution):
         # This constructor create a discretization which is exact on the discretization points
-        self.is_exact = False
+        self.is_exact = True
         self.a = distribution.range_()[0]
         self.b = distribution.range_()[1]
         r = (self.b - self.a) / self.n
@@ -561,11 +564,18 @@ class BoundingPair:
         self.lower_cdf = []
         self.upper_cdf = []
 
-        for i in range(0, self.n + 1):
-            x = self.a + (i * r)
-            self.support.append(x)
-            self.lower_cdf.append(distribution.cdf(x))
-            self.upper_cdf.append(self.lower_cdf[i])
+        if self.a < self.b:
+            for i in range(0, self.n + 1):
+                x = self.a + (i * r)
+                self.support.append(x)
+                self.lower_cdf.append(distribution.cdf(x))
+                self.upper_cdf.append(self.lower_cdf[i])
+        # The case of constants
+        else:
+            self.n = 1
+            self.support.append(self.a)
+            self.lower_cdf.append(1.0)
+            self.upper_cdf.append(1.0)
 
     def instantiate_from_arrays(self, support, lower_cdf, upper_cdf):
         # This constructor is meant to create bounding pairs which are not exact on discretization points
