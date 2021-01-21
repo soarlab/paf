@@ -163,6 +163,16 @@ def plot_boxing(ret_list):
     plt.legend()
     return
 
+
+def plotCDFboundingpair(bounding_pair):
+    for index, edge in enumerate(bounding_pair.support):
+        plt.plot(edge, bounding_pair.lower_cdf[index] ,'X', linewidth=10, markersize=15,
+                 c="green", label=("Bounding lower" if index==0 else ""))
+        plt.plot(edge, bounding_pair.upper_cdf[index], 'P', linewidth=10, markersize=15,
+                 c="red", label=("Bounding upper" if index==0 else ""))
+    plt.show(block=False)
+
+
 def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_golden, fileHook, file_name, range_fpt):
     a = final_distribution.a
     b = final_distribution.b
@@ -214,7 +224,7 @@ def plot_range_analysis_CDF(final_distribution, loadedGolden, samples_golden, fi
     #plotBoundsDistr(tmp_filename, final_distribution.distribution)
 
     plotCDFdiscretization(final_distribution.discretization.intervals)
-
+    plotCDFboundingpair(final_distribution.bounding_pair)
     plotTicks(tmp_filename, "X", "green", 4, 500, ticks=range_fpt, label="FPT: " + str(range_fpt))
     plt.xlabel('Distribution Range')
     plt.ylabel('CDF')

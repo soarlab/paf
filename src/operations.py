@@ -315,13 +315,14 @@ class BinOpDist:
             concrete_symbolic_interval = self.symbolic_affine.compute_interval_error(center_interval)
             print("Error domain: ["+str(concrete_symbolic_interval.lower)+", "+str(concrete_symbolic_interval.upper)+"]")
         else:
-            domain_affine_SMT = left_operand_discr_SMT.affine.perform_affine_operation(self.operator,
-                                                                                       right_operand_discr_SMT.affine)
-            self.symbolic_affine = None #self.leftoperand.symbolic_affine.perform_affine_operation(self.operator,
-                                                                                   # self.rightoperand.symbolic_affine)
+            domain_affine_SMT = left_operand_discr_SMT.affine.\
+                                    perform_affine_operation(self.operator, right_operand_discr_SMT.affine)
+
+            self.symbolic_affine = self.leftoperand.symbolic_affine.\
+                                        perform_affine_operation(self.operator, self.rightoperand.symbolic_affine)
             constraint_expression=None
             center_interval=None
-            concrete_symbolic_interval = None #self.symbolic_affine.compute_interval()
+            concrete_symbolic_interval = self.symbolic_affine.compute_interval()
         insides_SMT = []
         tmp_insides_SMT = []
 
@@ -416,8 +417,8 @@ class BinOpDist:
         left_op=copy.deepcopy(self.leftoperand.get_discretization())
         right_op=copy.deepcopy(self.rightoperand.get_discretization())
         domain_affine = left_op.affine.perform_affine_operation(self.operator, right_op.affine)
-        self.symbolic_affine = None #self.leftoperand.symbolic_affine.perform_affine_operation\
-                                        #(self.operator, self.rightoperand.symbolic_affine)
+        self.symbolic_affine = self.leftoperand.symbolic_affine.perform_affine_operation\
+                                        (self.operator, self.rightoperand.symbolic_affine)
         insiders=[]
         evaluation_points=set()
 
@@ -481,7 +482,7 @@ class BinOpDist:
                 self.symbolic_error=self.leftoperand.symbolic_error
             else:
                 self.compute_error_affine_form()
-                #self.compute_error_symbolic_form()
+                self.compute_error_symbolic_form()
             if self.convolution:
                 self.executeIndependent()
                 self.distributionValues = self.operationDependent()
@@ -518,8 +519,6 @@ class BinOpDist:
             self.affine_error=x_erry.perform_affine_operation("+",
                               y_errx.perform_affine_operation("+", errx_erry))
         elif self.operator == "/":
-            #val a = Interval.minAbs(rightInterval)
-            #val errorMultiplier: Rational = -one / (a * a)
 
             total_affine_right = self.exact_affines_forms[1].\
                 perform_affine_operation("+", self.rightoperand.affine_error,

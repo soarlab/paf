@@ -40,7 +40,7 @@ digits_for_range=50
 digits_for_input_cdf=10
 digits_for_Z3_cdf=10
 
-discretization_points = 16
+discretization_points = 20
 hard_timeout = 10
 soft_timeout = hard_timeout * 1000
 eps_for_LP = 2**-20
@@ -58,8 +58,8 @@ round_constants_to_nearest=True
 abs_prefix="ABS_"
 SMT_exponent_function_name= "find_exponent"
 GELPHIA_exponent_function_name= "floor_power2"
-path_to_gelpia_executor="python3.7 /proj/QNNandAAs/rocco/gelpia/bin/gelpia.py "
-path_to_gelpia_constraints_executor="python3.7 /proj/QNNandAAs/rocco/gelpia_constraints_orig/bin/gelpia.py "
+path_to_gelpia_executor="python3.7 /home/roki/GIT/gelpia/bin/gelpia.py "
+path_to_gelpia_constraints_executor="python3.7 /home/roki/GIT/gelpia_constraints_orig/bin/gelpia.py "
 
 recursion_limit_for_pruning_operation=10
 recursion_limit_for_pruning_error=20

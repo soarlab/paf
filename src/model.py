@@ -590,15 +590,18 @@ class BoundingPair:
     # Not sure this constructor will be necessary.
     def instantiate_from_pboxes(self, pboxes):
         self.n = len(pboxes.intervals)
-        self.a = pboxes.intervals[0].interval.lower
-        self.b = pboxes.intervals[self.n - 1].interval.upper
-        self.support.append(self.a)
-        self.lower_cdf.append(pboxes.intervals[0].cdf_low)
-        self.upper_cdf.append(pboxes.intervals[0].cdf_up)
+        self.a = float(pboxes.intervals[0].interval.lower)
+        self.b = float(pboxes.intervals[-1].interval.upper)
+        self.support = []
+        self.lower_cdf = []
+        self.upper_cdf = []
+        self.support.append(float(self.a))
+        self.lower_cdf.append(float(pboxes.intervals[0].cdf_low))
+        self.upper_cdf.append(float(pboxes.intervals[0].cdf_up))
         for i in range(1, self.n):
-            self.support.append(pboxes.intervals[i].interval.upper)
-            self.lower_cdf.append(pboxes.intervals[i].cdf_low)
-            self.upper_cdf.append(pboxes.intervals[i].cdf_up)
+            self.support.append(float(pboxes.intervals[i].interval.upper))
+            self.lower_cdf.append(float(pboxes.intervals[i].cdf_low))
+            self.upper_cdf.append(float(pboxes.intervals[i].cdf_up))
 
     def evaluate_lower(self, x):
         if x <= self.a:
