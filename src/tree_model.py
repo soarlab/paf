@@ -242,7 +242,9 @@ class TreeModel:
             qdist_smt_query= SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(tree.left.root_value[4], tree.root_name, tree.right.root_value[4])
 
 
-            if isPointMassDistr(dist):
+            if len(dist.discretization.intervals)==1 and \
+                        dist.discretization.intervals[0].cdf_low=="0.0" and \
+                        dist.discretization.intervals[0].cdf_up=="1.0":
                 error = ErrorModelPointMass(qdist, self.precision, self.exponent)
                 quantized_distribution = quantizedPointMass(qdist, self.precision, self.exponent)
                 qdist_smt_query = SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(

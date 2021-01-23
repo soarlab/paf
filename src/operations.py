@@ -262,28 +262,27 @@ class BinOpDist:
 
     def executeConvolution(self):
         if self.operator == "+":
-            self.distributionConv = self.leftoperand.execute() #+ self.rightoperand.execute()
+            self.distributionConv = None #self.leftoperand.execute() + self.rightoperand.execute()
         elif self.operator == "-":
-            self.distributionConv = self.leftoperand.execute() #- self.rightoperand.execute()
+            self.distributionConv = None #self.leftoperand.execute() - self.rightoperand.execute()
         elif self.operator == "*":
-            self.distributionConv = self.leftoperand.execute() #* self.rightoperand.execute()
+            self.distributionConv = None #self.leftoperand.execute() * self.rightoperand.execute()
         elif self.operator == "/":
-            self.distributionConv = self.leftoperand.execute() #/ self.rightoperand.execute()
+            self.distributionConv = None #self.leftoperand.execute() / self.rightoperand.execute()
         # operator to multiply by a relative error
         elif self.operator == "*+":
-            self.distributionConv = self.leftoperand.execute() #*(1.0 + (self.rightoperand.unit_roundoff * self.rightoperand.execute()))
+            self.distributionConv = None #self.leftoperand.execute() *(1.0 + (self.rightoperand.unit_roundoff * self.rightoperand.execute()))
         else:
             print("Operation not supported!")
             exit(-1)
 
         #self.distributionConv.get_piecewise_pdf()
+        #if self.regularize:
+        #    self.distributionConv = chebfunInterpDistr(self.distributionConv, 5)
+        #    self.distributionConv = normalizeDistribution(self.distributionConv)
 
-        if self.regularize:
-            self.distributionConv = chebfunInterpDistr(self.distributionConv, 5)
-            self.distributionConv = normalizeDistribution(self.distributionConv)
-
-        self.aConv = self.distributionConv.range_()[0]
-        self.bConv = self.distributionConv.range_()[-1]
+        self.aConv = None #self.distributionConv.range_()[0]
+        self.bConv = None #self.distributionConv.range_()[-1]
 
     def operationDependent(self):
         leftOp = self.leftoperand.getSampleSet(self.samples_dep_op)
@@ -519,7 +518,7 @@ class BinOpDist:
                 self.a = self.aSamp
                 self.b = self.bSamp
 
-            self.distribution.get_piecewise_pdf()
+            #self.distribution.get_piecewise_pdf()
             self.collect_constraints()
         return self.distribution
 
