@@ -262,22 +262,21 @@ class BinOpDist:
 
     def executeConvolution(self):
         if self.operator == "+":
-            self.distributionConv = self.leftoperand.execute() + self.rightoperand.execute()
+            self.distributionConv = self.leftoperand.execute() #+ self.rightoperand.execute()
         elif self.operator == "-":
-            self.distributionConv = self.leftoperand.execute() - self.rightoperand.execute()
+            self.distributionConv = self.leftoperand.execute() #- self.rightoperand.execute()
         elif self.operator == "*":
-            self.distributionConv = self.leftoperand.execute() * self.rightoperand.execute()
+            self.distributionConv = self.leftoperand.execute() #* self.rightoperand.execute()
         elif self.operator == "/":
-            self.distributionConv = self.leftoperand.execute() / self.rightoperand.execute()
+            self.distributionConv = self.leftoperand.execute() #/ self.rightoperand.execute()
         # operator to multiply by a relative error
         elif self.operator == "*+":
-            self.distributionConv = self.leftoperand.execute() * (
-                    1.0 + (self.rightoperand.unit_roundoff * self.rightoperand.execute()))
+            self.distributionConv = self.leftoperand.execute() #*(1.0 + (self.rightoperand.unit_roundoff * self.rightoperand.execute()))
         else:
             print("Operation not supported!")
             exit(-1)
 
-        self.distributionConv.get_piecewise_pdf()
+        #self.distributionConv.get_piecewise_pdf()
 
         if self.regularize:
             self.distributionConv = chebfunInterpDistr(self.distributionConv, 5)
