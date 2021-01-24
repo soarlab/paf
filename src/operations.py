@@ -298,16 +298,16 @@ class BinOpDist:
     def _full_mc_dependent_execution(self):
         tmp_res = self.distributionValues
         #plt.figure()
-        n, bins = np.histogram(tmp_res, bins='auto', density=True)
-        breaks = [min(bins), max(bins)]
-        self.distributionSamp = MyFunDistr(self.name, DependentOperationExecutor(bins, n, self.poly_precision), breakPoints=breaks,
-                                           interpolated=global_interpolate)
-        self.distributionSamp.get_piecewise_pdf()
-        if self.regularize:
-            self.distributionSamp = chebfunInterpDistr(self.distributionSamp, 10)
-            self.distributionSamp = normalizeDistribution(self.distributionSamp, init=True)
-        self.aSamp = self.distributionSamp.range_()[0]
-        self.bSamp = self.distributionSamp.range_()[-1]
+        #n, bins = np.histogram(tmp_res, bins='auto', density=True)
+        #breaks = [min(bins), max(bins)]
+        self.distributionSamp = None #MyFunDistr(self.name, DependentOperationExecutor(bins, n, self.poly_precision), breakPoints=breaks,
+                                     #      interpolated=global_interpolate)
+        #self.distributionSamp.get_piecewise_pdf()
+        #if self.regularize:
+        #    self.distributionSamp = chebfunInterpDistr(self.distributionSamp, 10)
+        #    self.distributionSamp = normalizeDistribution(self.distributionSamp, init=True)
+        self.aSamp = None #self.distributionSamp.range_()[0]
+        self.bSamp = None #self.distributionSamp.range_()[-1]
 
     def _pbox_dependent_execution(self):
         left_operand_discr_SMT=copy.deepcopy(self.leftoperand.get_discretization())
