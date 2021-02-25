@@ -193,13 +193,13 @@ def plot_range_analysis_CDF(T, loadedGolden, samples_golden, fileHook, file_name
     if loadedGolden:
         notnorm_vals_golden, notnorm_edges_golden = load_histograms_range_from_disk(file_name)
         vals_golden, edges_golden = plotCDF(notnorm_edges_golden, notnorm_vals_golden, normalize=True,
-                                                 color="darkgoldenrod", linewidth=3, label="Golden distribution")
+                                                 color="darkgoldenrod", linewidth=3, label="Monte Carlo")
     else:
         not_norm_vals_golden_10000, not_norm_edges_golden_10000 = np.histogram(samples_golden, bins=10000, density=True)
         not_norm_vals_golden, not_norm_edges_golden = np.histogram(samples_golden, bins='auto', density=True)
         store_histograms_range(file_name, not_norm_vals_golden,not_norm_edges_golden,not_norm_vals_golden_10000,not_norm_edges_golden_10000)
         vals_golden, edges_golden = plotCDF(not_norm_edges_golden, not_norm_vals_golden, normalize=True,
-                                                 color="darkgoldenrod", linewidth=3, label="Golden distribution")
+                                                 color="darkgoldenrod", linewidth=3, label="Monte Carlo")
 
     golden_file = open(output_path + file_name + "/golden_range.txt", "a+")
     binLenGolden = len(vals_golden)
@@ -225,7 +225,7 @@ def plot_range_analysis_CDF(T, loadedGolden, samples_golden, fileHook, file_name
     #measureDistances(final_distribution, fileHook, vals_golden, vals, edges_golden, edges, title, pdf=False)
 
     plt.autoscale(enable=True, axis='both', tight=False)
-    plt.ylim(bottom=-0.05, top=1.1)
+    plt.ylim(bottom=-0.05, top=1.24)
     #x = np.linspace(a, b, 1000)
     #plt.plot(x, abs(final_distribution.distribution.get_piecewise_cdf()(x)), linewidth=3, color="red")
     #final_distribution.distribution.get_piecewise_cdf().plot(xmin=a, xmax=b, linewidth=3, color="red")
@@ -243,8 +243,8 @@ def plot_range_analysis_CDF(T, loadedGolden, samples_golden, fileHook, file_name
     plotTicks(tmp_filename, "X", "green", 4, 500, ticks=range_fpt, label="FPT: " + str(range_fpt))
     plt.xlabel('Distribution Range')
     plt.ylabel('CDF')
-    plt.title(file_name + " - Range Analysis")
-    plt.legend(fontsize=25)
+    #plt.title(file_name + " - Range Analysis")
+    plt.legend(fontsize=25, loc='upper center', ncol=2)
     plt.ticklabel_format(axis='both', style='sci', scilimits=(0, 0))
     plt.savefig(output_path + file_name + "/" + tmp_filename, dpi=100)
     plt.clf()
@@ -354,7 +354,7 @@ def plot_abs_error_analysis_CDF(tree, loadedGolden, abs_err_golden, summary_file
 
     error_bounds=tree.error_results
     plt.autoscale(enable=True, axis='both', tight=False)
-    plt.ylim(bottom=-0.05, top=1.1)
+    plt.ylim(bottom=-0.05, top=1.24)
 
     #x = np.linspace(abs_err.a, abs_err.b, 1000)
     #plt.plot(x, abs(abs_err.distribution.get_piecewise_cdf()(x)), linewidth=3, color="red")
@@ -369,7 +369,7 @@ def plot_abs_error_analysis_CDF(tree, loadedGolden, abs_err_golden, summary_file
     plotConstraints(tmp_name, "+", "red", 4, 500, ticks="[0.0, " + str(find_max_abs_interval(paf_99)) + "]")
 
     plt.ticklabel_format(axis='both', style='sci', scilimits=(0, 0))
-    plt.title(tmp_name)
+    #plt.title(tmp_name)
     plt.xlabel('ABS Error Distribution')
     plt.ylabel('CDF')
     plt.legend(fontsize=25)
