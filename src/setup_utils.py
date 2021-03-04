@@ -52,8 +52,8 @@ valid_for_exit_SMT_pruning_operation=6
 divisions_SMT_pruning_error=10
 valid_for_exit_SMT_pruning_error=9
 gap_cdf_regularizer = 1.0/discretization_points
-golden_model_time=120
-timeout_gelpia_constraints=120
+golden_model_time=5
+timeout_gelpia_constraints=20
 timeout_gelpia_standard=30
 timeout_optimization_problem=300
 round_constants_to_nearest=True
@@ -62,8 +62,8 @@ constraints_probabilities=["0.99", "0.95", "0.85"]
 abs_prefix="ABS_"
 SMT_exponent_function_name= "find_exponent"
 GELPHIA_exponent_function_name= "floor_power2"
-path_to_gelpia_executor="python3.7 /proj/QNNandAAs/rocco/gelpia/bin/gelpia.py "
-path_to_gelpia_constraints_executor="python3.7 /proj/QNNandAAs/rocco/gelpia_constraints_orig/bin/gelpia.py "
+path_to_gelpia_executor="python3.7 /home/roki/GIT/gelpia/bin/gelpia.py "
+path_to_gelpia_constraints_executor="python3.7 /home/roki/GIT/gelpia_constraints_orig/bin/gelpia.py "
 
 
 
