@@ -16,7 +16,7 @@ from mixedarithmetic import createDSIfromDistribution, MixedArithmetic, dec2Str,
 from plotting import plot_operation, plot_boxing
 from project_utils import MyFunDistr, normalizeDistribution
 from setup_utils import global_interpolate, discretization_points, digits_for_range, sigma_for_normal_distribution, \
-    sigma_for_exponential_distribution
+    sigma_for_exponential_distribution, scale_for_rayleigh_distribution
 from scipy import stats
 from scipy.stats import truncnorm, norm, truncexpon
 
@@ -479,6 +479,148 @@ class E(stats.rv_continuous, Distr):
             self.sampleSet = tmp_dist.rvs(size=n)
             self.sampleInit = False
         return self.sampleSet
+
+''' 
+Class used to implement the Chebfun interpolation of the truncated exponential
+Note the setState and getState methods. Pacal performs convolution using multiprocessing
+library, so the interpolation has to be pickable.
+'''
+class TruncRayleigh(object):
+    def __init__(self, lower, upper, mean, scale, interp_points):
+        self.lower=lower
+        self.upper=upper
+        self.scale=scale
+        self.mean=mean
+        self.interp_points=interp_points
+        self.name="Rayleigh ["+str(lower)+","+str(upper)+"]"
+        self.interp_trunc_ray=chebfun(self.truncatedRayleigh, domain=[self.lower, self.upper], N=self.interp_points)
+
+    def truncatedExp(self, x):
+        tmp_dist = stats.rayleigh(loc=self.mean, scale=self.scale)
+
+        if isinstance(x, float) or isinstance(x, int) or len(x) == 1:
+            if x < self.lower or x > self.upper:
+                return 0
+            else:
+                return tmp_dist.pdf(x)
+        else:
+            res = np.zeros(len(x))
+            for index, ti in enumerate(x):
+                if ti < self.lower or ti > self.upper:
+                    res[index] = 0
+                else:
+                    res[index] = tmp_dist.pdf(ti)
+            return res
+        # return data representation for pickled object
+
+    def __getstate__(self):
+        tmp_dict = copy.deepcopy(self.__dict__)  # get attribute dictionary
+        if 'interp_trunc_ray' in tmp_dict:
+            del tmp_dict['interp_trunc_ray']  # remove interp_trunc_norm entry
+        return tmp_dict
+        # restore object state from data representation generated
+        # by __getstate__
+
+    def __setstate__(self, dict):
+        self.lower = dict["lower"]
+        self.upper = dict["upper"]
+        self.mean = dict["mean"]
+        self.scale = dict["scale"]
+        self.name = dict["name"]
+        self.interp_points = dict["interp_points"]
+        if 'interp_trunc_ray' not in dict:
+            dict['interp_trunc_ray'] = chebfun(self.truncatedRayleigh, domain=[self.lower, self.upper], N=self.interp_points)
+        self.__dict__ = dict  # make dict our attribute dictionary
+
+    def __call__(self, t, *args, **kwargs):
+        return self.interp_trunc_ray(t)
+
+class R(stats.rv_continuous, Distr):
+    def __init__(self,name,a,b):
+        super().__init__(a=a, b=b, name='Rayleigh')
+        self.name = name
+        self.sampleInit = True
+        self.isScalar = False
+        self.sampleSet=[]
+        self.indipendent=True
+        self.a = float(a)
+        self.b = float(b)
+        self.a_real=a
+        self.b_real=b
+        if self.a>=0 and self.b>=0:
+            self.mean=self.a
+        else:
+            print("Rayleigh distribution can be only positive. Please correct.")
+            exit(-1)
+        self.scale=scale_for_rayleigh_distribution
+        self.interpolation_points=50
+        self.discretization = None
+        self.affine_error = None
+        self.symbolic_error = None
+        self.symbolic_affine = None
+        self.init_piecewise_pdf()
+        self.get_discretization()
+
+    def resetSampleInit(self):
+        self.sampleInit = True
+
+    def getName(self):
+        return self.name
+
+    def get_piecewise_pdf(self):
+        """return PDF function as a PiecewiseDistribution object"""
+        if self.piecewise_pdf is None:
+            self.init_piecewise_pdf()
+        return self.piecewise_pdf
+
+    def init_piecewise_pdf(self):
+        piecewise_pdf = PiecewiseDistribution([])
+        not_norm_hidden_pdf=MyFunDistr("Trunc-Ray", TruncRayleigh(self.a, self.b, self.mean, self.sigma, self.interpolation_points), breakPoints=[self.a, self.b],
+                   interpolated=global_interpolate)
+        hidden_pdf=normalizeDistribution(not_norm_hidden_pdf, init=True)
+        piecewise_pdf.addSegment(Segment(a=self.a, b=self.b,f =hidden_pdf.get_piecewise_pdf()))
+        self.piecewise_pdf = piecewise_pdf
+
+    def get_my_truncray(self):
+        tmp_dist = stats.rayleigh(loc=self.mean, scale=self.scale)
+        return tmp_dist
+
+    def get_piecewise_cdf(self):
+        tn = self.get_my_truncray()
+        ret = lambda x: 0.0 if x <self.a else (1.0 if x>self.b else tn.cdf(x))
+        return ret
+
+    def get_discretization(self):
+        if self.discretization==None and self.affine_error==None and self.symbolic_error==None:
+            self.discretization = createDSIfromDistribution(self, n=discretization_points)
+            self.affine_error= createAffineErrorForLeaf()
+            self.symbolic_error= CreateSymbolicZero()
+            self.symbolic_affine = \
+                CreateSymbolicErrorForDistributions(self.name, self.discretization.intervals[0].interval.lower,
+                                                    self.discretization.intervals[-1].interval.upper)
+
+        return self.discretization
+
+    def execute(self):
+        return self
+
+    def getRepresentation(self):
+        return "Rayleigh distribution Truncated in range ["+str(self.a)+","+str(self.b)+"]"
+
+    def getSampleSet(self,n=100000):
+        #it remembers values for future operations
+        if self.sampleInit:
+            tmp_dist = self.get_my_truncray()
+            sample_set_tmp=tmp_dist.rvs(size=n)
+            sample_set_tmp=[x for x in sample_set_tmp if self.a<=x<=self.b]
+            while len(sample_set_tmp)<n:
+                sample=tmp_dist.rvs(1)[0]
+                if self.a <= sample <= self.b:
+                    sample_set_tmp.append(sample)
+            self.sampleSet = sample_set_tmp
+            self.sampleInit = False
+        return self.sampleSet
+
 
 class B(BetaDistr):
     def __init__(self,name,a,b):
