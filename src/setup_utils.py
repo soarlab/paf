@@ -34,8 +34,10 @@ num_processes_dependent_operation=int(multiprocessing.cpu_count())
 
 mpfr_proxy_precision=200
 use_powers_of_two_spacing=False
+use_logarithm_spacing=True
 sigma_for_normal_distribution=1  #0.01
 sigma_for_exponential_distribution=0.01
+scale_for_rayleigh_distribution=2
 
 
 digits_for_input_discretization=20
