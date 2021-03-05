@@ -621,6 +621,70 @@ class R(stats.rv_continuous, Distr):
             self.sampleInit = False
         return self.sampleSet
 
+class Arcsine(stats.rv_continuous, Distr):
+    def __init__(self,name,a,b):
+        super().__init__(a=a, b=b, name='Arcsine')
+        self.name = name
+        self.sampleInit = True
+        self.isScalar = False
+        self.sampleSet=[]
+        self.indipendent=True
+        self.a = float(a)
+        self.b = float(b)
+        self.a_real=a
+        self.b_real=b
+        self.hidden_distr = stats.arcsine(loc=self.a, scale=abs(self.b-self.a))
+        self.interpolation_points=50
+        self.discretization = None
+        self.affine_error = None
+        self.symbolic_error = None
+        self.symbolic_affine = None
+        self.init_piecewise_pdf()
+        self.get_discretization()
+
+    def resetSampleInit(self):
+        self.sampleInit = True
+
+    def getName(self):
+        return self.name
+
+    def get_piecewise_pdf(self):
+        """return PDF function as a PiecewiseDistribution object"""
+        if self.piecewise_pdf is None:
+            self.init_piecewise_pdf()
+        return self.piecewise_pdf
+
+    def init_piecewise_pdf(self):
+        piecewise_pdf = PiecewiseDistribution([])
+        piecewise_pdf.addSegment(Segment(a=self.a, b=self.b,f = self.hidden_distr.pdf))
+        self.piecewise_pdf = piecewise_pdf
+
+    def get_piecewise_cdf(self):
+        return self.hidden_distr.cdf
+
+    def get_discretization(self):
+        if self.discretization==None and self.affine_error==None and self.symbolic_error==None:
+            self.discretization = createDSIfromDistribution(self, n=discretization_points)
+            self.affine_error= createAffineErrorForLeaf()
+            self.symbolic_error= CreateSymbolicZero()
+            self.symbolic_affine = \
+                CreateSymbolicErrorForDistributions(self.name, self.discretization.intervals[0].interval.lower,
+                                                    self.discretization.intervals[-1].interval.upper)
+
+        return self.discretization
+
+    def execute(self):
+        return self
+
+    def getRepresentation(self):
+        return "Arcsine distribution in range ["+str(self.a)+","+str(self.b)+"]"
+
+    def getSampleSet(self,n=100000):
+        #it remembers values for future operations
+        if self.sampleInit:
+            self.sampleSet = self.hidden_distr.rvs(size=n)
+            self.sampleInit = False
+        return self.sampleSet
 
 class B(BetaDistr):
     def __init__(self,name,a,b):

@@ -3,7 +3,7 @@
 import ply.yacc as yacc
 
 from fprlex import *
-from model import NodeManager, CustomDistr, U, N, B, Operation, Number, UnaryOperation, L, E, R
+from model import NodeManager, CustomDistr, U, N, B, Operation, Number, UnaryOperation, L, E, R, Arcsine
 from project_utils import remove_starting_minus_from_string
 
 uniqueLexer = FPRlex()
@@ -129,6 +129,30 @@ class FPRyacc:
         distr = N(str(p[1]), str(p[5]), str(p[7]))
         self.addVariable(str(p[1]), distr)
         self.myPrint("Normal", p)
+
+    def p_Arcsine(self, p):
+        ''' Distribution : WORD COLON AS LPAREN POSNUMBER COMMA POSNUMBER RPAREN
+        '''
+
+        distr = Arcsine(str(p[1]), str(p[5]), str(p[7]))
+        self.addVariable(str(p[1]), distr)
+        self.myPrint("Arcsine", p)
+
+    def p_Arcsine1(self, p):
+        ''' Distribution : WORD COLON AS LPAREN NEGNUMBER COMMA POSNUMBER RPAREN
+        '''
+
+        distr = Arcsine(str(p[1]), str(p[5]), str(p[7]))
+        self.addVariable(str(p[1]), distr)
+        self.myPrint("Arcsine", p)
+
+    def p_Arcsine2(self, p):
+        ''' Distribution : WORD COLON AS LPAREN NEGNUMBER COMMA NEGNUMBER RPAREN
+        '''
+
+        distr = Arcsine(str(p[1]), str(p[5]), str(p[7]))
+        self.addVariable(str(p[1]), distr)
+        self.myPrint("Arcsine", p)
 
     def p_Ray(self, p):
         ''' Distribution : WORD COLON R LPAREN POSNUMBER COMMA POSNUMBER RPAREN

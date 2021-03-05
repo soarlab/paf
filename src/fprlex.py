@@ -18,6 +18,7 @@ class FPRlex(object):
         'E': 'E',
         'U': 'U',
         'R': 'R',
+        'AS': 'AS',
         'if': 'if',
         'exp': 'EXP',
         'cos': 'COS',
