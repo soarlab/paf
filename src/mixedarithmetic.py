@@ -11,7 +11,7 @@ from plotting import plot_operation, plot_boxing
 from project_utils import round_number_down_to_digits, dec2Str, round_near, round_down, round_up, \
     round_number_up_to_digits, round_number_nearest_to_digits
 from setup_utils import digits_for_range, digits_for_input_cdf, digits_for_input_discretization, mpfr_proxy_precision, \
-    discretization_points, use_powers_of_two_spacing
+    discretization_points, use_powers_of_two_spacing, use_logarithm_spacing
 
 '''
 A PBox consists in a domain interval associated with a probability (CDF) interval
@@ -122,6 +122,8 @@ def createDSIfromDistribution(distribution, n=50):
         lin_space = powers_of_two_spacing()
     elif "FTE" in distribution.name and use_powers_of_two_spacing:
         lin_space = powers_of_two_error(distribution.d.precision)
+    elif use_logarithm_spacing:
+        lin_space = np.geomspace(distribution.range_()[0], distribution.range_()[-1], num=n + 1, endpoint=True)
     else:
         lin_space = np.linspace(distribution.range_()[0], distribution.range_()[-1], num=n + 1, endpoint=True)
 
