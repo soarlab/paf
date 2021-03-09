@@ -651,14 +651,11 @@ class BinOpDist:
             exit(-1)
 
     def get_discretization(self):
-        if self.discretization==None:
-            self.execute()
         return self.discretization
 
     def getSampleSet(self, n=100000):
         # it remembers values for future operations
         if self.sampleInit:
-            self.execute()
             self.sampleSet = self.distributionValues
             self.sampleInit = False
         return self.sampleSet
