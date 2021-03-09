@@ -62,7 +62,30 @@ class Node:
             self.children = []
             self.id = [id]
 
-
+'''
+Generic class we use to truncate any distribution coming from scipy.stats
+'''
+class TruncatedDistribution:
+    def __init__(self, d, a, b):
+        assert np.all(a <= b), [a, b]
+        self.d = d; self.a = a; self.b = b
+        self.cdf_b = d.cdf(b)
+        self.cdf_a = d.cdf(a)
+        self.cdf_w = self.cdf_b - self.cdf_a
+    def sf(self, x):
+        return 1-self.cdf(x)
+    def pdf(self, x):
+        return (self.a < x) * (x <= self.b) * self.d.pdf(x) / self.cdf_w
+    def rvs(self, size=None):
+        u = uniform(0, 1, size=size)
+        return self.ppf(u)
+    def ppf(self, u):
+        return self.d.ppf(self.cdf_a + u * self.cdf_w)
+    def cdf(self, x):
+        return np.minimum(1, (self.a < x) * (self.d.cdf(x) - self.cdf_a) / self.cdf_w)
+    #def mean(self):
+    #    # The truncated mean is unfortunately not analytical
+    #    return quad(lambda x: x * self.pdf(x), self.a, self.b)[0]
 
 ''' 
 Class used to implement the Chebfun interpolation of the truncated normal
@@ -495,7 +518,7 @@ class TruncRayleigh(object):
         self.name="Rayleigh ["+str(lower)+","+str(upper)+"]"
         self.interp_trunc_ray=chebfun(self.truncatedRayleigh, domain=[self.lower, self.upper], N=self.interp_points)
 
-    def truncatedExp(self, x):
+    def truncatedRayleigh(self, x):
         tmp_dist = stats.rayleigh(loc=self.mean, scale=self.scale)
 
         if isinstance(x, float) or isinstance(x, int) or len(x) == 1:
@@ -558,6 +581,8 @@ class R(stats.rv_continuous, Distr):
         self.affine_error = None
         self.symbolic_error = None
         self.symbolic_affine = None
+        r_dist = stats.rayleigh(loc=self.mean, scale=self.scale)
+        self.trunc_distr=TruncatedDistribution(r_dist, self.a, self.b)
         self.init_piecewise_pdf()
         self.get_discretization()
 
@@ -575,20 +600,19 @@ class R(stats.rv_continuous, Distr):
 
     def init_piecewise_pdf(self):
         piecewise_pdf = PiecewiseDistribution([])
-        not_norm_hidden_pdf=MyFunDistr("Trunc-Ray", TruncRayleigh(self.a, self.b, self.mean, self.sigma, self.interpolation_points), breakPoints=[self.a, self.b],
-                   interpolated=global_interpolate)
-        hidden_pdf=normalizeDistribution(not_norm_hidden_pdf, init=True)
-        piecewise_pdf.addSegment(Segment(a=self.a, b=self.b,f =hidden_pdf.get_piecewise_pdf()))
+        piecewise_pdf.addSegment(Segment(a=self.a, b=self.b,f =self.trunc_distr.pdf))
         self.piecewise_pdf = piecewise_pdf
 
-    def get_my_truncray(self):
-        tmp_dist = stats.rayleigh(loc=self.mean, scale=self.scale)
-        return tmp_dist
-
     def get_piecewise_cdf(self):
-        tn = self.get_my_truncray()
-        ret = lambda x: 0.0 if x <self.a else (1.0 if x>self.b else tn.cdf(x))
-        return ret
+        """return PDF function as a PiecewiseDistribution object"""
+        if self.piecewise_cdf is None:
+            self.init_piecewise_cdf()
+        return self.piecewise_cdf
+
+    def init_piecewise_cdf(self):
+        piecewise_cdf = PiecewiseDistribution([])
+        piecewise_cdf.addSegment(Segment(a=self.a, b=self.b,f =self.trunc_distr.cdf))
+        self.piecewise_cdf = piecewise_cdf
 
     def get_discretization(self):
         if self.discretization==None and self.affine_error==None and self.symbolic_error==None:
@@ -610,13 +634,7 @@ class R(stats.rv_continuous, Distr):
     def getSampleSet(self,n=100000):
         #it remembers values for future operations
         if self.sampleInit:
-            tmp_dist = self.get_my_truncray()
-            sample_set_tmp=tmp_dist.rvs(size=n)
-            sample_set_tmp=[x for x in sample_set_tmp if self.a<=x<=self.b]
-            while len(sample_set_tmp)<n:
-                sample=tmp_dist.rvs(1)[0]
-                if self.a <= sample <= self.b:
-                    sample_set_tmp.append(sample)
+            sample_set_tmp=self.trunc_distr.rvs(size=n)
             self.sampleSet = sample_set_tmp
             self.sampleInit = False
         return self.sampleSet
