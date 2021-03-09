@@ -9,7 +9,9 @@ from AffineArithmeticLibrary import AffineManager
 from IntervalArithmeticLibrary import Interval, check_interval_is_zero, find_min_abs_interval, find_max_abs_interval
 from project_utils import round_number_nearest_to_digits, round_number_down_to_digits, round_number_up_to_digits
 from setup_utils import digits_for_range, \
-    GELPHIA_exponent_function_name, path_to_gelpia_executor, mpfr_proxy_precision, path_to_gelpia_constraints_executor, timeout_gelpia_standard, timeout_gelpia_constraints
+    GELPHIA_exponent_function_name, path_to_gelpia_executor, mpfr_proxy_precision, path_to_gelpia_constraints_executor, \
+    timeout_gelpia_standard, timeout_gelpia_constraints, use_z3_when_constraints_gelpia, \
+    probabilistic_handling_of_non_linearities, constraints_probabilities
 
 
 def CreateSymbolicErrorForDistributions(distribution_name, lb, ub):
@@ -131,19 +133,12 @@ class SymbolicAffineManager:
         return coefficients
 
     @staticmethod
-    def precise_create_exp_for_Gelpia(exact, error):
-        err_interval=error.compute_interval()
+    def precise_create_exp_for_Gelpia(exact, error, constraints):
+        err_interval=error.compute_interval_error(Interval("0","0",True,True, digits_for_range), constraints)
         new_exact=copy.deepcopy(exact)
         if not check_interval_is_zero(err_interval):
-            #middle_point=AffineManager.compute_middle_point_given_interval(err_interval.lower, err_interval.upper)
-            #uncertainty=AffineManager.compute_uncertainty_given_interval(err_interval.lower, err_interval.upper)
-            #middle_point_exp=SymbolicAffineManager.from_Interval_to_Expression(middle_point)
             err_expression = SymbolicAffineManager.from_Interval_to_Expression(err_interval)
-            #new_exact=new_exact.add_constant_expression(middle_point_exp)
             new_exact=new_exact.add_constant_expression(err_expression)
-            #new_uncertainty=list(uncertainty.values())[0].perform_interval_operation("*", Interval("-1","1", True, True, digits_for_range))
-            #new_uncertainty_exp=SymbolicAffineManager.from_Interval_to_Expression(new_uncertainty)
-            #new_exact=new_exact.add_constant_expression(new_uncertainty_exp)
             #The exact form has only a center (no error terms)
         encoding="(" + GELPHIA_exponent_function_name + "(" + str(new_exact.center) + "))"
         return SymbolicAffineInstance(SymExpression(encoding),{},copy.deepcopy(exact.variables))
@@ -171,7 +166,7 @@ class SymbolicToGelpia:
                 res=res+self.constraints[constraint][1]+">="+constraint+"; "
         return res
 
-    def compute_concrete_bounds(self, debug=False, zero_output_epsilon=False):
+    def compute_concrete_bounds(self, debug=True, zero_output_epsilon=False):
         variables=self.encode_variables()
         constraints=self.encode_constraints()
         body=variables+str(self.expression)+"; "+constraints
@@ -181,6 +176,8 @@ class SymbolicToGelpia:
                 + (' --function "' + body +'" --mode=min-max ') \
                 + (' --timeout '+ timeout_gelpia) \
                 + (' -o 0' if zero_output_epsilon else '')
+        if (not constraints=='') and use_z3_when_constraints_gelpia:
+            query=query+" -z"
         if debug:
             print(query)
         proc_run = subprocess.Popen(shlex.split(query), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -283,7 +280,7 @@ class SymbolicAffineInstance:
         tmp_variables.update(sym_affine.variables)
         return SymbolicAffineInstance(new_center, new_coefficients, tmp_variables)
 
-    def multiplication(self, sym_affine):
+    def multiplication(self, sym_affine, non_lin_constraints=None):
         new_center = self.center.multiplication(sym_affine.center)
         new_coefficients = {}
         keys = set().union(self.coefficients, sym_affine.coefficients)
@@ -306,7 +303,13 @@ class SymbolicAffineInstance:
         variables_non_linear=copy.deepcopy(self.variables)
         variables_non_linear.update(sym_affine.variables)
 
-        _, upper_non_linear=SymbolicToGelpia(expr_non_linear, variables_non_linear).compute_concrete_bounds()
+        if probabilistic_handling_of_non_linearities:
+            if len(constraints_probabilities)>1:
+                print("You cannot use the probabilistic handling of non-linearities with more than one probability constraints")
+                exit(-1)
+            _, upper_non_linear=SymbolicToGelpia(expr_non_linear, variables_non_linear, non_lin_constraints).compute_concrete_bounds()
+        else:
+            _, upper_non_linear = SymbolicToGelpia(expr_non_linear, variables_non_linear).compute_concrete_bounds()
 
         interval_non_linear=Interval("-"+upper_non_linear, upper_non_linear, True, True, digits_for_range)
 
@@ -395,18 +398,18 @@ class SymbolicAffineInstance:
     def division(self, sym_affine):
         return self.multiplication(sym_affine.inverse())
 
-    def perform_affine_operation(self, operator, affine):
+    def perform_affine_operation(self, operator, affine, eventual_constraints=None):
         if operator=="+":
             affine_result=self.addition(affine)
         elif operator=="-":
             affine_result=self.subtraction(affine)
         elif operator == "*":
-            affine_result=self.multiplication(affine)
+            affine_result=self.multiplication(affine,eventual_constraints)
         elif operator == "/":
             affine_result=self.division(affine)
         elif operator =="*+":
             plus_one=affine.add_constant_expression(SymExpression("1.0"))
-            affine_result=self.multiplication(plus_one)
+            affine_result=self.multiplication(plus_one, eventual_constraints)
         else:
             print("Interval Operation not supported")
             exit(-1)

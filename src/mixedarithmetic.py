@@ -123,7 +123,8 @@ def createDSIfromDistribution(distribution, n=50):
     elif "FTE" in distribution.name and use_powers_of_two_spacing:
         lin_space = powers_of_two_error(distribution.d.precision)
     elif use_logarithm_spacing:
-        lin_space = np.geomspace(distribution.range_()[0], distribution.range_()[-1], num=n + 1, endpoint=True)
+        lin_space = np.geomspace(10, distribution.range_()[-1], num=n + 1, endpoint=True)
+        lin_space = np.insert(lin_space, 0, 0, axis=0)
     else:
         lin_space = np.linspace(distribution.range_()[0], distribution.range_()[-1], num=n + 1, endpoint=True)
 
