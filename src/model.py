@@ -172,6 +172,9 @@ class N(stats.rv_continuous, Distr):
     def resetSampleInit(self):
         self.sampleInit = True
 
+    def get_my_spacing(self):
+        lin_space = np.linspace(distribution.range_()[0], distribution.range_()[-1], num=n + 1, endpoint=True)
+
     def getName(self):
         return self.name
 
@@ -614,6 +617,14 @@ class R(stats.rv_continuous, Distr):
         piecewise_cdf.addSegment(Segment(a=self.a, b=self.b,f =self.trunc_distr.cdf))
         self.piecewise_cdf = piecewise_cdf
 
+    def get_my_spacing(self):
+        if self.a+50<self.b:
+            space = list(np.linspace(self.a, self.a+50, num=discretization_points + 1, endpoint=True))
+            space = space + [self.b]
+        else:
+            space = np.linspace(self.a, self.b, num=discretization_points + 1, endpoint=True)
+        return space
+
     def get_discretization(self):
         if self.discretization==None and self.affine_error==None and self.symbolic_error==None:
             self.discretization = createDSIfromDistribution(self, n=discretization_points)
@@ -693,6 +704,10 @@ class Arcsine(stats.rv_continuous, Distr):
 
     def execute(self):
         return self
+
+    def get_my_spacing(self):
+        space = list(np.linspace(self.a, self.b, num=discretization_points + 1, endpoint=True))
+        return space
 
     def getRepresentation(self):
         return "Arcsine distribution in range ["+str(self.a)+","+str(self.b)+"]"
