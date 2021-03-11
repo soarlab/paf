@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib.patches import Rectangle
 
 from IntervalArithmeticLibrary import find_max_abs_interval
-from setup_utils import output_path
+from setup_utils import output_path, constraints_probabilities
 from storage import load_histograms_error_from_disk, \
     load_histograms_range_from_disk, store_histograms_error, store_histograms_range
 from evaluation import collectInfoAboutSampling, collectInfoAboutCDFDistributionINV, measureDistances, \
@@ -233,9 +233,11 @@ def plot_range_analysis_CDF(T, loadedGolden, samples_golden, fileHook, file_name
 
     plotCDFdiscretization(final_distribution.discretization.intervals)
 
-    _,dict=bound_range_from_mode(final_distribution.discretization,["0.99"],"","")
-    min_cntr = dict["0.99"][0]
-    max_cntr = dict["0.99"][1]
+    prob_value=constraints_probabilities[0]
+
+    _,dict=bound_range_from_mode(final_distribution.discretization,constraints_probabilities,"","")
+    min_cntr = dict[prob_value][0]
+    max_cntr = dict[prob_value][1]
 
     #plotConstraints(tmp_name, "+", "red", 4, 500, ticks="[0.0, " + str(find_max_abs_interval(paf_99)) + "]")
     plotConstraints(tmp_filename, "+", "red", 4, 500, ticks="["+min_cntr+", "+ max_cntr+ "]")
@@ -365,7 +367,7 @@ def plot_abs_error_analysis_CDF(tree, loadedGolden, abs_err_golden, summary_file
     #plotCDFdiscretization(abs_err.discretization.intervals)
 
     plotTicks(tmp_name, "X", "green", 4, 500, ticks="[0.0, " + str(abs_fpt) + "]", label="FPT: " + str(abs_fpt))
-    paf_99=error_bounds["0.99"]
+    paf_99=error_bounds[constraints_probabilities[0]]
     plotConstraints(tmp_name, "+", "red", 4, 500, ticks="[0.0, " + str(find_max_abs_interval(paf_99)) + "]")
 
     plt.ticklabel_format(axis='both', style='sci', scilimits=(0, 0))
