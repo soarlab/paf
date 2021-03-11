@@ -213,7 +213,8 @@ class BinOpDist:
 
     def __init__(self, leftoperand, operator, rightoperand, smt_triple, name, poly_precision, samples_dep_op,
                  exact_affine_forms=None, regularize=True,
-                 convolution=True, dependent_mode="full_mc", is_error_computation=False):
+                 convolution=True, dependent_mode="full_mc", is_error_computation=False,
+                 real_precision_constraints=None):
         self.leftoperand = leftoperand
         self.operator = operator
         self.rightoperand = rightoperand
@@ -226,6 +227,7 @@ class BinOpDist:
         self.convolution = convolution
         self.dependent_mode = dependent_mode
         self.exact_affines_forms=exact_affine_forms
+        self.real_precision_constraints=real_precision_constraints
         self.distribution = None
         self.distributionConv = None
         self.distributionSamp = None
@@ -336,7 +338,8 @@ class BinOpDist:
             domain_affine_SMT = left_operand_discr_SMT.affine.perform_affine_operation(self.operator,
                                                                                        right_operand_discr_SMT.affine)
             self.symbolic_affine = self.leftoperand.symbolic_affine.perform_affine_operation(self.operator,
-                                                                                    self.rightoperand.symbolic_affine)
+                                                                                    self.rightoperand.symbolic_affine,
+                                                                                    self.real_precision_constraints)
             constraint_expression=None
             center_interval=None
             concrete_symbolic_interval = self.symbolic_affine.compute_interval()
@@ -440,7 +443,7 @@ class BinOpDist:
         right_op=copy.deepcopy(self.rightoperand.get_discretization())
         domain_affine = left_op.affine.perform_affine_operation(self.operator, right_op.affine)
         self.symbolic_affine = self.leftoperand.symbolic_affine.perform_affine_operation\
-                                        (self.operator, self.rightoperand.symbolic_affine)
+                                        (self.operator, self.rightoperand.symbolic_affine, self.real_precision_constraints)
         insiders=[]
         evaluation_points=set()
 
@@ -607,7 +610,7 @@ class BinOpDist:
             y_errx=self.exact_affines_forms[3].\
                 perform_affine_operation("*", self.leftoperand.symbolic_error)
             errx_erry=self.leftoperand.symbolic_error.\
-                perform_affine_operation("*", self.rightoperand.symbolic_error)
+                perform_affine_operation("*", self.rightoperand.symbolic_error, self.real_precision_constraints)
             self.symbolic_error=x_erry.perform_affine_operation("+",
                               y_errx.perform_affine_operation("+", errx_erry))
         elif self.operator == "/":
@@ -641,7 +644,7 @@ class BinOpDist:
                                     one_over_y_err_x.perform_affine_operation("+", errx_err_one_over_y))
         elif self.operator == "*+":
             if self.leftoperand.do_quantize_operation:
-                exponent=SymbolicAffineManager.precise_create_exp_for_Gelpia(self.exact_affines_forms[2], self.leftoperand.symbolic_error)
+                exponent=SymbolicAffineManager.precise_create_exp_for_Gelpia(self.exact_affines_forms[2], self.leftoperand.symbolic_error, self.real_precision_constraints)
                 self.symbolic_error = self.leftoperand.symbolic_error.\
                     perform_affine_operation("+", exponent.perform_affine_operation("*",self.rightoperand.symbolic_affine))
             else:
@@ -704,9 +707,33 @@ class UnOpDist:
         self.symbolic_affine = None
         self.get_discretization()
         self.constraints_dict={}
+        self.collect_constraints()
 
     def execute(self):
         return self.distribution
+
+    def collect_constraints(self):
+        # Order from high probability pbox to low probability pbox
+        if not "*+" in self.name:
+            if len(self.discretization.intervals)==1 and \
+                        self.discretization.intervals[0].cdf_low=="0.0" and \
+                        self.discretization.intervals[0].cdf_up=="1.0":
+                return
+            self.constraints_dict[self.name] = {}
+            mode_discretization = sorted(self.discretization.intervals,
+                                     key=lambda x: Decimal(x.cdf_up) - Decimal(x.cdf_low), reverse=True)
+
+            my_min = Decimal(mode_discretization[0].interval.lower)
+            my_max = Decimal(mode_discretization[0].interval.upper)
+            for prob in constraints_probabilities:
+                val = Decimal(0.0)
+                for pbox in mode_discretization:
+                    val = val + (Decimal(pbox.cdf_up) - Decimal(pbox.cdf_low))
+                    my_min = min(my_min, Decimal(pbox.interval.lower))
+                    my_max = max(my_max, Decimal(pbox.interval.upper))
+                    if val >= Decimal(prob):
+                        self.constraints_dict[self.name][prob]=(dec2Str(my_min),dec2Str(my_max))
+                        break
 
     def resetSampleInit(self):
         self.sampleInit = True
