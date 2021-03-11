@@ -85,14 +85,15 @@ class DistributionsManager:
             raise ValueError('Invalid ErrorModel name.')
 
     def createBinOperation(self, leftoperand, operator, rightoperand,
-                           interp_precision, exact_affine_forms=None, smt_triple=None, regularize=True, convolution=True):
+                           interp_precision, exact_affine_forms=None, smt_triple=None,
+                           regularize=True, convolution=True, real_precision_constraints=None):
         name = "(" + leftoperand.name + str(operator) + rightoperand.name + ")"
         if name in self.distrdictionary:
             return self.distrdictionary[name]
         else:
             tmp = BinOpDist(leftoperand, operator, rightoperand, smt_triple, name,
                             interp_precision, self.samples_dep_op, exact_affine_forms,
-                            regularize, convolution, self.dependent_mode)
+                            regularize, convolution, self.dependent_mode, real_precision_constraints=real_precision_constraints)
             self.distrdictionary[name] = tmp
             return tmp
 
@@ -234,9 +235,10 @@ class TreeModel:
 
             dist = self.manager.createBinOperation(tree.left.root_value[0], tree.root_name, tree.right.root_value[0],
                                                    self.interp_precision, exact_affine_forms, smt_triple_dist, convolution=tree.convolution)
-
+            real_precision_constraints = dist.constraints_dict
             qdist = self.manager.createBinOperation(tree.left.root_value[2], tree.root_name, tree.right.root_value[2],
-                                                    self.interp_precision, exact_affine_forms, smt_triple_qdist, convolution=tree.convolution)
+                                                    self.interp_precision, exact_affine_forms, smt_triple_qdist, convolution=tree.convolution,
+                                                    real_precision_constraints=real_precision_constraints)
 
             dist_smt_query= SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(tree.left.root_value[3], tree.root_name, tree.right.root_value[3])
             qdist_smt_query= SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(tree.left.root_value[4], tree.root_name, tree.right.root_value[4])
@@ -255,7 +257,7 @@ class TreeModel:
                 exact_affine_forms = [dist.discretization.affine, None,
                                       dist.symbolic_affine, None]
                 quantized_distribution = self.manager.createBinOperation(qdist, "*+", error,
-                                                                         self.interp_precision, exact_affine_forms)
+                                                                         self.interp_precision, exact_affine_forms, real_precision_constraints=real_precision_constraints)
                 error_name_SMT = SMT_Interface.clean_var_name_SMT(error.distribution.name)
                 smt_manager_qdist.add_var(error_name_SMT, error.discretization.lower, error.discretization.upper)
                 qdist_smt_query = SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(qdist_smt_query, "*+",
@@ -337,26 +339,30 @@ class TreeModel:
     def elaborate_Gelpia_error_intervals(self, constraints, symbolic_affine):
         results={}
         logging_constraints=[]
+        prob=constraints_probabilities[0]
+
+        constraint_dict = {}
+        for constraint in constraints:
+            values=constraints[constraint][prob]
+            constraint_dict[str(constraint)]=[values[0], values[1]]
+
         second_order_lower, second_order_upper = \
-            SymbolicToGelpia(symbolic_affine.center, symbolic_affine.variables). \
+            SymbolicToGelpia(symbolic_affine.center, symbolic_affine.variables, constraints=constraint_dict). \
                 compute_concrete_bounds(debug=True, zero_output_epsilon=True)
         center_interval = Interval(second_order_lower, second_order_upper, True, True, digits_for_range)
-        concrete_symbolic_interval = symbolic_affine.compute_interval_error(center_interval)
-        results["1"] = Interval(str(concrete_symbolic_interval.lower),
-                                str(concrete_symbolic_interval.upper),
-                                True,True,digits_for_range)
 
-        for prob in constraints_probabilities:
-            print("Error for prob: "+str(prob))
-            constraint_dict = {}
-            for constraint in constraints:
-                values=constraints[constraint][prob]
-                constraint_dict[str(constraint)]=[values[0], values[1]]
-            logging_constraints.append((prob, constraint_dict))
-            constraints_interval = symbolic_affine.compute_interval_error(center_interval, constraints=constraint_dict)
-            results[str(prob)]=Interval(str(constraints_interval.lower),
-                                        str(constraints_interval.upper),
-                                        True,True,digits_for_range)
+        #concrete_symbolic_interval = symbolic_affine.compute_interval_error(center_interval)
+        #results["1"] = Interval(str(concrete_symbolic_interval.lower),
+        #                        str(concrete_symbolic_interval.upper),
+        #                        True,True,digits_for_range)
+
+        print("Error for prob: "+str(prob))
+
+        logging_constraints.append((prob, constraint_dict))
+        constraints_interval = symbolic_affine.compute_interval_error(center_interval, constraints=constraint_dict)
+        results[str(prob)]=Interval(str(constraints_interval.lower),
+                                    str(constraints_interval.upper),
+                                    True,True,digits_for_range)
 
         return results, logging_constraints
 
