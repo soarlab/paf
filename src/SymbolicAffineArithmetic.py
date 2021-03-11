@@ -133,8 +133,27 @@ class SymbolicAffineManager:
         return coefficients
 
     @staticmethod
-    def precise_create_exp_for_Gelpia(exact, error, constraints):
-        err_interval=error.compute_interval_error(Interval("0","0",True,True, digits_for_range), constraints)
+    def precise_create_exp_for_Gelpia(exact, error, real_precision_constraints):
+
+        if len(constraints_probabilities)>1:
+            print("You cannot have more than one probability value in this setting")
+            exit(-1)
+
+        prob=constraints_probabilities[0]
+
+        constraint_dict=None
+        if not real_precision_constraints==None:
+            constraint_dict = {}
+            for constraint in real_precision_constraints:
+                values = real_precision_constraints[constraint][prob]
+                constraint_dict[str(constraint)] = [values[0], values[1]]
+
+        second_order_lower, second_order_upper = \
+            SymbolicToGelpia(error.center, error.variables, constraint_dict). \
+                compute_concrete_bounds(debug=True, zero_output_epsilon=True)
+        center_interval = Interval(second_order_lower, second_order_upper, True, True, digits_for_range)
+        err_interval = error.compute_interval_error(center_interval, constraints=constraint_dict)
+
         new_exact=copy.deepcopy(exact)
         if not check_interval_is_zero(err_interval):
             err_expression = SymbolicAffineManager.from_Interval_to_Expression(err_interval)
@@ -192,6 +211,22 @@ class SymbolicToGelpia:
             if "Maximum upper bound" in line:
                 ub = line.split("Maximum upper bound")[1].strip()
         return lb, ub
+
+    def compute_non_linearity(self):
+        tmp_variables=copy.deepcopy(self.variables)
+        memorize_eps=Interval("-1.0","1.0",True,True,digits_for_range)
+        for var in tmp_variables:
+            # for the moment there should be one
+            if "eps" in var:
+                memorize_eps=Interval(tmp_variables[var][0], tmp_variables[var][1], True, True, digits_for_range)
+                tmp_variables[var]=["-1.0","1.0"]
+                break
+        _, coeff_upper=SymbolicToGelpia(self.expression, tmp_variables, self.constraints).compute_concrete_bounds(debug=True, zero_output_epsilon=True)
+        interval=Interval("-"+coeff_upper,coeff_upper,True,True,digits_for_range).\
+                            perform_interval_operation("*", memorize_eps)
+        #lower_concrete=center_interval.perform_interval_operation("-", coeff_interval)
+        #upper_concrete=center_interval.perform_interval_operation("+", coeff_interval)
+        return interval
 
 class SymbolicAffineInstance:
     #center is a SymExpression
@@ -307,11 +342,18 @@ class SymbolicAffineInstance:
             if len(constraints_probabilities)>1:
                 print("You cannot use the probabilistic handling of non-linearities with more than one probability constraints")
                 exit(-1)
-            _, upper_non_linear=SymbolicToGelpia(expr_non_linear, variables_non_linear, non_lin_constraints).compute_concrete_bounds()
+            prob = constraints_probabilities[0]
+            constraint_dict = None
+            if not non_lin_constraints == None:
+                constraint_dict = {}
+                for constraint in non_lin_constraints:
+                    values = non_lin_constraints[constraint][prob]
+                    constraint_dict[str(constraint)] = [values[0], values[1]]
+            interval_non_linear=SymbolicToGelpia(expr_non_linear, variables_non_linear, constraint_dict).compute_non_linearity()
+            #interval_non_linear=Interval("-"+upper_non_linear, upper_non_linear, True, True, digits_for_range)
         else:
             _, upper_non_linear = SymbolicToGelpia(expr_non_linear, variables_non_linear).compute_concrete_bounds()
-
-        interval_non_linear=Interval("-"+upper_non_linear, upper_non_linear, True, True, digits_for_range)
+            interval_non_linear=Interval("-"+upper_non_linear, upper_non_linear, True, True, digits_for_range)
 
         if not check_interval_is_zero(interval_non_linear):
             expr_non_linear = SymbolicAffineManager.from_Interval_to_Expression(interval_non_linear)
