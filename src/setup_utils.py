@@ -34,7 +34,7 @@ num_processes_dependent_operation=int(multiprocessing.cpu_count())
 
 mpfr_proxy_precision=200
 use_powers_of_two_spacing=False
-use_logarithm_spacing=True
+custom_spacing=True
 sigma_for_normal_distribution=1  #0.01
 sigma_for_exponential_distribution=0.01
 scale_for_rayleigh_distribution=2
@@ -45,7 +45,7 @@ digits_for_range=50
 digits_for_input_cdf=15
 digits_for_Z3_cdf=20
 
-discretization_points= 100
+discretization_points= 50
 hard_timeout= 10
 soft_timeout= hard_timeout * 1000
 eps_for_LP= 2**-20
@@ -55,11 +55,11 @@ divisions_SMT_pruning_error=10
 valid_for_exit_SMT_pruning_error=9
 gap_cdf_regularizer = 1.0/discretization_points
 golden_model_time=5
-timeout_gelpia_constraints=60
-timeout_gelpia_standard=30
+timeout_gelpia_constraints=180
+timeout_gelpia_standard=60
 timeout_optimization_problem=300
 round_constants_to_nearest=True
-constraints_probabilities=["0.999999"]
+constraints_probabilities=["0.9999999"]
 
 abs_prefix="ABS_"
 SMT_exponent_function_name= "find_exponent"
