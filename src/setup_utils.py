@@ -59,7 +59,7 @@ timeout_gelpia_constraints=180
 timeout_gelpia_standard=60
 timeout_optimization_problem=300
 round_constants_to_nearest=True
-constraints_probabilities=["0.9999999"]
+constraints_probabilities="1"
 
 abs_prefix="ABS_"
 SMT_exponent_function_name= "find_exponent"
@@ -67,9 +67,6 @@ GELPHIA_exponent_function_name= "floor_power2"
 path_to_gelpia_executor="python3.7 /home/roki/GIT/gelpia/bin/gelpia.py "
 path_to_gelpia_constraints_executor="python3.7 /home/roki/GIT/gelpia_constraints_orig/bin/gelpia.py "
 use_z3_when_constraints_gelpia=True
-probabilistic_handling_of_non_linearities=True
-
-
 
 recursion_limit_for_pruning_operation=10
 recursion_limit_for_pruning_error=20
