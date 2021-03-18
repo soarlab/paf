@@ -10,8 +10,7 @@ from IntervalArithmeticLibrary import Interval, check_interval_is_zero, find_min
 from project_utils import round_number_nearest_to_digits, round_number_down_to_digits, round_number_up_to_digits
 from setup_utils import digits_for_range, \
     GELPHIA_exponent_function_name, path_to_gelpia_executor, mpfr_proxy_precision, path_to_gelpia_constraints_executor, \
-    timeout_gelpia_standard, timeout_gelpia_constraints, use_z3_when_constraints_gelpia, \
-    probabilistic_handling_of_non_linearities, constraints_probabilities
+    timeout_gelpia_standard, timeout_gelpia_constraints, use_z3_when_constraints_gelpia, constraints_probabilities
 
 
 def CreateSymbolicErrorForDistributions(distribution_name, lb, ub):
@@ -135,24 +134,11 @@ class SymbolicAffineManager:
     @staticmethod
     def precise_create_exp_for_Gelpia(exact, error, real_precision_constraints):
 
-        if len(constraints_probabilities)>1:
-            print("You cannot have more than one probability value in this setting")
-            exit(-1)
-
-        prob=constraints_probabilities[0]
-
-        constraint_dict=None
-        if not real_precision_constraints==None:
-            constraint_dict = {}
-            for constraint in real_precision_constraints:
-                values = real_precision_constraints[constraint][prob]
-                constraint_dict[str(constraint)] = [values[0], values[1]]
-
         second_order_lower, second_order_upper = \
-            SymbolicToGelpia(error.center, error.variables, constraint_dict). \
+            SymbolicToGelpia(error.center, error.variables, real_precision_constraints). \
                 compute_concrete_bounds(debug=True, zero_output_epsilon=True)
         center_interval = Interval(second_order_lower, second_order_upper, True, True, digits_for_range)
-        err_interval = error.compute_interval_error(center_interval, constraints=constraint_dict)
+        err_interval = error.compute_interval_error(center_interval, constraints=real_precision_constraints)
 
         new_exact=copy.deepcopy(exact)
         if not check_interval_is_zero(err_interval):
@@ -338,35 +324,11 @@ class SymbolicAffineInstance:
         variables_non_linear=copy.deepcopy(self.variables)
         variables_non_linear.update(sym_affine.variables)
 
-        if probabilistic_handling_of_non_linearities:
-            if len(constraints_probabilities)>1:
-                print("You cannot use the probabilistic handling of non-linearities with more than one probability constraints")
-                exit(-1)
-            prob = constraints_probabilities[0]
-            constraint_dict = None
-            if not non_lin_constraints == None:
-                constraint_dict = {}
-                for constraint in non_lin_constraints:
-                    values = non_lin_constraints[constraint][prob]
-                    constraint_dict[str(constraint)] = [values[0], values[1]]
-            interval_non_linear=SymbolicToGelpia(expr_non_linear, variables_non_linear, constraint_dict).compute_non_linearity()
-            #interval_non_linear=Interval("-"+upper_non_linear, upper_non_linear, True, True, digits_for_range)
-        else:
-            _, upper_non_linear = SymbolicToGelpia(expr_non_linear, variables_non_linear).compute_concrete_bounds()
-            interval_non_linear=Interval("-"+upper_non_linear, upper_non_linear, True, True, digits_for_range)
+        interval_non_linear=SymbolicToGelpia(expr_non_linear, variables_non_linear, non_lin_constraints).compute_non_linearity()
 
         if not check_interval_is_zero(interval_non_linear):
             expr_non_linear = SymbolicAffineManager.from_Interval_to_Expression(interval_non_linear)
             new_center=new_center.addition(expr_non_linear)
-            #interval_middle_point_non_linear=AffineManager.compute_middle_point_given_interval(lower_non_linear, upper_non_linear)
-            #dict_uncertainty_non_linear=AffineManager.compute_uncertainty_given_interval(lower_non_linear, upper_non_linear)
-            #key_uncertainty=list(dict_uncertainty_non_linear.keys())[0] #Note: there can be only one in dict_uncertainty_non_linear
-            #interval_uncertainty_non_linear=dict_uncertainty_non_linear[key_uncertainty]
-            #expr_middle_point=SymbolicAffineManager.from_Interval_to_Expression(interval_middle_point_non_linear)
-            #expr_uncertainty=SymbolicAffineManager.from_Interval_to_Expression(interval_uncertainty_non_linear)
-            #dict_symbolic_non_linear={key_uncertainty:expr_uncertainty}
-            #new_center=new_center.addition(expr_middle_point)
-            #new_coefficients.update(dict_symbolic_non_linear)
 
         tmp_variables=copy.deepcopy(self.variables)
         tmp_variables.update(sym_affine.variables)
@@ -391,46 +353,19 @@ class SymbolicAffineInstance:
         return sym_affine_instance
 
     def inverse(self):
-        concrete_interval=self.compute_interval()
+        #concrete_interval=self.compute_interval()
         new_coefficients=copy.deepcopy(self.coefficients)
         new_variables=copy.deepcopy(self.variables)
-
-        if Decimal(concrete_interval.lower)<=Decimal("0.0")<=Decimal(concrete_interval.upper):
-            print("Division By Zero")
-            exit(-1)
 
         if len(new_coefficients)==0:
             res = SymbolicAffineInstance(self.center.inverse(), new_coefficients, new_variables)
             return res
 
-        min_a = find_min_abs_interval(concrete_interval)
-        a = Interval(min_a, min_a, True, True, digits_for_range)
-        max_b = find_max_abs_interval(concrete_interval)
-        b = Interval(max_b, max_b, True, True, digits_for_range)
-        b_square = b.perform_interval_operation("*", b)
-        alpha = Interval("-1.0", "-1.0", True, True, digits_for_range).perform_interval_operation("/", b_square)
-        tmp_a = Interval("1.0", "1.0", True, True, digits_for_range).perform_interval_operation("/", a)
-        d_max = tmp_a.perform_interval_operation("-", alpha.perform_interval_operation("*", a))
-        tmp_b = Interval("1.0", "1.0", True, True, digits_for_range).perform_interval_operation("/", b)
-        d_min = tmp_b.perform_interval_operation("-", alpha.perform_interval_operation("*", b))
-
-        shift=Interval(d_min.lower,d_max.upper,True,True,digits_for_range)
-
-        if Decimal(concrete_interval.lower) < Decimal("0.0"):
-            shift = shift.multiplication(Interval("-1.0", "-1.0", True, True, digits_for_range))
-
-        symbolic_shift = SymbolicAffineManager.from_Interval_to_Expression(shift)
-
-        #Error of the approximation with min-range
-        #radius=AffineManager.compute_uncertainty_given_interval(d_min, d_max)
-        #####
-        res=SymbolicAffineInstance(self.center, new_coefficients, new_variables)
-
-        symbolic_alpha=SymbolicAffineManager.from_Interval_to_Expression(alpha)
-        res=res.mult_constant_expression(symbolic_alpha)
-        res=res.add_constant_expression(symbolic_shift)
-        #There is no error radius here, because the shift is symbolic
-        
+        center_inv=self.center.inverse()
+        err_multiplier=SymExpression("-1.0").division(center_inv.multiplication(center_inv))
+        for key in self.coefficients:
+            new_coefficients[key] = self.coefficients[key].multiplication(err_multiplier)
+        res=SymbolicAffineInstance(center_inv, new_coefficients, new_variables)
         return res
 
     def add_constant_expression(self, constant):
