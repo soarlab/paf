@@ -233,7 +233,7 @@ def plot_range_analysis_CDF(T, loadedGolden, samples_golden, fileHook, file_name
 
     plotCDFdiscretization(final_distribution.discretization.intervals)
 
-    prob_value=constraints_probabilities[0]
+    prob_value=constraints_probabilities
 
     _,dict=bound_range_from_mode(final_distribution.discretization,constraints_probabilities,"","")
     min_cntr = dict[prob_value][0]
@@ -367,7 +367,7 @@ def plot_abs_error_analysis_CDF(tree, loadedGolden, abs_err_golden, summary_file
     #plotCDFdiscretization(abs_err.discretization.intervals)
 
     plotTicks(tmp_name, "X", "green", 4, 500, ticks="[0.0, " + str(abs_fpt) + "]", label="FPT: " + str(abs_fpt))
-    paf_99=error_bounds[constraints_probabilities[0]]
+    paf_99=error_bounds[constraints_probabilities]
     plotConstraints(tmp_name, "+", "red", 4, 500, ticks="[0.0, " + str(find_max_abs_interval(paf_99)) + "]")
 
     plt.ticklabel_format(axis='both', style='sci', scilimits=(0, 0))
