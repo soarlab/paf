@@ -150,20 +150,6 @@ class TreeModel:
         print("FP Range Quantized Distribution: "+str(quantized_interval.lower)+", "+str(quantized_interval.upper))
         self.error_results, self.logging_constraints=self.elaborate_Gelpia_error_intervals(self.final_exact_distr.constraints_dict, self.final_quantized_distr.symbolic_error)
 
-        #self.err_distr = BinOpDist(self.final_quantized_distr, "-",
-        #                           self.final_exact_distr,
-        #                            smt_triple, "err_pbox", 100, self.samples_dep_op,
-        #                        regularize=True, convolution=False, dependent_mode="p-box", is_error_computation=True)
-
-        #self.abs_err_distr = UnOpDist(self.err_distr, "abs_err_pbox", "abs")
-
-        #self.lower_error_affine, self.upper_error_affine=self.compute_lower_upper_affine_error()
-        #self.lower_error_affine.get_piecewise_cdf()
-        #self.upper_error_affine.get_piecewise_cdf()
-        #self.relative_err_distr = UnOpDist(BinOpDist(self.abs_err_distr, "/",
-        #                                             self.final_exact_distr, 1000, self.samples_dep_op,
-        #                                             regularize=True, convolution=False), "rel_err", "abs")
-
     def evaluate(self, tree):
         """ Recursively populate the Tree with the triples
         (distribution, error distribution, quantized distribution) """
@@ -339,15 +325,15 @@ class TreeModel:
     def elaborate_Gelpia_error_intervals(self, constraints, symbolic_affine):
         results={}
         logging_constraints=[]
-        prob=constraints_probabilities[0]
+        prob=constraints_probabilities
 
-        constraint_dict = {}
-        for constraint in constraints:
-            values=constraints[constraint][prob]
-            constraint_dict[str(constraint)]=[values[0], values[1]]
+        #constraint_dict = {}
+        #for constraint in constraints:
+        #    values=constraints[constraint][prob]
+        #    constraint_dict[str(constraint)]=[values[0], values[1]]
 
         second_order_lower, second_order_upper = \
-            SymbolicToGelpia(symbolic_affine.center, symbolic_affine.variables, constraints=constraint_dict). \
+            SymbolicToGelpia(symbolic_affine.center, symbolic_affine.variables, constraints=constraints). \
                 compute_concrete_bounds(debug=True, zero_output_epsilon=True)
         center_interval = Interval(second_order_lower, second_order_upper, True, True, digits_for_range)
 
@@ -358,8 +344,8 @@ class TreeModel:
 
         print("Error for prob: "+str(prob))
 
-        logging_constraints.append((prob, constraint_dict))
-        constraints_interval = symbolic_affine.compute_interval_error(center_interval, constraints=constraint_dict)
+        logging_constraints.append((prob, constraints))
+        constraints_interval = symbolic_affine.compute_interval_error(center_interval, constraints=constraints)
         results[str(prob)]=Interval(str(constraints_interval.lower),
                                     str(constraints_interval.upper),
                                     True,True,digits_for_range)
