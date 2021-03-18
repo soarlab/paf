@@ -234,7 +234,6 @@ class BinOpDist:
         self.sampleInit = True
         self.discretization=None
         self.affine_error=None
-        self.do_quantize_operation = True
         self.symbolic_affine = None
         self.symbolic_error = None
         self.constraints_dict={}
@@ -252,15 +251,16 @@ class BinOpDist:
 
             my_min = Decimal(mode_discretization[0].interval.lower)
             my_max = Decimal(mode_discretization[0].interval.upper)
-            for prob in constraints_probabilities:
-                val = Decimal(0.0)
-                for pbox in mode_discretization:
-                    val = val + (Decimal(pbox.cdf_up) - Decimal(pbox.cdf_low))
-                    my_min = min(my_min, Decimal(pbox.interval.lower))
-                    my_max = max(my_max, Decimal(pbox.interval.upper))
-                    if val >= Decimal(prob):
-                        self.constraints_dict[self.name][prob]=(dec2Str(my_min),dec2Str(my_max))
-                        break
+
+            prob = constraints_probabilities
+            val = Decimal(0.0)
+            for pbox in mode_discretization:
+                val = val + (Decimal(pbox.cdf_up) - Decimal(pbox.cdf_low))
+                my_min = min(my_min, Decimal(pbox.interval.lower))
+                my_max = max(my_max, Decimal(pbox.interval.upper))
+                if val >= Decimal(prob):
+                    self.constraints_dict[self.name] = (dec2Str(my_min), dec2Str(my_max))
+                    break
 
     def executeConvolution(self):
         if self.operator == "+":
@@ -512,14 +512,14 @@ class BinOpDist:
                 self.executeIndependent()
                 self.distributionValues = self.operationDependent()
                 self.distribution = self.distributionConv
-                self.a = self.aConv
-                self.b = self.bConv
+                self.a = self.discretization.intervals[0].interval.lower
+                self.b = self.discretization.intervals[-1].interval.upper
             else:
                 self.distributionValues = self.operationDependent()
                 self.executeDependent()
                 self.distribution = self.distributionSamp
-                self.a = self.aSamp
-                self.b = self.bSamp
+                self.a = self.discretization.intervals[0].interval.lower
+                self.b = self.discretization.intervals[-1].interval.upper
 
             #self.distribution.get_piecewise_pdf()
             self.collect_constraints()
@@ -592,15 +592,6 @@ class BinOpDist:
             self.symbolic_error = self.leftoperand.symbolic_error.perform_affine_operation\
                 ("+",self.rightoperand.symbolic_error)
         elif self.operator == "-":
-            total_affine_right = self.exact_affines_forms[3]. \
-                perform_affine_operation("+", self.rightoperand.symbolic_error)
-            total_affine_left = self.exact_affines_forms[2]. \
-                perform_affine_operation("+", self.leftoperand.symbolic_error)
-
-            total_interval_right = total_affine_right.compute_interval()
-            total_interval_left = total_affine_left.compute_interval()
-            if check_sterbenz_apply(total_interval_left, total_interval_right):
-                self.do_quantize_operation=False
             self.symbolic_error = self.leftoperand.symbolic_error.perform_affine_operation \
                 ("-", self.rightoperand.symbolic_error)
         elif self.operator == "*":
@@ -615,22 +606,12 @@ class BinOpDist:
                               y_errx.perform_affine_operation("+", errx_erry))
         elif self.operator == "/":
             # - 1 / a * a
-            total_affine_right = self.exact_affines_forms[3]. \
-                perform_affine_operation("+", self.rightoperand.symbolic_error)
 
-            total_interval_right = total_affine_right.compute_interval()
-            if check_zero_is_in_interval(total_interval_right):
-                print("Potential division by zero!")
-                exit(-1)
+            square = self.exact_affines_forms[3].multiplication(self.exact_affines_forms[3])
+            minus_one = SymbolicAffineInstance(SymExpression("-1.0"), {}, {})
+            sym_multiplier = minus_one.perform_affine_operation("/", square)
+            inv_erry = sym_multiplier.perform_affine_operation("*", self.rightoperand.symbolic_error)
 
-            min_abs_string = find_min_abs_interval(total_interval_right)
-            multiplier_interval = Interval("-1.0", "-1.0", True, True, digits_for_range).perform_interval_operation("/",
-                                     Interval(min_abs_string,min_abs_string,True,True,digits_for_range).perform_interval_operation("*",
-                                         Interval(min_abs_string,min_abs_string,True,True,digits_for_range)))
-
-            multiplier_expression = SymbolicAffineManager.from_Interval_to_Expression(multiplier_interval)
-            multiplier_symbolic = SymbolicAffineInstance(multiplier_expression,{},{})
-            inv_erry = multiplier_symbolic.perform_affine_operation("*", self.rightoperand.symbolic_error)
             x_err_one_over_y = self.exact_affines_forms[2]. \
                 perform_affine_operation("*", inv_erry)
 
@@ -643,12 +624,9 @@ class BinOpDist:
             self.symbolic_error = x_err_one_over_y.perform_affine_operation("+",
                                     one_over_y_err_x.perform_affine_operation("+", errx_err_one_over_y))
         elif self.operator == "*+":
-            if self.leftoperand.do_quantize_operation:
-                exponent=SymbolicAffineManager.precise_create_exp_for_Gelpia(self.exact_affines_forms[2], self.leftoperand.symbolic_error, self.real_precision_constraints)
-                self.symbolic_error = self.leftoperand.symbolic_error.\
-                    perform_affine_operation("+", exponent.perform_affine_operation("*",self.rightoperand.symbolic_affine))
-            else:
-                self.symbolic_error = self.leftoperand.symbolic_error
+            exponent=SymbolicAffineManager.precise_create_exp_for_Gelpia(self.exact_affines_forms[2], self.leftoperand.symbolic_error, self.real_precision_constraints)
+            self.symbolic_error = self.leftoperand.symbolic_error.\
+                perform_affine_operation("+", exponent.perform_affine_operation("*",self.rightoperand.symbolic_affine))
         else:
             print("Operation not supported!")
             exit(-1)
@@ -702,7 +680,6 @@ class UnOpDist:
         self.b = self.distribution.range_()[-1]
         self.discretization=None
         self.affine_error=None
-        self.do_quantize_operation=True
         self.symbolic_error=None
         self.symbolic_affine = None
         self.get_discretization()
