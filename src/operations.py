@@ -347,7 +347,6 @@ class BinOpDist:
         tmp_insides_SMT = []
 
         evaluation_points=set()
-        print(self.leftoperand.name,self.operator,self.rightoperand.name)
         print("Left-Intervals: "+str(len(left_operand_discr_SMT.intervals)))
         print("Right-Intervals: "+str(len(right_operand_discr_SMT.intervals)))
         print("Pruning dependent operation...")
@@ -447,8 +446,6 @@ class BinOpDist:
         insiders=[]
         evaluation_points=set()
 
-        print(self.leftoperand.name,self.operator,self.rightoperand.name)
-
         print("Left:\n", self.probability_in_insiders(self.leftoperand.discretization.intervals))
         print("Right:\n", self.probability_in_insiders(self.rightoperand.discretization.intervals))
 
@@ -502,6 +499,7 @@ class BinOpDist:
         if self.distribution == None:
             #At the error computation we have X on the left node and Round(X) on the right node.
             #Each node comes with an error, affine or symbolic.
+            print(self.leftoperand.name, self.operator, self.rightoperand.name)
             if self.is_error_computation:
                 self.affine_error=self.leftoperand.affine_error
                 self.symbolic_error=self.leftoperand.symbolic_error
@@ -619,7 +617,7 @@ class BinOpDist:
             one_over_y_err_x = one_over_y.perform_affine_operation("*", self.leftoperand.symbolic_error)
 
             errx_err_one_over_y = self.leftoperand.symbolic_error. \
-                perform_affine_operation("*", inv_erry)
+                perform_affine_operation("*", inv_erry, self.real_precision_constraints)
 
             self.symbolic_error = x_err_one_over_y.perform_affine_operation("+",
                                     one_over_y_err_x.perform_affine_operation("+", errx_err_one_over_y))
@@ -702,15 +700,15 @@ class UnOpDist:
 
             my_min = Decimal(mode_discretization[0].interval.lower)
             my_max = Decimal(mode_discretization[0].interval.upper)
-            for prob in constraints_probabilities:
-                val = Decimal(0.0)
-                for pbox in mode_discretization:
-                    val = val + (Decimal(pbox.cdf_up) - Decimal(pbox.cdf_low))
-                    my_min = min(my_min, Decimal(pbox.interval.lower))
-                    my_max = max(my_max, Decimal(pbox.interval.upper))
-                    if val >= Decimal(prob):
-                        self.constraints_dict[self.name][prob]=(dec2Str(my_min),dec2Str(my_max))
-                        break
+            prob = constraints_probabilities
+            val = Decimal(0.0)
+            for pbox in mode_discretization:
+                val = val + (Decimal(pbox.cdf_up) - Decimal(pbox.cdf_low))
+                my_min = min(my_min, Decimal(pbox.interval.lower))
+                my_max = max(my_max, Decimal(pbox.interval.upper))
+                if val >= Decimal(prob):
+                    self.constraints_dict[self.name] = (dec2Str(my_min), dec2Str(my_max))
+                    break
 
     def resetSampleInit(self):
         self.sampleInit = True
