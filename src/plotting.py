@@ -233,11 +233,11 @@ def plot_range_analysis_CDF(T, loadedGolden, samples_golden, fileHook, file_name
 
     plotCDFdiscretization(final_distribution.discretization.intervals)
 
-    prob_value=constraints_probabilities
+    prob_value=[constraints_probabilities]
 
-    _,dict=bound_range_from_mode(final_distribution.discretization,constraints_probabilities,"","")
-    min_cntr = dict[prob_value][0]
-    max_cntr = dict[prob_value][1]
+    _,dict=bound_range_from_mode(final_distribution.discretization,prob_value,"","")
+    min_cntr = dict[constraints_probabilities][0]
+    max_cntr = dict[constraints_probabilities][1]
 
     #plotConstraints(tmp_name, "+", "red", 4, 500, ticks="[0.0, " + str(find_max_abs_interval(paf_99)) + "]")
     plotConstraints(tmp_filename, "+", "red", 4, 500, ticks="["+min_cntr+", "+ max_cntr+ "]")
