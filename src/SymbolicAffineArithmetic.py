@@ -199,17 +199,16 @@ class SymbolicToGelpia:
         return lb, ub
 
     def compute_non_linearity(self):
-        tmp_variables=copy.deepcopy(self.variables)
-        memorize_eps=Interval("-1.0","1.0",True,True,digits_for_range)
-        for var in tmp_variables:
-            # for the moment there should be one
-            if "eps" in var:
-                memorize_eps=Interval(tmp_variables[var][0], tmp_variables[var][1], True, True, digits_for_range)
-                tmp_variables[var]=["-1.0","1.0"]
-                break
-        _, coeff_upper=SymbolicToGelpia(self.expression, tmp_variables, self.constraints).compute_concrete_bounds(debug=True, zero_output_epsilon=True)
-        interval=Interval("-"+coeff_upper,coeff_upper,True,True,digits_for_range).\
-                            perform_interval_operation("*", memorize_eps)
+        #tmp_variables=copy.deepcopy(self.variables)
+        #memorize_eps=Interval("-1.0","1.0",True,True,digits_for_range)
+        #for var in tmp_variables:
+        #    # for the moment there should be one
+        #    if "eps" in var:
+        #        memorize_eps=Interval(tmp_variables[var][0], tmp_variables[var][1], True, True, digits_for_range)
+        #        tmp_variables[var]=["-1.0","1.0"]
+        #        break
+        _, coeff_upper=SymbolicToGelpia(self.expression, self.variables, self.constraints).compute_concrete_bounds(debug=True, zero_output_epsilon=True)
+        interval=Interval("-"+coeff_upper,coeff_upper,True,True,digits_for_range)
         #lower_concrete=center_interval.perform_interval_operation("-", coeff_interval)
         #upper_concrete=center_interval.perform_interval_operation("+", coeff_interval)
         return interval
