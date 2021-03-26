@@ -290,7 +290,7 @@ class FPRyacc:
             node = self.manager.createNode(oper, [p[2], p[4]])
             p[0] = node
         else:
-            tmpNode = self.manager.createNode(Number("0.0"), [])
+            tmpNode = self.manager.createNode(Number("0"), [])
             oper = Operation(tmpNode.value, str(p[2]), p[3].value)
             p[0] = self.manager.createNode(oper, [tmpNode, p[3]])
         self.myPrint("AnnidateArithExpr", p)
