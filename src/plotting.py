@@ -29,7 +29,7 @@ def plotTicks(figureName, mark, col, lw, s, ticks, label=""):
         plt.figure(figureName)
         plt.scatter(x=[minVal, maxVal], y=[0, 0], c=col, marker=mark, label="FPTaylor: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=lw, s=s)
 
-def plotConstraints(figureName, mark, col, lw, s, ticks, label=""):
+def plotConstraints(figureName, mark, col, lw, s, ticks, constr_value):
     if not ticks is None and not None in eval(ticks):
         values_ticks=eval(ticks)
         minVal = values_ticks[0]
@@ -37,7 +37,7 @@ def plotConstraints(figureName, mark, col, lw, s, ticks, label=""):
         labelMinVal = str('%.1e' % float(minVal))
         labelMaxVal = str("%.1e" % float(maxVal))
         plt.figure(figureName)
-        plt.scatter(x=[minVal, maxVal], y=[0, 0], c=col, marker=mark, label="PAF 99%: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=lw, s=s)
+        plt.scatter(x=[minVal, maxVal], y=[0, 0], c=col, marker=mark, label="PAF "+str(float(constr_value)*100.0)+"%: [" + labelMinVal + "," + labelMaxVal + "]", linewidth=lw, s=s)
 
 def plotBoundsDistr(figureName, distribution):
     minVal = distribution.range_()[0]
@@ -240,7 +240,7 @@ def plot_range_analysis_CDF(T, loadedGolden, samples_golden, fileHook, file_name
     max_cntr = dict[constraints_probabilities][1]
 
     #plotConstraints(tmp_name, "+", "red", 4, 500, ticks="[0.0, " + str(find_max_abs_interval(paf_99)) + "]")
-    plotConstraints(tmp_filename, "+", "red", 4, 500, ticks="["+min_cntr+", "+ max_cntr+ "]")
+    plotConstraints(tmp_filename, "+", "red", 4, 500, "["+min_cntr+", "+ max_cntr+ "]", constraints_probabilities)
 
     plotTicks(tmp_filename, "X", "green", 4, 500, ticks=range_fpt, label="FPT: " + str(range_fpt))
     plt.xlabel('Distribution Range')
@@ -368,7 +368,7 @@ def plot_abs_error_analysis_CDF(tree, loadedGolden, abs_err_golden, summary_file
 
     plotTicks(tmp_name, "X", "green", 4, 500, ticks="[0.0, " + str(abs_fpt) + "]", label="FPT: " + str(abs_fpt))
     paf_99=error_bounds[constraints_probabilities]
-    plotConstraints(tmp_name, "+", "red", 4, 500, ticks="[0.0, " + str(find_max_abs_interval(paf_99)) + "]")
+    plotConstraints(tmp_name, "+", "red", 4, 500, "[0.0, " + str(find_max_abs_interval(paf_99)) + "]", constraints_probabilities)
 
     plt.ticklabel_format(axis='both', style='sci', scilimits=(0, 0))
     #plt.title(tmp_name)
