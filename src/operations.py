@@ -504,7 +504,7 @@ class BinOpDist:
                 self.affine_error=self.leftoperand.affine_error
                 self.symbolic_error=self.leftoperand.symbolic_error
             else:
-                self.compute_error_affine_form()
+                #self.compute_error_affine_form()
                 self.compute_error_symbolic_form()
             if self.convolution:
                 self.executeIndependent()

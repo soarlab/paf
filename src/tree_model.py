@@ -5,7 +5,7 @@ import time
 import os
 
 import SMT_Interface
-from IntervalArithmeticLibrary import Interval
+from IntervalArithmeticLibrary import Interval, check_interval_is_zero
 from SymbolicAffineArithmetic import SymbolicToGelpia
 from error_model import HighPrecisionErrorModel, LowPrecisionErrorModel, FastTypicalErrorModel, ErrorModelPointMass, \
     ErrorModelWrapper, TypicalErrorModel
@@ -229,26 +229,29 @@ class TreeModel:
             dist_smt_query= SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(tree.left.root_value[3], tree.root_name, tree.right.root_value[3])
             qdist_smt_query= SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(tree.left.root_value[4], tree.root_name, tree.right.root_value[4])
 
-
-            if len(dist.discretization.intervals)==1 and \
+            if self.do_quantize(tree.left.root_value[0], tree.root_name, tree.right.root_value[0]):
+                if len(dist.discretization.intervals)==1 and \
                         dist.discretization.intervals[0].cdf_low=="0.0" and \
                         dist.discretization.intervals[0].cdf_up=="1.0":
-                error = ErrorModelPointMass(qdist, self.precision, self.exponent)
-                quantized_distribution = quantizedPointMass(qdist, self.precision, self.exponent)
-                qdist_smt_query = SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(
-                    quantized_distribution.getName())
-            else:
-                error = self.manager.createErrorModel(qdist, self.precision, self.exponent, self.poly_precision,
+                    error = ErrorModelPointMass(qdist, self.precision, self.exponent)
+                    quantized_distribution = quantizedPointMass(qdist, self.precision, self.exponent)
+                    qdist_smt_query = SMT_Interface.create_exp_for_UnaryOperation_SMT_LIB(quantized_distribution.getName())
+                else:
+                    error = self.manager.createErrorModel(qdist, self.precision, self.exponent, self.poly_precision,
                                                       self.interp_precision, self.error_model)
-                exact_affine_forms = [dist.discretization.affine, None,
+                    exact_affine_forms = [dist.discretization.affine, None,
                                       dist.symbolic_affine, None]
-                quantized_distribution = self.manager.createBinOperation(qdist, "*+", error,
+                    quantized_distribution = self.manager.createBinOperation(qdist, "*+", error,
                                                                          self.interp_precision, exact_affine_forms, real_precision_constraints=real_precision_constraints)
-                error_name_SMT = SMT_Interface.clean_var_name_SMT(error.distribution.name)
-                smt_manager_qdist.add_var(error_name_SMT, error.discretization.lower, error.discretization.upper)
-                qdist_smt_query = SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(qdist_smt_query, "*+",
+                    error_name_SMT = SMT_Interface.clean_var_name_SMT(error.distribution.name)
+                    smt_manager_qdist.add_var(error_name_SMT, error.discretization.lower, error.discretization.upper)
+                    qdist_smt_query = SMT_Interface.create_exp_for_BinaryOperation_SMT_LIB(qdist_smt_query, "*+",
                                                                                                 error_name_SMT)
-
+            else:
+                quantized_distribution=qdist
+                error=None
+                #[dist, error, quantized_distribution, dist_smt_query, qdist_smt_query, smt_manager_dist,
+                #smt_manager_qdist]
         # Unary Operation (exp, cos ,sin)
         else:
             self.evaluate(tree.left)
@@ -280,6 +283,15 @@ class TreeModel:
 
         # We now populate the triple with distribution, error model, quantized distribution '''
         tree.root_value = [dist, error, quantized_distribution, dist_smt_query, qdist_smt_query, smt_manager_dist, smt_manager_qdist]
+
+    def do_quantize(self, left_node, operator, right_node):
+        if (operator=="+" or operator=="-") and \
+                check_interval_is_zero(
+                    Interval(left_node.discretization.intervals[0].interval.lower,
+                             left_node.discretization.intervals[-1].interval.upper,
+                             True, True, digits_for_range)):
+            return False
+        return True
 
     def resetInit(self, tree):
         if tree.left is not None or tree.right is not None:
@@ -349,7 +361,6 @@ class TreeModel:
         results[str(prob)]=Interval(str(constraints_interval.lower),
                                     str(constraints_interval.upper),
                                     True,True,digits_for_range)
-
         return results, logging_constraints
 
     def evaluate_error_at_sample(self, tree):
@@ -381,3 +392,4 @@ class TreeModel:
         else:
             sample = tree.root_value[0].getSampleSet(n=1)[0]
             return sample, mpfr(str(sample))
+
