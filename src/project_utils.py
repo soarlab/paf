@@ -31,9 +31,12 @@ def dec2Str(dec):
 
 def set_context_precision(mantissa, exponent):
     ctx = gmpy2.get_context()
+    #precision is already +1, meaning in single precision is 24 (and not 23)
     ctx.precision = mantissa
     ctx.emax = 2 ** (exponent - 1)
-    ctx.emin = 1 - ctx.emax
+    # 4-emax-precision
+    #https://github.com/aleaxit/gmpy/issues/103
+    ctx.emin = 4-ctx.emax-ctx.precision
     return ctx
 
 def reset_default_precision():
