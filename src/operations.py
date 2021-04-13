@@ -131,8 +131,12 @@ class quantizedPointMass:
             self.discretization =self.create_discretization()
             self.affine_error = self.createAffineErrorForValue()
             self.symbolic_affine = self.createSymbolicAffineInstance()
-            self.symbolic_error = self.wrapperInputDistribution.symbolic_affine.\
-                perform_affine_operation("-", self.symbolic_affine)
+
+            err_interval=self.affine_error.compute_interval()
+            err_sym = SymExpression("[" + err_interval.lower + "," + err_interval.upper + "]")
+            self.symbolic_error = SymbolicAffineInstance(err_sym, {}, {})
+            #self.symbolic_error = self.wrapperInputDistribution.symbolic_affine.\
+            #    perform_affine_operation("-", self.symbolic_affine)
         return self.discretization
 
     def createSymbolicAffineInstance(self):
