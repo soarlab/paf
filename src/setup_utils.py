@@ -32,7 +32,7 @@ pran_exe=""
 num_processes_dependent_operation=int(multiprocessing.cpu_count())
 #memory_limit_optimization=((psutil.virtual_memory().total//1024)//1024)
 
-mpfr_proxy_precision=200
+mpfr_proxy_precision=2000
 use_powers_of_two_spacing=False
 custom_spacing=True
 sigma_for_normal_distribution=1  #0.01
@@ -45,7 +45,7 @@ digits_for_range=50
 digits_for_input_cdf=15
 digits_for_Z3_cdf=20
 
-discretization_points= 10
+discretization_points= 25
 hard_timeout= 10
 soft_timeout= hard_timeout * 1000
 eps_for_LP= 2**-20
@@ -54,19 +54,19 @@ valid_for_exit_SMT_pruning_operation=6
 divisions_SMT_pruning_error=10
 valid_for_exit_SMT_pruning_error=9
 gap_cdf_regularizer = 1.0/discretization_points
-golden_model_time=5
-timeout_gelpia_constraints=120
+golden_model_time=60
+timeout_gelpia_constraints=300
 timeout_gelpia_standard=60
 timeout_optimization_problem=300
 round_constants_to_nearest=True
-constraints_probabilities="0.99"
+constraints_probabilities="0.999999"
 
 abs_prefix="ABS_"
 SMT_exponent_function_name= "find_exponent"
 GELPHIA_exponent_function_name= "floor_power2"
 path_to_gelpia_executor="python3.7 /home/roki/GIT/gelpia/bin/gelpia.py "
 path_to_gelpia_constraints_executor="python3.7 /home/roki/GIT/gelpia_constraints_orig/bin/gelpia.py "
-use_z3_when_constraints_gelpia=False
+use_z3_when_constraints_gelpia=True
 
 recursion_limit_for_pruning_operation=10
 recursion_limit_for_pruning_error=20
@@ -74,7 +74,6 @@ recursion_limit_for_pruning_error=20
 global_interpolate=True
 loadIfExists=False
 storeIfDoesnExist=False
-
 
 class NoDaemonProcess(multiprocessing.Process):
     # make 'daemon' attribute always return False
