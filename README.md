@@ -21,8 +21,9 @@ PAF is entirely written in Python, thus you need Python 3.5 (at least). You also
 TODO
 
 #### SMT solvers - Z3 and dReal
-Install [Z3](https://github.com/Z3Prover/z3/), and [dReal](https://github.com/dreal/dreal4).
-Make sure dReal is available globally in your system (open a terminal and run z3/dreal)
+Install [Z3](https://github.com/Z3Prover/z3/) and [dReal](https://github.com/dreal/dreal4).
+
+Make sure each solver is available globally in your system.
 
 # Input Language
 TODO
