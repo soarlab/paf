@@ -1,8 +1,8 @@
 # PAF - Probabilistic Analysis of Floating-point 
 PAF is a prototype tool for probabilistic analysis of round-off errors in arithmetic expressions. 
-The main difference with standards worst-case error analysis is the user provides to PAF the 
-probability distributions associated with the input variables (thus the probabilistic in PAF), 
-and a confidence interval of interest. PAF computes the roundoff error for the expression 
+The main difference with respect to standards worst-case error analysis is the user has to provide the 
+probability distributions together with the input variables (thus the probabilistic in PAF), 
+and a confidence interval of interest. PAF computes the roundoff error for the arithmetic expression 
 conditioned on the output range landing in the given confidence interval.
 
 # Requirements
@@ -12,14 +12,19 @@ The gloabal optimizer PAF realies on, Gelpia, seems to work properly only on Ubu
 
 PAF is entirely written in Python, thus you need Python 3.5 (at least). You also need git.
 
-### Python Requirements
+#### Python Requirements
 
 * ```sudo apt-get install -y python3-tk libmpc-dev python3-dev python3-pip```
 * ```pip3 install -r Req_py.txt```
 
-### Gelpia
+#### Gelpia
 TODO
 
-### SMT solvers - Z3 and dReal
+#### SMT solvers - Z3 and dReal
 TODO
 
+# Input Language
+TODO
+
+# To CAV Artifact Evaluation Reviewers
+TODO
