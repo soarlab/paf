@@ -7,8 +7,8 @@ conditioned on the output range landing in the given confidence interval.
 
 # Requirements
 PAF has been extensively tested on Ubuntu 16.04 running Python 3.5. 
-The gloabal optimizer PAF realies on, Gelpia, seems to work properly only on Ubuntu 16 
-(maybe also with Ubuntu 18 at your own risk), thus we inherit the same limitations.
+The global optimizer Gelpia seems to work properly only on Ubuntu 16 
+(maybe also with Ubuntu 18 at your own risk), thus we inherit the same limitations in PAF.
 
 PAF is entirely written in Python, thus you need Python 3.5 (at least). You also need git.
 
@@ -21,7 +21,8 @@ PAF is entirely written in Python, thus you need Python 3.5 (at least). You also
 TODO
 
 #### SMT solvers - Z3 and dReal
-TODO
+Install [Z3](https://github.com/Z3Prover/z3/), and [dReal](https://github.com/dreal/dreal4).
+Make sure dReal is available globally in your system (open a terminal and run z3/dreal)
 
 # Input Language
 TODO
