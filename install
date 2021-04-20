@@ -1,0 +1,41 @@
+#!/bin/bash
+
+echo "Starting PAF setup - Please be patience!"
+
+sudo apt-get update &> /dev/null
+
+if command -v python3.7 &> /dev/null
+then
+	echo "Ok - python3.7 exists"
+else
+	echo "Installing python3.7"
+	sudo apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev wget git > /dev/null
+	mkdir -p ./tmp
+	cd ./tmp
+	wget https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tar.xz > /dev/null
+	tar -xf Python-3.7.2.tar.xz
+	cd Python-3.7.2 
+	./configure --enable-optimizations > /dev/null
+	make -j 2 > /dev/null
+	sudo make altinstall > /dev/null
+	echo "python3.7 installed!"
+fi
+echo "Installing Python3.7 packages..."
+sudo python3.7 -m pip install scipy sympy matplotlib pacal ply gmpy2 pychebfun > /dev/null
+echo "Done with packages!"
+
+echo "Installing Gelpia..."
+git clone https://github.com/soarlab/gelpia.git ./tmp/gelpia &> /dev/null
+cd ./tmp/gelpia
+make requirements &> /dev/null
+make &> /dev/null
+
+cd ../../
+git clone https://github.com/soarlab/gelpia.git ./tmp/gelpia_constraints &> /dev/null
+cd ./tmp/gelpia_constraints
+git checkout constraints > /dev/null
+git pull > /dev/null
+make requirements &> /dev/null
+make &> /dev/null
+cd ../../
+echo "Done with Gelpia!"
