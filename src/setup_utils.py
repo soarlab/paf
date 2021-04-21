@@ -64,8 +64,8 @@ constraints_probabilities="0.999999"
 abs_prefix="ABS_"
 SMT_exponent_function_name= "find_exponent"
 GELPHIA_exponent_function_name= "floor_power2"
-path_to_gelpia_executor="python3.7 /home/roki/GIT/gelpia/bin/gelpia.py "
-path_to_gelpia_constraints_executor="python3.7 /home/roki/GIT/gelpia_constraints_orig/bin/gelpia.py "
+path_to_gelpia_executor="python3.7 ./tmp/gelpia/bin/gelpia.py "
+path_to_gelpia_constraints_executor="python3.7 ./tmp/gelpia_constraints/bin/gelpia.py "
 use_z3_when_constraints_gelpia=True
 
 recursion_limit_for_pruning_operation=10
