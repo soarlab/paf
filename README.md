@@ -11,6 +11,8 @@ The global optimizer Gelpia seems to work properly only on Ubuntu 16
 (maybe also with Ubuntu 18 at your own risk), thus we inherit the same limitations in PAF.
 
 #### Install the requirements
+The script ```install``` can install all the requirements automatically.
+
 From the home directory of PAF digit:
 ```sudo ./install```
 
