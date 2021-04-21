@@ -13,7 +13,7 @@ The global optimizer Gelpia seems to work properly only on Ubuntu 16
 #### Install the requirements
 The script ```install``` can install all the requirements automatically.
 
-From the home directory of PAF digit:
+Clone this repository and, from the home directory of PAF digit:
 ```./install```
 
 This is going to install:

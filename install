@@ -3,7 +3,7 @@
 echo "Starting PAF setup - Please be patience!"
 
 sudo apt-get update &> /dev/null
-sudo apt install curl wget git unzip &> /dev/null
+sudo apt install curl wget unzip &> /dev/null
 mkdir -p ./tmp
 #sudo chown -R $USER: $HOME
 
