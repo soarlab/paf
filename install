@@ -2,42 +2,46 @@
 
 echo "Starting PAF setup - Please be patience!"
 
-sudo apt-get -y update &> /dev/null
-sudo apt-get -y install curl wget unzip &> /dev/null
+sudo apt-get -y update 
+sudo apt-get -y install curl wget unzip 
 mkdir -p ./tmp
 
-if command -v python3.7 &> /dev/null
+if command -v python3.7 
 then
 	echo "Ok - python3.7 exists"
 else
 	echo "Installing python3.7"
-	sudo apt-get -y install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev > /dev/null
+	sudo apt-get -y install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev
 	cd ./tmp
-	wget https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tar.xz > /dev/null
+	wget https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tar.xz
 	tar -xf Python-3.7.2.tar.xz
 	cd Python-3.7.2 
-	./configure --enable-optimizations
-	make -j $(nproc --all) 
+	./configure
+	make 
 	sudo make altinstall
 	echo "python3.7 installed!"
 fi
 echo "Installing Python3.7 packages..."
-sudo python3.7 -m pip install scipy sympy matplotlib pacal ply gmpy2 pychebfun sly > /dev/null
+sudo apt-get install -y libgmp-dev libmpfr-dev libmpc-dev
+sudo python3.7 -m pip install numpy scipy sympy matplotlib
+sudo python3.7 -m pip install pacal ply pychebfun sly
+sudo python3.7 -m pip install gmpy2
 echo "Done with packages!"
 
 echo "Installing Gelpia..."
-git clone https://github.com/soarlab/gelpia.git ./tmp/gelpia &> /dev/null
+sudo apt-get install -y flex bison
+git clone https://github.com/soarlab/gelpia.git ./tmp/gelpia
 cd ./tmp/gelpia
-make requirements &> /dev/null
-make &> /dev/null
+make requirements
+make
 
 cd ../../
-git clone https://github.com/soarlab/gelpia.git ./tmp/gelpia_constraints &> /dev/null
+git clone https://github.com/soarlab/gelpia.git ./tmp/gelpia_constraints 
 cd ./tmp/gelpia_constraints
-git checkout constraints > /dev/null
-git pull > /dev/null
-make requirements &> /dev/null
-make &> /dev/null
+git checkout constraints 
+git pull
+make requirements 
+make
 cd ../../
 echo "Done with Gelpia!"
 
@@ -47,7 +51,7 @@ then
 else
 	echo "Installing Z3..."
 	cd ./tmp
-	wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.9/z3-4.8.9-x64-ubuntu-16.04.zip > /dev/null
+	wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.9/z3-4.8.9-x64-ubuntu-16.04.zip 
 	unzip -u z3-4.8.9-x64-ubuntu-16.04.zip
 	cp z3-4.8.9-x64-ubuntu-16.04/bin/z3 /usr/bin/
 	cd ../
