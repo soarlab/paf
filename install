@@ -23,6 +23,7 @@ else
 	make 
 	sudo make altinstall
 	echo "python3.7 installed!"
+	cd ../../
 fi
 echo "Installing Python3.7 packages..."
 sudo apt-get install -y libgmp-dev libmpfr-dev libmpc-dev
@@ -56,7 +57,7 @@ else
 	cd ./tmp
 	wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.9/z3-4.8.9-x64-ubuntu-16.04.zip 
 	unzip -u z3-4.8.9-x64-ubuntu-16.04.zip
-	cp z3-4.8.9-x64-ubuntu-16.04/bin/z3 /usr/bin/
+	sudo cp z3-4.8.9-x64-ubuntu-16.04/bin/z3 /usr/bin/
 	cd ../
 	echo "Done with z3!"
 fi
@@ -67,7 +68,7 @@ then
 else
 	echo "Installing dreal..."
 	curl -fsSL https://raw.githubusercontent.com/dreal/dreal4/master/setup/ubuntu/16.04/install.sh | sudo bash
-	cp /opt/dreal/*/bin/dreal /usr/bin/
+	sudo cp /opt/dreal/*/bin/dreal /usr/bin/
 	echo "Done with dreal!"
 fi
 
