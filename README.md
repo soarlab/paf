@@ -14,11 +14,12 @@ PAF is entirely written in Python, thus you need Python 3.5 (or Python3.7). You 
 #### Install the requirements
 From the home directory of PAF digit:
 ```sudo ./install```
+
 This is going to install:
 * Python 3.7 (only if you do not have it)
 * All the Python packages required in PAF
 * [Gelpia](https://github.com/soarlab/gelpia/) the global optimizer
-* [Z3](https://github.com/Z3Prover/z3) and [dReal](https://github.com/dreal/dreal4) only in case they are not available globally in your OS
+* [Z3](https://github.com/Z3Prover/z3) and [dReal](https://github.com/dreal/dreal4) (only in case they are not available globally in your OS)
 
 # Input Language
 TODO
