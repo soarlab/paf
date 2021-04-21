@@ -6,12 +6,13 @@ and a confidence interval of interest. PAF computes the roundoff error for the a
 conditioned on the output range landing in the given confidence interval.
 
 # Requirements
-PAF has been extensively tested on Ubuntu 16.04 running Python 3.5. We tested PAF also with Python 3.7.
+PAF has been extensively tested on Ubuntu 16.04 running Python 3.5 (also with Python 3.7).
 The global optimizer Gelpia seems to work properly only on Ubuntu 16 
 (maybe also with Ubuntu 18 at your own risk), thus we inherit the same limitations in PAF.
-PAF is entirely written in Python, thus you need Python 3.5 (or Python3.7). You also need git.
 
 #### Install the requirements
+The script ```install``` can install all the requirements automatically.
+
 From the home directory of PAF digit:
 ```./install```
 
