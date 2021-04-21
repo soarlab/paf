@@ -3,13 +3,14 @@
 echo "Starting PAF setup - Please be patience!"
 
 sudo apt-get update &> /dev/null
+sudo apt install curl wget git unzip &> /dev/null
 
 if command -v python3.7 &> /dev/null
 then
 	echo "Ok - python3.7 exists"
 else
 	echo "Installing python3.7"
-	sudo apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev wget git > /dev/null
+	sudo apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev > /dev/null
 	mkdir -p ./tmp
 	cd ./tmp
 	wget https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tar.xz > /dev/null
@@ -21,7 +22,7 @@ else
 	echo "python3.7 installed!"
 fi
 echo "Installing Python3.7 packages..."
-sudo python3.7 -m pip install scipy sympy matplotlib pacal ply gmpy2 pychebfun > /dev/null
+sudo python3.7 -m pip install scipy sympy matplotlib pacal ply gmpy2 pychebfun sly > /dev/null
 echo "Done with packages!"
 
 echo "Installing Gelpia..."
@@ -39,3 +40,25 @@ make requirements &> /dev/null
 make &> /dev/null
 cd ../../
 echo "Done with Gelpia!"
+
+if command -v z3 &> /dev/null
+then
+	echo "Ok - z3 exists"
+else
+	echo "Installing Z3..."
+	cd ./tmp
+	wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.9/z3-4.8.9-x64-ubuntu-16.04.zip > /dev/null
+	unzip -u z3-4.8.9-x64-ubuntu-16.04.zip
+	cp z3-4.8.9-x64-ubuntu-16.04/bin/z3 /usr/bin/
+	echo "Done with z3!"
+
+if command -v dreal &> /dev/null
+then
+	echo "Ok - dreal exists"
+else
+	echo "Installing dreal..."
+	curl -fsSL https://raw.githubusercontent.com/dreal/dreal4/master/setup/ubuntu/16.04/install.sh | sudo bash
+	cp /opt/dreal/*/bin/dreal /usr/bin/
+	echo "Done with dreal!"
+
+echo "Done with requirements!"
