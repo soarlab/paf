@@ -2,24 +2,23 @@
 
 echo "Starting PAF setup - Please be patience!"
 
-sudo apt-get update &> /dev/null
-sudo apt-get install curl wget unzip &> /dev/null
+sudo apt-get -y update &> /dev/null
+sudo apt-get -y install curl wget unzip &> /dev/null
 mkdir -p ./tmp
-#sudo chown -R $USER: $HOME
 
 if command -v python3.7 &> /dev/null
 then
 	echo "Ok - python3.7 exists"
 else
 	echo "Installing python3.7"
-	sudo apt-get install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev > /dev/null
+	sudo apt-get -y install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev > /dev/null
 	cd ./tmp
 	wget https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tar.xz > /dev/null
 	tar -xf Python-3.7.2.tar.xz
 	cd Python-3.7.2 
-	./configure --enable-optimizations > /dev/null
-	make -j 2 > /dev/null
-	sudo make altinstall > /dev/null
+	./configure --enable-optimizations
+	make -j $(nproc --all) 
+	sudo make altinstall
 	echo "python3.7 installed!"
 fi
 echo "Installing Python3.7 packages..."
