@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Do NOT run this install with sudo!
+# Just run ./install from the home directory in PAF
+
 echo "Starting PAF setup - Please be patience!"
 
 sudo apt-get -y update 
