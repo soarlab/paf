@@ -6,24 +6,20 @@ and a confidence interval of interest. PAF computes the roundoff error for the a
 conditioned on the output range landing in the given confidence interval.
 
 # Requirements
-PAF has been extensively tested on Ubuntu 16.04 running Python 3.5. 
+PAF has been extensively tested on Ubuntu 16.04 running Python 3.5. We tested PAF also with Python 3.7.
 The global optimizer Gelpia seems to work properly only on Ubuntu 16 
 (maybe also with Ubuntu 18 at your own risk), thus we inherit the same limitations in PAF.
+PAF is entirely written in Python, thus you need Python 3.5 (or Python3.7). You also need git.
 
-PAF is entirely written in Python, thus you need Python 3.5 (at least). You also need git.
+#### Install the requirements
+From the home directory of PAF digit:
+```sudo ./install```
 
-#### Python Requirements
-
-* ```sudo apt-get install -y python3-tk libmpc-dev python3-dev python3-pip```
-* ```pip3 install -r Req_py.txt```
-
-#### Gelpia
-TODO
-
-#### SMT solvers - Z3 and dReal
-Install [Z3](https://github.com/Z3Prover/z3/) and [dReal](https://github.com/dreal/dreal4).
-
-Make sure each solver is available globally in your system.
+This is going to install:
+* Python 3.7 (only if you do not have it)
+* All the Python packages required in PAF
+* [Gelpia](https://github.com/soarlab/gelpia/) the global optimizer
+* [Z3](https://github.com/Z3Prover/z3) and [dReal](https://github.com/dreal/dreal4) (only in case they are not available globally in your OS)
 
 # Input Language
 TODO
