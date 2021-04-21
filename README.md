@@ -13,7 +13,7 @@ PAF is entirely written in Python, thus you need Python 3.5 (or Python3.7). You 
 
 #### Install the requirements
 From the home directory of PAF digit:
-```sudo ./install```
+```./install```
 
 This is going to install:
 * Python 3.7 (only if you do not have it)

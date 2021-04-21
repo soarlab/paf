@@ -4,6 +4,8 @@ echo "Starting PAF setup - Please be patience!"
 
 sudo apt-get update &> /dev/null
 sudo apt install curl wget git unzip &> /dev/null
+mkdir -p ./tmp
+#sudo chown -R $USER: $HOME
 
 if command -v python3.7 &> /dev/null
 then
@@ -11,7 +13,6 @@ then
 else
 	echo "Installing python3.7"
 	sudo apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev > /dev/null
-	mkdir -p ./tmp
 	cd ./tmp
 	wget https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tar.xz > /dev/null
 	tar -xf Python-3.7.2.tar.xz
@@ -50,7 +51,9 @@ else
 	wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.9/z3-4.8.9-x64-ubuntu-16.04.zip > /dev/null
 	unzip -u z3-4.8.9-x64-ubuntu-16.04.zip
 	cp z3-4.8.9-x64-ubuntu-16.04/bin/z3 /usr/bin/
+	cd ../
 	echo "Done with z3!"
+fi
 
 if command -v dreal &> /dev/null
 then
@@ -60,5 +63,6 @@ else
 	curl -fsSL https://raw.githubusercontent.com/dreal/dreal4/master/setup/ubuntu/16.04/install.sh | sudo bash
 	cp /opt/dreal/*/bin/dreal /usr/bin/
 	echo "Done with dreal!"
+fi
 
 echo "Done with requirements!"
