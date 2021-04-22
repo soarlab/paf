@@ -26,4 +26,13 @@ This is going to install:
 TODO
 
 # To CAV Artifact Evaluation Reviewers
-TODO
+#### Reproduce the results of Table 1
+From the home directory of PAF, please run
+``` ./CAV_Table_1 ```
+
+The results of the analysis are dumped in the folder results.
+#### Reproduce the results of Table 2
+From the home directory of PAF, please run
+``` ./CAV_Table_2 ```
+
+**Note:** we suggest you run this command on a machine with *at least* 32-cores. The execution times reported in our CAV submission where measured on a machine with 64-cores.
