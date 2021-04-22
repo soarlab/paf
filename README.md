@@ -5,12 +5,19 @@ probability distributions together with the input variables (thus the probabilis
 and a confidence interval of interest. PAF computes the roundoff error for the arithmetic expression 
 conditioned on the output range landing in the given confidence interval.
 
+# Table of Contents
+- [Requirements](#requirements)
+- [Run PAF](#run)
+- [Input Language](#input)
+- [Output from PAF](#output) 
+- [To CAV Artifact Evaluation Reviewers](#cav)
+
 # Requirements
 PAF has been extensively tested on Ubuntu 16.04 running Python 3.5 (also with Python 3.7).
 The global optimizer Gelpia seems to work properly only on Ubuntu 16 
 (maybe also with Ubuntu 18 at your own risk), thus we inherit the same limitations in PAF.
 
-#### Install the requirements
+#### Setup
 The script ```install``` can install all the requirements automatically.
 
 Clone this repository. From the home directory of PAF digit:
@@ -28,7 +35,7 @@ TODO
 # Input Language
 TODO
 
-# Output of the analysis
+# Output from PAF
 TODO
 
 # To CAV Artifact Evaluation Reviewers
