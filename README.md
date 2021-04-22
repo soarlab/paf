@@ -22,10 +22,13 @@ This is going to install:
 * [Gelpia](https://github.com/soarlab/gelpia/) the global optimizer
 * [Z3](https://github.com/Z3Prover/z3) and [dReal](https://github.com/dreal/dreal4) (only in case they are not globally available in your OS)
 
+# How to run PAF
+TODO
+
 # Input Language
 TODO
 
-# How to run PAF
+# Output of the analysis
 TODO
 
 # To CAV Artifact Evaluation Reviewers
