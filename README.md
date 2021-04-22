@@ -25,6 +25,9 @@ This is going to install:
 # Input Language
 TODO
 
+# How to run PAF
+TODO
+
 # To CAV Artifact Evaluation Reviewers
 #### Reproduce the results of Table 1
 From the home directory of PAF, please run
