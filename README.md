@@ -29,6 +29,7 @@ TODO
 #### Reproduce the results of Table 1
 From the home directory of PAF, please run
 ``` ./CAV_Table_1 ```
+
 **Note:** due to the simplicity of these benchmarks, this command can be executed on a average machine (e.g. laptop).
 
 The results of the analysis are dumped in the folder results.
