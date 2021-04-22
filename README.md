@@ -43,7 +43,7 @@ TODO
 From the home directory of PAF, please run
 ``` ./CAV_Table_1 ```
 
-**Note:** due to the simplicity of these benchmarks no extraordinary hardware is requested. This command can be executed on a average machine (e.g. laptop) with a reasonable execution time (< 5hours).
+**Note:** due to the simplicity of these benchmarks no extraordinary hardware is requested. This experiment can be run on a average machine (e.g. laptop) with a reasonable execution time (< 5hours).
 
 The results of the analysis are dumped in the folder results.
 #### Reproduce the results of Table 2
