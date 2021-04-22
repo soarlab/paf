@@ -29,10 +29,11 @@ TODO
 #### Reproduce the results of Table 1
 From the home directory of PAF, please run
 ``` ./CAV_Table_1 ```
+**Note:** due to the simplicity of these benchmarks, this command can be executed on a average machine (e.g. laptop).
 
 The results of the analysis are dumped in the folder results.
 #### Reproduce the results of Table 2
 From the home directory of PAF, please run
 ``` ./CAV_Table_2 ```
 
-**Note:** we suggest you run this command on a machine with *at least* 32-cores. The execution times reported in our CAV submission where measured on a machine with 64-cores.
+**Note:** we suggest you run this command on a machine with *at least* 32-cores, to have reasonable execution times. The execution times reported in our CAV submission where measured on a machine with 64-cores.
