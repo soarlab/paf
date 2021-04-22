@@ -12,7 +12,7 @@ conditioned on the output range landing in the given confidence interval.
 - [Output from PAF](#output) 
 - [To CAV Artifact Evaluation Reviewers](#cav)
 
-# Requirements
+# <a name="requirements"></a> Requirements
 PAF has been extensively tested on Ubuntu 16.04 running Python 3.5 (also with Python 3.7).
 The global optimizer Gelpia seems to work properly only on Ubuntu 16 
 (maybe also with Ubuntu 18 at your own risk), thus we inherit the same limitations in PAF.
@@ -29,16 +29,16 @@ This is going to install:
 * [Gelpia](https://github.com/soarlab/gelpia/) the global optimizer
 * [Z3](https://github.com/Z3Prover/z3) and [dReal](https://github.com/dreal/dreal4) (only in case they are not globally available in your OS)
 
-# How to run PAF
+# <a name="run"></a> How to run PAF
 TODO
 
-# Input Language
+# <a name="input"></a> Input Language
 TODO
 
-# Output from PAF
+# <a name="output"></a> Output from PAF
 TODO
 
-# To CAV Artifact Evaluation Reviewers
+# <a name="cav"></a> To CAV Artifact Evaluation Reviewers
 #### Reproduce the results of Table 1
 From the home directory of PAF, please run
 ``` ./CAV_Table_1 ```
