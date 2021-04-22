@@ -24,7 +24,7 @@ After you clone this repository, from the home directory of PAF digit:
 ```./install```
 
 The script is going to install:
-* Python 3.7 (only if you do not have it). It does not overwrite your default Python3.
+* Python 3.7 (only if you do not have it). Do not worry, it does not overwrite your default Python3.
 * All the Python3.7 modules required in PAF (only if you do not have them already installed)
 * [Gelpia](https://github.com/soarlab/gelpia/) the global optimizer
 * [Z3](https://github.com/Z3Prover/z3) and [dReal](https://github.com/dreal/dreal4) (only in case they are not globally available in your OS)
