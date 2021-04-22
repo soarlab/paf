@@ -78,14 +78,21 @@ def process_file(file, mantissa, exp, range_my_dict, abs_my_dict):
 
 warnings.warn("Mantissa with implicit bit of sign. In gmpy2 set precision=p includes also sign bit. (e.g. Float32 is mantissa=24 and exp=8)\n")
 
-mantissa = 53
-exp = 11
+mantissa = setup_utils.mantissa_format
+exp = setup_utils.exponent_format
 range_my_dict, abs_my_dict, rel_my_dict = getFPTaylorResults(fptaylor_exe, fptaylor_path)
 
-for file in os.listdir(benchmarks_path):
+if os.path.isdir(benchmarks_path):
+    for file in os.listdir(benchmarks_path):
+        try:
+            if file.endswith(".txt"):
+                process_file(benchmarks_path+file, mantissa, exp, range_my_dict, abs_my_dict)
+        except:
+            print("CRASH: "+str(file))
+elif os.path.isfile(benchmarks_path):
     try:
-        if file.endswith(".txt"):
-            process_file(benchmarks_path+file, mantissa, exp, range_my_dict, abs_my_dict)
+        process_file(benchmarks_path, mantissa, exp, range_my_dict, abs_my_dict)
     except:
-        print("CRASH: "+str(file))
-print("\nDone with sample\n")
+        print("CRASH: " + str(benchmarks_path))
+else:
+    print("\nThe provided path is neither a folder nor a file\n")

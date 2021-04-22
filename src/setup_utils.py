@@ -2,9 +2,35 @@ import os
 # disable openblas threading
 # This must be done before importing numpy
 import psutil
-
 par=1
 os.environ["OPENBLAS_NUM_THREADS"] = str(par)
+
+import sys
+import argparse
+class MyParser(argparse.ArgumentParser):
+   def error(self, message):
+      sys.stderr.write('ERROR: %s\n' % message)
+      self.print_help()
+      sys.exit(1)
+
+
+
+parser = MyParser(description='PAF - Probalistic Analysis of Floating-point arithmetic',
+                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+parser.add_argument('res', type=str, metavar='<path_to_program>',
+                    help='the path of the file you want to verify. '
+                         'In case the path leads to a folder, PAF is going to process all the files one by one.')
+parser.add_argument('-m', type=int, metavar='<mantissa_format>',
+                    help='Mantissa format in bits', default=53)
+parser.add_argument('-e', type=int, metavar='<exponent_format>',
+                    help='Exponent format in bits', default=11)
+parser.add_argument('-d', type=int, metavar='<discretization_size>',
+                    help='Size of the DS structure', default=50)
+parser.add_argument('-prob', type=str, metavar='<confidence_interval>',
+                    help='Confidence interval (e.g. 0.95, 0.99, 0.999999)', default="1")
+
+args = parser.parse_args()
 
 from decimal import getcontext
 getcontext().prec = 500
@@ -23,7 +49,10 @@ init_pacal(num_threads)
 num_processes=int(multiprocessing.cpu_count()/num_threads)
 
 home_directory_project=os.getcwd()+"/"
-benchmarks_path=home_directory_project+"benchmarks_tmp/"
+benchmarks_path=args.res #home_directory_project+"benchmarks_tmp/"
+mantissa_format=args.m
+exponent_format=args.e
+
 storage_path=home_directory_project+"storage/"
 fptaylor_path=home_directory_project+"FPTaylor/"
 output_path=home_directory_project+"results/"
@@ -45,7 +74,7 @@ digits_for_range=50
 digits_for_input_cdf=15
 digits_for_Z3_cdf=20
 
-discretization_points= 25
+discretization_points= args.d
 hard_timeout= 10
 soft_timeout= hard_timeout * 1000
 eps_for_LP= 2**-20
@@ -55,11 +84,11 @@ divisions_SMT_pruning_error=10
 valid_for_exit_SMT_pruning_error=9
 gap_cdf_regularizer = 1.0/discretization_points
 golden_model_time=60
-timeout_gelpia_constraints=300
+timeout_gelpia_constraints=180
 timeout_gelpia_standard=60
 timeout_optimization_problem=300
 round_constants_to_nearest=True
-constraints_probabilities="0.999999"
+constraints_probabilities=args.prob #"0.999999"
 
 abs_prefix="ABS_"
 SMT_exponent_function_name= "find_exponent"
