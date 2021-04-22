@@ -2,7 +2,7 @@
 PAF is a prototype tool for probabilistic analysis of round-off errors in arithmetic expressions. 
 The main difference with respect to standards worst-case error analysis is the user has to provide the 
 probability distributions together with the input variables (thus the probabilistic in PAF), 
-and a confidence interval of interest. PAF computes the roundoff error for the arithmetic expression 
+and a confidence interval of interest (e.g. 0.95, 0.99). PAF computes the roundoff error for the arithmetic expression 
 conditioned on the output range landing in the given confidence interval.
 
 # Table of Contents
