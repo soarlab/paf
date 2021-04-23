@@ -32,7 +32,9 @@ The script is going to install:
 
 # <a name="run"></a> How to run PAF
 From the home directory of PAF please run
+
 ``` python3.7 src/main.py ``` 
+
 This command is going to show you the most updated help message about how to correcly run PAF.
 
 # <a name="input"></a> Input Language
