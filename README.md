@@ -37,8 +37,27 @@ From the home directory of PAF please run
 
 This command is going to show you the most updated help message about how to properly run PAF.
 
-# <a name="input"></a> Input Language
-TODO
+# <a name="input"></a> Input Programs
+
+**Note**: in the folder benchmarks in the home directory, you can find numerous working examples of input programs you can start with.
+
+The input files for PAF are txt files with the following format:
+``` Line 1 - Variables Declarations ``` 
+``` Line 2 - Arithmetic Expressions ```
+
+## Variables Declarations
+
+Variable declaration is a list of declarations, separated by a comma, where each declaration has the following format:
+
+``` <variable-name>:<distribution>(<lower_bound>, <upper_bound>) ```
+
+where:
+
+``` <variable-name> ``` is the alphabetic name of the variable.
+``` <distribution> ``` is the distribution of the variable. At the moment PAF supports U (uniform), N (standard-normal), E (exponential) and R (rayleigh). distributions.
+``` <lower_bound> ``` and ```<upper_bound>``` are the numeric bounds where you want to truncate the distribution of choise.
+
+In the folder 
 
 # <a name="output"></a> Output from PAF
 TODO
