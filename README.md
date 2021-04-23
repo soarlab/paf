@@ -45,7 +45,7 @@ The input files for PAF are txt files with the following format:
 
 ``` Line 1 - Variables Declarations ``` 
 
-``` Line 2 - Arithmetic Expressions ```
+``` Line 2 - Arithmetic Expression ```
 
 ## Variables Declarations
 
