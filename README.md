@@ -31,7 +31,9 @@ The script is going to install:
 * [Z3](https://github.com/Z3Prover/z3) and [dReal](https://github.com/dreal/dreal4) (only in case they are not globally available in your OS)
 
 # <a name="run"></a> How to run PAF
-TODO
+From the home directory of PAF please run
+``` python3.7 src/main.py ``` 
+This command is going to show you the most updated help message about how to correcly run PAF.
 
 # <a name="input"></a> Input Language
 TODO
