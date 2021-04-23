@@ -56,7 +56,9 @@ Variables declarations is a list of declarations, separated by a comma, where ea
 where:
 
 ``` <variable-name> ``` is the alphabetic name of the variable.
+
 ``` <distribution> ``` is the distribution of the variable. At the moment PAF supports U (uniform), N (standard-normal), E (exponential) and R (rayleigh). distributions.
+
 ``` <lower_bound> ``` and ```<upper_bound>``` are the numeric bounds where you want to truncate the distribution of choise.
 
 # <a name="output"></a> Output from PAF
