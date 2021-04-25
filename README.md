@@ -39,7 +39,7 @@ This command is going to show you the most updated help message about how to pro
 
 # <a name="input"></a> Input Programs
 
-**Note**: in the folder benchmarks in the home directory, you can find numerous working examples of input programs you can start with.
+**Note**: in the folder benchmarks in the home directory, you can find many and many valid input programs you can modify based on your needs.
 
 The input files for PAF are txt files with the following format:
 
