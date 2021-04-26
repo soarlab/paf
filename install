@@ -70,8 +70,9 @@ then
 	echo "Ok - dreal exists"
 else
 	echo "Installing dreal..."
-	curl -fsSL https://raw.githubusercontent.com/dreal/dreal4/master/setup/ubuntu/16.04/install.sh | sudo bash
-	sudo cp /opt/dreal/*/bin/dreal /usr/bin/
+	wget https://github.com/dreal/dreal4/releases/download/4.20.12.1/dreal_4.20.12.1_amd64.deb
+	sudo dpkg -i dreal_4.20.12.1_amd64.deb
+	sudo apt-get install -y -f
 	echo "Done with dreal!"
 fi
 
