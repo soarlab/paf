@@ -17,7 +17,7 @@ else
 	echo "Installing python3.7"
 	sudo add-apt-repository -y ppa:deadsnakes/ppa
 	sudo apt-get -y update
-	sudo apt-get -y install lzma python3-tk python3.7-tk tk-dev liblzma-dev build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev
+	sudo apt-get -y install lzma python3-tk python3.7-tk tk-dev liblzma-dev build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libpython3-dev
 	cd ./tmp
 	wget https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tar.xz
 	tar -xf Python-3.7.2.tar.xz
@@ -30,7 +30,7 @@ else
 fi
 echo "Installing Python3.7 packages..."
 sudo apt-get install -y libgmp-dev libmpfr-dev libmpc-dev
-sudo python3.7 -m pip install numpy scipy sympy matplotlib psutil statsmodels
+sudo python3.7 -m pip install numpy scipy sympy matplotlib
 sudo python3.7 -m pip install pacal ply pychebfun sly
 sudo python3.7 -m pip install gmpy2
 echo "Done with packages!"
@@ -84,7 +84,7 @@ else
 	echo "Installing dreal..."
 	sudo add-apt-repository -y ppa:dreal/dreal
 	sudo apt-get -y update
-	sudo apt-get -y install bison coinor-libclp-dev g++ libfl-dev libgmp-dev libibex-dev libnlopt-dev libpython3-dev pkg-config python-minimal zlib1g-dev
+	sudo apt-get -y install bison coinor-libclp-dev g++ libfl-dev libgmp-dev libibex-dev libnlopt-dev pkg-config zlib1g-dev
 	cd ./tmp
 	wget https://github.com/dreal/dreal4/releases/download/4.20.12.1/dreal_4.20.12.1_amd64.deb
 	sudo dpkg -i dreal_4.20.12.1_amd64.deb
