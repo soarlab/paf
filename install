@@ -35,7 +35,7 @@ sudo python3.7 -m pip install pacal ply pychebfun sly
 sudo python3.7 -m pip install gmpy2
 echo "Done with packages!"
 
-if command -v python3.7 ./tmp/gelpia/bin/gelpia.py &> /dev/null
+if python3.7 ./tmp/gelpia/bin/gelpia.py &> /dev/null
 then
 	echo "Ok - Gelpia exists"
 else
@@ -49,7 +49,7 @@ else
 	echo "Done with Gelpia!"
 fi
 
-if command -v python3.7 ./tmp/gelpia_constraints/bin/gelpia.py &> /dev/null
+if python3.7 ./tmp/gelpia_constraints/bin/gelpia.py &> /dev/null
 then
 	echo "Ok - Gelpia Constraints exists"
 else
