@@ -35,11 +35,11 @@ From the home directory of PAF please run
 
 ``` python3.7 src/main.py -h ``` 
 
-This command is going to show you the most updated help message about how to properly run PAF.
+This command is going to show you the most updated help message with the description of the input parameters to run PAF from the command line.
 
 # <a name="input"></a> Input Programs
 
-**Note**: in the folder benchmarks in the home directory, you can find many and many valid input programs you can modify based on your needs.
+**Note**: in the folder benchmarks in the home directory, you can find many and many valid input programs you can run/modify based on your needs.
 
 The input files for PAF are txt files with the following format:
 
@@ -65,18 +65,38 @@ where:
 TODO
 
 # <a name="cav"></a> To CAV Artifact Evaluation Reviewers
-#### Reproduce the results of Table 1
+
+#### Reproduce the results from the (future) Motivation section
 From the home directory of PAF, please run
 ``` ./CAV_Table_1 ```
 
 **Note:** due to the simplicity of these benchmarks no extraordinary hardware is requested. This experiment can be run on a average machine (e.g. laptop) with a reasonable execution time (≈ 3hours).
 
 The results of the analysis are dumped in the folder results.
-#### Reproduce the results of Table 2
+
+#### Reproduce the results from the (existing) Experimental Evaluation section
 From the home directory of PAF, please run
 ``` ./CAV_Table_2 ```
 
-**Note:** we suggest you run this command on a machine with *at least* 32-cores, to have reasonable execution times. The execution times reported in our CAV submission where measured on a machine with 64-cores.
+**Note:** we suggest you run this command on a machine with *at least* 32-cores to have reasonable execution times. The execution times reported in our CAV submission where measured on a machine with 64-cores.
+
+#### Run PAF on a single benchmark of interest from the folder *benchmarks*
+From the home directory of PAF, please run
+```python3 src/main.py -m 24 -e 8 -d 50 -prob 0.99 <benchmark-path>```
+
+where *m* is the mantissa format (in bits), *e* is the exponent format (in bits), *d* is the size of the ds structure (discretization), and *prob* is the confidence interval of interest. *<benchmark-path>* is the path to the benchmark of interest.
+  
+For example, <benchmark-path> can be *benchmarks/benchmarks_gaussian/Filters1_gaussian.txt*.
+
+#### Run PAF on a set of benchmarks of intersets one by one
+In case you want to run PAF one by one on a set of benchmarks, the command line is very similar to the one for a single input program.
+You just need to give the path to the folder where the input programs are, and PAF is going to process one by one the input files in the folder.
+
+For example, the following command line
+
+```python3 src/main.py -m 24 -e 8 -d 50 -prob 0.99 ./benchmarks/benchmarks_gaussian/```
+
+is going to run PAF on each input program in the folder *benchmarks/benchmarks_gaussian/*.
 
 # <a name="ack"></a> Acknowledgements
 TODO
