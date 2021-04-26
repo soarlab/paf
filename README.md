@@ -80,7 +80,7 @@ From the home directory of PAF, please run
 
 **Note:** we suggest you run this command on a machine with *at least* 32-cores to have reasonable execution times. The execution times reported in our CAV submission where measured on a machine with 64-cores.
 
-#### Run PAF on a single benchmark of intersets from the folder *benchmarks*
+#### Run PAF on a single benchmark of interest from the folder *benchmarks*
 From the home directory of PAF, please run
 ```python3 src/main.py -m 24 -e 8 -d 50 -prob 0.99 <benchmark-path>```
 
