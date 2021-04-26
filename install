@@ -47,6 +47,7 @@ else
 	make
 	cd ../../
 	echo "Done with Gelpia!"
+fi
 
 if command -v python3.7 ./tmp/gelpia_constraints/bin/gelpia.py &> /dev/null
 then
@@ -61,6 +62,7 @@ else
 	make
 	cd ../../
 	echo "Done with Gelpia Constraints!"
+fi
 
 if command -v z3 &> /dev/null
 then
