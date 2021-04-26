@@ -62,7 +62,10 @@ where:
 ``` <lower_bound> ``` and ```<upper_bound>``` are the numeric bounds where you want to truncate the support of the distribution of choise.
 
 ## Arithmetic Expression
-The arithmetic expression is the function you want to study. At the moment PAF supports the 4 basic arithmetic operations (+,-,\*,/).
+The arithmetic expression is the function you want to analyze with PAF. Clearly, the function has to be expressed in terms of the input variables previously declared. The only exception are constants (you do not need to declare constants). 
+
+At the moment PAF supports the 4 basic arithmetic operations (+,-,\*,/).
+
 Please note you **must** enclose any binary operation into parenthesis (e.g. (X+Y)). This is because we want to be sure the user knows the order of the operations in the expression, since floating-point arithmetic does not respect real arithmetic (e.g. (X+Y)+Z != X+(Y+Z) in floating-point).
 
 # <a name="output"></a> Output from PAF
