@@ -66,7 +66,7 @@ The arithmetic expression is the function you want to analyze with PAF. Clearly,
 
 At the moment PAF supports the 4 basic arithmetic operations (+,-,\*,/).
 
-Please note you **must** enclose any binary operation into parenthesis (e.g. (X+Y)). This is because we want to be sure the user knows the order of the operations in the expression, since floating-point arithmetic does not respect real arithmetic (e.g. (X+Y)+Z != X+(Y+Z) in floating-point).
+Please note in your arithmetic expression you **must** enclose any binary operation into parenthesis (e.g. (X+Y)). This is because we want to be sure the user knows the order of the operations in the expression, since floating-point arithmetic does not respect real arithmetic (e.g. (X+Y)+Z != X+(Y+Z) in floating-point).
 
 # <a name="output"></a> Output from PAF
 TODO
