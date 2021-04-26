@@ -74,7 +74,7 @@ From the home directory of PAF, please run
 
 The results of the analysis are dumped in the folder results.
 
-#### Reproduce the results from the Experimental Evaluation section
+#### Reproduce the results from the (existing) Experimental Evaluation section
 From the home directory of PAF, please run
 ``` ./CAV_Table_2 ```
 
