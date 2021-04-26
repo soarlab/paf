@@ -85,10 +85,13 @@ else
 	sudo add-apt-repository -y ppa:dreal/dreal
 	sudo apt-get -y update
 	sudo apt-get -y install bison coinor-libclp-dev g++ libfl-dev libgmp-dev libibex-dev libnlopt-dev libpython3-dev pkg-config python-minimal zlib1g-dev
+	cd ./tmp
 	wget https://github.com/dreal/dreal4/releases/download/4.20.12.1/dreal_4.20.12.1_amd64.deb
 	sudo dpkg -i dreal_4.20.12.1_amd64.deb
 	sudo apt-get install -y -f
+	sudo cp /opt/dreal/4.20.12.1/bin/dreal /usr/bin/
 	echo "Done with dreal!"
+	cd ../
 fi
 
 echo "Done with requirements!"
