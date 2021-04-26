@@ -62,7 +62,7 @@ where:
 ``` <lower_bound> ``` and ```<upper_bound>``` are the numeric bounds where you want to truncate the support of the distribution of choise.
 
 ## Arithmetic Expression
-The arithmetic expression is the function you want to analyze with PAF. Clearly, the function has to be expressed in terms of the input variables previously declared. The only exception are constants (you do not need to declare constants). 
+The arithmetic expression is the function you want to analyze with PAF. Clearly, the function has to be expressed in terms of the input variables declared in the previous step. The only exception are constants (you do not need to declare constants). 
 
 At the moment PAF supports the 4 basic arithmetic operations (+,-,\*,/).
 
