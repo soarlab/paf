@@ -35,22 +35,32 @@ sudo python3.7 -m pip install pacal ply pychebfun sly
 sudo python3.7 -m pip install gmpy2
 echo "Done with packages!"
 
-echo "Installing Gelpia..."
-sudo apt-get install -y flex bison
-git clone https://github.com/soarlab/gelpia.git ./tmp/gelpia
-cd ./tmp/gelpia
-make requirements
-make
+if command -v python3.7 ./tmp/gelpia/bin/gelpia.py &> /dev/null
+then
+	echo "Ok - Gelpia exists"
+else
+	echo "Installing Gelpia..."
+	sudo apt-get install -y flex bison
+	git clone https://github.com/soarlab/gelpia.git ./tmp/gelpia
+	cd ./tmp/gelpia
+	make requirements
+	make
+	cd ../../
+	echo "Done with Gelpia!"
 
-cd ../../
-git clone https://github.com/soarlab/gelpia.git ./tmp/gelpia_constraints 
-cd ./tmp/gelpia_constraints
-git checkout constraints 
-git pull
-make requirements 
-make
-cd ../../
-echo "Done with Gelpia!"
+if command -v python3.7 ./tmp/gelpia_constraints/bin/gelpia.py &> /dev/null
+then
+	echo "Ok - Gelpia Constraints exists"
+else
+	echo "Installing Gelpia Constraints..."
+	git clone https://github.com/soarlab/gelpia.git ./tmp/gelpia_constraints 
+	cd ./tmp/gelpia_constraints
+	git checkout constraints 
+	git pull
+	make requirements 
+	make
+	cd ../../
+	echo "Done with Gelpia Constraints!"
 
 if command -v z3 &> /dev/null
 then
@@ -70,6 +80,9 @@ then
 	echo "Ok - dreal exists"
 else
 	echo "Installing dreal..."
+	sudo add-apt-repository -y ppa:dreal/dreal
+	sudo apt-get -y update
+	sudo apt-get -y install bison coinor-libclp-dev g++ libfl-dev libgmp-dev libibex-dev libnlopt-dev libpython3-dev pkg-config python-minimal zlib1g-dev
 	wget https://github.com/dreal/dreal4/releases/download/4.20.12.1/dreal_4.20.12.1_amd64.deb
 	sudo dpkg -i dreal_4.20.12.1_amd64.deb
 	sudo apt-get install -y -f
