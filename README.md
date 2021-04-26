@@ -88,6 +88,16 @@ where *m* is the mantissa format (in bits), *e* is the exponent format (in bits)
   
 For example, <benchmark-path> can be *benchmarks/benchmarks_gaussian/Filters1_gaussian.txt*.
 
+#### Run PAF on a set of benchmarks of intersets one by one
+In case you want to run PAF one by one on a set of benchmarks, the command line is very similar to the one for a single input program.
+You just need to give the path to the folder where the input programs are, and PAF is going to process one by one the input files in the folder.
+
+For example, the following command line
+
+```python3 src/main.py -m 24 -e 8 -d 50 -prob 0.99 ./benchmarks/benchmarks_gaussian/```
+
+is going to run PAF on each input program in the folder *benchmarks/benchmarks_gaussian/*.
+
 # <a name="ack"></a> Acknowledgements
 TODO
 
