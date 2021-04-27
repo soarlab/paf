@@ -10,16 +10,34 @@ sudo apt-get -y update
 sudo apt-get -y install curl wget unzip 
 sudo apt-get -y install software-properties-common
 
-#Python repository
+#Python repo
 sudo add-apt-repository -y ppa:deadsnakes/ppa
 sudo apt-get -y update
-echo "Installing python3.7"
-sudo apt-get install python3-pip
-sudo apt-get -y install python3.7 python3.7-dev python3.7-tk tk-dev lzma liblzma-dev
-python3.7 -m pip install pip==18.1
-echo "python3.7 installed!"
 
 mkdir -p ./tmp
+
+if command -v python3.7 
+then
+	echo "Ok - python3.7 exists"
+	cd ./tmp
+	sudo apt-get -y install lzma python3.7-tk tk-dev liblzma-dev
+	curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+	python3.7 get-pip.py --user
+	cd ../
+else
+	echo "Installing python3.7"
+	#Python3 dependencies, I want to install them before I install python3.7
+	sudo apt-get -y install lzma python3.7-tk tk-dev liblzma-dev build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev
+	cd ./tmp
+	wget https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tar.xz
+	tar -xf Python-3.7.2.tar.xz
+	cd Python-3.7.2
+	./configure
+	make 
+	sudo make altinstall
+	echo "python3.7 installed!"
+	cd ../../
+fi
 
 #Generic dependencies common to Gelpia and dreal
 sudo apt-get install -y libgmp-dev libmpfr-dev libmpc-dev
@@ -80,7 +98,7 @@ else
 	echo "Installing dreal..."
 	sudo add-apt-repository -y ppa:dreal/dreal
 	sudo apt-get -y update
-	sudo apt-get -y install coinor-libclp-dev g++ libfl-dev libgmp-dev libibex-dev libnlopt-dev pkg-config zlib1g-dev libpython3.7-dev
+	sudo apt-get -y install coinor-libclp-dev g++ libfl-dev libgmp-dev libibex-dev libnlopt-dev pkg-config zlib1g-dev libpython3-dev
 	cd ./tmp
 	wget https://github.com/dreal/dreal4/releases/download/4.20.12.1/dreal_4.20.12.1_amd64.deb
 	sudo dpkg -i dreal_4.20.12.1_amd64.deb
