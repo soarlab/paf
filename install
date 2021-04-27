@@ -14,7 +14,9 @@ sudo apt-get -y install software-properties-common
 sudo add-apt-repository -y ppa:deadsnakes/ppa
 sudo apt-get -y update
 echo "Installing python3.7"
-sudo apt-get -y install python3.7 python3.7-dev python3.7-tk tk-dev lzma liblzma-dev  
+sudo apt-get install python3-pip
+sudo apt-get -y install python3.7 python3.7-dev python3.7-tk tk-dev lzma liblzma-dev
+python3.7 -m pip install pip==18.1
 echo "python3.7 installed!"
 
 mkdir -p ./tmp
