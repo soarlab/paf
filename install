@@ -19,11 +19,7 @@ mkdir -p ./tmp
 if command -v python3.7 
 then
 	echo "Ok - python3.7 exists"
-	cd ./tmp
-	sudo apt-get -y install lzma python3.7-tk tk-dev liblzma-dev
-	curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-	python3.7 get-pip.py --user
-	cd ../
+	sudo apt-get -y install lzma python3.7-tk tk-dev liblzma-dev 
 else
 	echo "Installing python3.7"
 	#Python3 dependencies, I want to install them before I install python3.7
