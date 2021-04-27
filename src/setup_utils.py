@@ -27,6 +27,7 @@ parser.add_argument('-e', type=int, metavar='<exponent_format>',
                     help='Exponent format in bits', default=11)
 parser.add_argument('-d', type=int, metavar='<discretization_size>',
                     help='Size of the DS structure', default=50)
+parser.add_argument('-z', action='store_true', help='Use exclusive z3 (no dreal)')
 parser.add_argument('-prob', type=str, metavar='<confidence_interval>',
                     help='Confidence interval (e.g. 0.95, 0.99, 0.999999)', default="1")
 
@@ -95,7 +96,7 @@ SMT_exponent_function_name= "find_exponent"
 GELPHIA_exponent_function_name= "floor_power2"
 path_to_gelpia_executor="python3.7 ./tmp/gelpia/bin/gelpia.py "
 path_to_gelpia_constraints_executor="python3.7 ./tmp/gelpia_constraints/bin/gelpia.py "
-use_z3_when_constraints_gelpia=True
+use_z3_when_constraints_gelpia=args.z
 
 recursion_limit_for_pruning_operation=10
 recursion_limit_for_pruning_error=20
