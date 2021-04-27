@@ -22,6 +22,7 @@ The global optimizer Gelpia seems to work properly only on Ubuntu 16
 The script ```install``` can install all the requirements automatically.
 
 After you clone this repository, from the home directory of PAF digit:
+
 ```./install```
 
 The script is going to install:
@@ -76,6 +77,7 @@ TODO
 
 #### Reproduce the results from the (future) Motivation section
 From the home directory of PAF, please run
+
 ``` ./CAV_Table_1 ```
 
 **Note:** due to the simplicity of these benchmarks no extraordinary hardware is requested. This experiment can be run on a average machine (e.g. laptop) with a reasonable execution time (≈ 3hours).
@@ -84,12 +86,14 @@ The results of the analysis are dumped in the folder results.
 
 #### Reproduce the results from the (existing) Experimental Evaluation section
 From the home directory of PAF, please run
+
 ``` ./CAV_Table_2 ```
 
 **Note:** we suggest you run this command on a machine with *at least* 32-cores to have reasonable execution times. The execution times reported in our CAV submission where measured on a machine with 64-cores.
 
 #### Run PAF on a single benchmark
 From the home directory of PAF, please run
+
 ```python3 src/main.py -m 24 -e 8 -d 50 -prob 0.99 <benchmark-path>```
 
 where *m* is the mantissa format (in bits), *e* is the exponent format (in bits), *d* is the size of the ds structure (discretization), and *prob* is the confidence interval of interest. *<benchmark-path>* is the path to the benchmark of interest.
