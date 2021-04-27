@@ -27,6 +27,8 @@ parser.add_argument('-e', type=int, metavar='<exponent_format>',
                     help='Exponent format in bits', default=11)
 parser.add_argument('-d', type=int, metavar='<discretization_size>',
                     help='Size of the DS structure', default=50)
+parser.add_argument('-tgc', type=int, metavar='<timeout_gelpia_cnstrs>',
+                    help='Timeout for Gelpia when using constraints', default=180)
 parser.add_argument('-z', action='store_true', help='Use exclusive z3 (no dreal)')
 parser.add_argument('-prob', type=str, metavar='<confidence_interval>',
                     help='Confidence interval (e.g. 0.95, 0.99, 0.999999)', default="1")
@@ -85,7 +87,7 @@ divisions_SMT_pruning_error=10
 valid_for_exit_SMT_pruning_error=9
 gap_cdf_regularizer = 1.0/discretization_points
 golden_model_time=60
-timeout_gelpia_constraints=180
+timeout_gelpia_constraints=args.tgc
 timeout_gelpia_standard=60
 timeout_optimization_problem=300
 round_constants_to_nearest=True
