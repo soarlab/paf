@@ -10,28 +10,14 @@ sudo apt-get -y update
 sudo apt-get -y install curl wget unzip 
 sudo apt-get -y install software-properties-common
 
-#Python3 dependencies, I want to install them before I (eventually) install python3.7
+#Python repository
 sudo add-apt-repository -y ppa:deadsnakes/ppa
 sudo apt-get -y update
-sudo apt-get -y install lzma python3.7-tk tk-dev liblzma-dev build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev
+echo "Installing python3.7"
+sudo apt-get -y install python3.7 python3.7-dev python3.7-tk tk-dev lzma liblzma-dev  
+echo "python3.7 installed!"
 
 mkdir -p ./tmp
-
-if command -v python3.7 
-then
-	echo "Ok - python3.7 exists"
-else
-	echo "Installing python3.7"
-	cd ./tmp
-	wget https://www.python.org/ftp/python/3.7.10/Python-3.7.10.tar.xz
-	tar -xf Python-3.7.10.tar.xz
-	cd Python-3.7.10 
-	./configure
-	make 
-	sudo make altinstall
-	echo "python3.7 installed!"
-	cd ../../
-fi
 
 #Generic dependencies common to Gelpia and dreal
 sudo apt-get install -y libgmp-dev libmpfr-dev libmpc-dev
