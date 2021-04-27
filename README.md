@@ -1,4 +1,4 @@
-# PAF - Probabilistic Analysis of Floating-point 
+# PAF - Probabilistic Analysis of Floating-point arithmetic
 PAF is a prototype tool for probabilistic analysis of round-off errors in arithmetic expressions. 
 The main difference with respect to standards worst-case error analysis is the user has to provide the 
 probability distributions together with the input variables (thus the probabilistic in PAF), 
