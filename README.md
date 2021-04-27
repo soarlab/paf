@@ -76,6 +76,7 @@ TODO
 # <a name="cav"></a> To CAV Artifact Evaluation Reviewers
 
 #### Reproduce the results from the (future) Motivation section
+*Note*: at the moment our accepted paper does not include a motivation section. The camera-ready submission is going to include one, with this exact experiment.
 From the home directory of PAF, please run
 
 ``` ./CAV_Table_1 ```
