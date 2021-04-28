@@ -108,7 +108,7 @@ From the home directory of PAF, please run
 
 From the home directory of PAF, please run
 
-```python3 src/main.py  -m <mantissa> -e <exp> -d <discr_size> -tgc <timeout_cnstrs> -z -prob <confidence> <path>```
+```python3.7 src/main.py  -m <mantissa> -e <exp> -d <discr_size> -tgc <timeout_cnstrs> -z -prob <confidence> <path>```
 
 where:
 
@@ -134,7 +134,7 @@ You just need to give the path to the folder where the input programs are, and P
 
 For example, the following command line
 
-```python3 src/main.py ./benchmarks/benchmarks_gaussian/```
+```python3.7 src/main.py ./benchmarks/benchmarks_gaussian/```
 
 is going to run PAF (with default parameters) on each input program in the folder *benchmarks/benchmarks_gaussian/*.
 
