@@ -19,20 +19,13 @@ mkdir -p ./tmp
 if command -v python3.7 
 then
 	echo "Ok - python3.7 exists"
-	sudo apt-get -y install lzma python3.7-tk tk-dev liblzma-dev 
+	sudo apt-get -y install lzma python3.7-tk tk-dev liblzma-dev libbz2-dev
 else
 	echo "Installing python3.7"
 	#Python3 dependencies, I want to install them before I install python3.7
-	sudo apt-get -y install lzma python3.7-tk tk-dev liblzma-dev build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev
-	cd ./tmp
-	wget https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tar.xz
-	tar -xf Python-3.7.2.tar.xz
-	cd Python-3.7.2
-	./configure
-	make 
-	sudo make altinstall
+	sudo apt-get -y install lzma python3.7-tk tk-dev liblzma-dev libbz2-dev 
+	sudo apt -y install python3.7
 	echo "python3.7 installed!"
-	cd ../../
 fi
 
 #Generic dependencies common to Gelpia and dreal
