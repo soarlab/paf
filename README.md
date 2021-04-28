@@ -131,7 +131,7 @@ For example, the following command line
 
 is going to run PAF (with default parameters) on each input program in the folder *benchmarks/benchmarks_gaussian/*.
 
-Please run ``` python3.7 src/main.py -h ``` for the most updates command line options.
+Please run ``` python3.7 src/main.py -h ``` for the most updated command line options.
 
 # <a name="ack"></a> Acknowledgements
 TODO
