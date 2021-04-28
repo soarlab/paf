@@ -119,7 +119,7 @@ where:
 
 *\<path\>* is the path to the benchmark of interest (positional argument). For example, *\<path\>* can be *benchmarks/benchmarks_gaussian/Filters1_gaussian.txt*.
 
-Please run ``` python3.7 src/main.py -h ``` for the most updates command line options.
+Please run ``` python3.7 src/main.py -h ``` for the most updated command line options.
 
 #### Run PAF on a set of benchmarks
 In case you want to run PAF on a set of benchmarks, the command line is very similar to the one for a single input program.
