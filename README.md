@@ -71,7 +71,13 @@ Please note in your arithmetic expression you **must** enclose any binary operat
 This is because we want to be sure the user knows the order of the operations in the expression, since floating-point arithmetic does not respect the rules of real arithmetic (e.g. (X+Y)+Z != X+(Y+Z) in floating-point).
 
 # <a name="output"></a> Output from PAF
-TODO
+PAF dumps the output of the analysis in the folder ```results``` in the home directory.
+There is one folder for each benchmark, and the name of the folder reflects the name of the benchmark. PAF overwrites the folder in case it already exists.
+
+Each benchmark folder contains:
+
+* Our sound probabilistic analysis (files with 'CDF' in their name). In particular, there is a log file 'CDF_summary' which reports the exe-time of the analysis, our sounds probabilistic range analysis, and the probabilistic error bound at the bottom of the file.
+* Our unsound Monte Carlo implementation (files with 'golden' in their name). There is one file for the range and one for the error analyses.
 
 # <a name="cav"></a> To CAV Artifact Evaluation Reviewers
 
