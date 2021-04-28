@@ -78,6 +78,7 @@ Each benchmark folder contains:
 
 * Our sound probabilistic analysis (files with 'CDF' in their name). In particular, there is a log file named 'CDF_summary' reporting the exe-time of the analysis, our sounds probabilistic range analysis, and the probabilistic error bound at the bottom of the file.
 * Our unsound Monte Carlo implementation (files with 'golden' in their name). There is one file for the range and one for the error analyses.
+* Two pictures comparing PAF against Monte Carlo.
 
 # <a name="cav"></a> To CAV Artifact Evaluation Reviewers
 
