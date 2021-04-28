@@ -105,15 +105,21 @@ From the home directory of PAF, please run
 
 where:
 
-*mantissa* is the mantissa format in bits (default: 53),
-*exponent* is the exponent format in bits (default: 11), 
-*d* is the size of the ds structure (default: 50),
-*tgc* is the timeout in seconds for the global optimizer with constraints (default: 180),
-*z* when provided means use exclusively z3 SMT solver (default: False),
-*prob* is the confidence interval of interest (default: 1), 
-*<benchmark-path>* is the path to the benchmark of interest (positional argument);
+*m* is the mantissa format in bits (default: 53)
+
+*e* is the exponent format in bits (default: 11)
+
+*d* is the size of the ds structure (default: 50)
+
+*tgc* is the timeout in seconds for the global optimizer with constraints (default: 180)
+
+*z* when provided means use exclusively z3 SMT solver (default: False)
+
+*prob* is the confidence interval of interest (default: 1)
+
+*<path>* is the path to the benchmark of interest (positional argument)
   
-For example, <benchmark-path> can be *benchmarks/benchmarks_gaussian/Filters1_gaussian.txt*.
+For example, <path> can be *benchmarks/benchmarks_gaussian/Filters1_gaussian.txt*.
 
 Please run ``` python3.7 src/main.py -h ``` for the most updates command line options.
 
