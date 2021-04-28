@@ -101,7 +101,7 @@ From the home directory of PAF, please run
 
 From the home directory of PAF, please run
 
-```python3 src/main.py -m <mantissa> -e <exponent> -d <discretization_size> -tgc <timeout_gelpia_cnstrs> -z -prob <confidence_interval> <benchmark-path>```
+```python3 src/main.py  -m <mantissa> -e <exp> -d <discr_size> -tgc <timeout_cnstrs> -z -prob <confidence> <path>```
 
 where:
 
