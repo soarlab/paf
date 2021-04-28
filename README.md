@@ -26,7 +26,7 @@ After you clone this repository, from the home directory of PAF digit:
 ```./install```
 
 The script is going to install:
-* Python 3.7 (only if you do not have it). Do not worry, it does not overwrite your default Python3. In case you already have Python3.7 installed in your OS, the script attempts to install the required modules. You must have a working *Python3.7 -m pip install* at user level (no sudo). 
+* Python 3.7 (only if you do not have it). Do not worry, it does not overwrite your default Python3. In case you already have Python3.7 installed in your OS, the script attempts to install the required modules. You **must** have a working ```Python3.7 -m pip install``` at user level (no sudo). 
 * All the Python3.7 modules required in PAF (only if you do not have them already installed)
 * [Gelpia](https://github.com/soarlab/gelpia/) the global optimizer
 * [Z3](https://github.com/Z3Prover/z3) and [dReal](https://github.com/dreal/dreal4) (only in case they are not globally available in your OS)
@@ -75,29 +75,34 @@ TODO
 
 # <a name="cav"></a> To CAV Artifact Evaluation Reviewers
 
-#### Reproduce the results from the (future) Motivation section
+#### Reproduce the results from the (future camera-ready) Motivation section
 **Note**: at the moment our accepted paper does not include a motivation section. The camera-ready submission is going to include one, with this exact experiment.
 From the home directory of PAF, please run
 
-``` ./CAV_Table_1 ```
+``` ./CAV_Motivation ```
 
-**Note:** due to the simplicity of these benchmarks no extraordinary hardware is requested. This experiment can be run on a average machine (e.g. laptop) with a reasonable execution time (≈ 3hours).
-
-The results of the analysis are dumped in the folder results.
+**Note:** due to the simplicity of these benchmarks no extraordinary hardware is requested. This experiment can be run on a average machine (e.g. laptop) with a reasonable execution time (≈ 3hours). The results of the analysis are dumped in the folder results.
 
 #### Reproduce the results from the (existing) Experimental Evaluation section
 From the home directory of PAF, please run
 
-``` ./CAV_Table_2 ```
+``` ./CAV_Experimental_Full ```
 
-**Note:** we suggest you run this command on a machine with *at least* 32-cores to have reasonable execution times. The execution times reported in our CAV submission where measured on a machine with 64-cores.
+**Note:** we suggest you run this script on a machine with *at least* 32-cores to have reasonable execution times. The execution times reported in our CAV submission where measured on a machine with 64-cores. The expected exexution time on a 64-cores machine is about 1 week (84 benchmarks total).
+
+#### Reproduce the results from the (existing) Experimental Evaluation section (Light Version)
+From the home directory of PAF, please run
+
+``` ./CAV_Experimental_Light ```
+
+**Note:** this script runs only a subset of the experiments from our Experimental Evaluation section. This 'Light Version' can be run on a average machine (e.g. laptop) similarly to the previous script Motivation.
 
 #### Run PAF on a single benchmark
 From the home directory of PAF, please run
 
-```python3 src/main.py -m 24 -e 8 -d 50 -prob 0.99 <benchmark-path>```
+```python3 src/main.py -m <mantissa> -e <exponent> -d 50 -prob 0.99 <benchmark-path>```
 
-where *m* is the mantissa format (in bits), *e* is the exponent format (in bits), *d* is the size of the ds structure (discretization), and *prob* is the confidence interval of interest. *<benchmark-path>* is the path to the benchmark of interest.
+where *mantissa* is the mantissa format (in bits), *exponent* is the exponent format (in bits), *d* is the size of the ds structure (discretization), and *prob* is the confidence interval of interest. *<benchmark-path>* is the path to the benchmark of interest.
   
 For example, <benchmark-path> can be *benchmarks/benchmarks_gaussian/Filters1_gaussian.txt*.
 
