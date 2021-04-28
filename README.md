@@ -117,7 +117,7 @@ where:
 
 *prob* is the confidence interval of interest (default: 1);
 
-*<path>* is the path to the benchmark of interest (positional argument). For example, <path> can be *benchmarks/benchmarks_gaussian/Filters1_gaussian.txt*.
+*\<path\>* is the path to the benchmark of interest (positional argument). For example, <path> can be *benchmarks/benchmarks_gaussian/Filters1_gaussian.txt*.
 
 Please run ``` python3.7 src/main.py -h ``` for the most updates command line options.
 
