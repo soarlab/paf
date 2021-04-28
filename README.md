@@ -98,13 +98,24 @@ From the home directory of PAF, please run
 **Note:** this script runs only a subset of the experiments from our Experimental Evaluation section. This 'Light Version' can be run on a average machine (e.g. laptop) similarly to the previous script Motivation.
 
 #### Run PAF on a single benchmark
+
 From the home directory of PAF, please run
 
-```python3 src/main.py -m <mantissa> -e <exponent> -d 50 -prob 0.99 <benchmark-path>```
+```python3 src/main.py -m <mantissa> -e <exponent> -d <discretization_size> -tgc <timeout_gelpia_cnstrs> -z -prob <confidence_interval> <benchmark-path>```
 
-where *mantissa* is the mantissa format (in bits), *exponent* is the exponent format (in bits), *d* is the size of the ds structure (discretization), and *prob* is the confidence interval of interest. *<benchmark-path>* is the path to the benchmark of interest.
+where:
+
+*mantissa* is the mantissa format in bits (default: 53),
+*exponent* is the exponent format in bits (default: 11), 
+*d* is the size of the ds structure (default: 50),
+*tgc* is the timeout in seconds for the global optimizer with constraints (default: 180),
+*z* when provided means use exclusively z3 SMT solver (default: False),
+*prob* is the confidence interval of interest (default: 1), 
+*<benchmark-path>* is the path to the benchmark of interest (positional argument);
   
 For example, <benchmark-path> can be *benchmarks/benchmarks_gaussian/Filters1_gaussian.txt*.
+
+Please run ``` python3.7 src/main.py -h ``` for the most updates command line options.
 
 #### Run PAF on a set of benchmarks
 In case you want to run PAF on a set of benchmarks, the command line is very similar to the one for a single input program.
@@ -112,9 +123,11 @@ You just need to give the path to the folder where the input programs are, and P
 
 For example, the following command line
 
-```python3 src/main.py -m 24 -e 8 -d 50 -prob 0.99 ./benchmarks/benchmarks_gaussian/```
+```python3 src/main.py ./benchmarks/benchmarks_gaussian/```
 
-is going to run PAF on each input program in the folder *benchmarks/benchmarks_gaussian/*.
+is going to run PAF (with default parameters) on each input program in the folder *benchmarks/benchmarks_gaussian/*.
+
+Please run ``` python3.7 src/main.py -h ``` for the most updates command line options.
 
 # <a name="ack"></a> Acknowledgements
 TODO
