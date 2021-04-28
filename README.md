@@ -1,7 +1,7 @@
 # PAF - Probabilistic Analysis of Floating-point arithmetic
-PAF is a prototype tool for probabilistic analysis of round-off errors in arithmetic expressions. 
+PAF is a prototype tool for the probabilistic analysis of round-off errors in arithmetic expressions. 
 The main difference with standards worst-case error analysis is that the user has to provide 
-probability distributions together with the input variables, 
+a probability distribution for every input variable, 
 and a confidence interval of interest (e.g. 0.95, 0.99). PAF computes the roundoff error for the arithmetic expression 
 conditioned on the output range landing in the given confidence interval.
 
@@ -68,7 +68,7 @@ The arithmetic expression is the function you want to analyze with PAF. Clearly,
 At the moment PAF supports the 4 basic arithmetic operations (+,-,\*,/).
 
 Please note in your arithmetic expression you **must** enclose any binary operation into parenthesis (e.g. (X+Y)). 
-This is because we want to be sure the user knows the order of the operations in the expression, since floating-point arithmetic does not respect real arithmetic (e.g. (X+Y)+Z != X+(Y+Z) in floating-point).
+This is because we want to be sure the user knows the order of the operations in the expression, since floating-point arithmetic does not respect the rules of real arithmetic (e.g. (X+Y)+Z != X+(Y+Z) in floating-point).
 
 # <a name="output"></a> Output from PAF
 TODO
