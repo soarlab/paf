@@ -14,19 +14,19 @@ conditioned on the output range landing in the given confidence interval.
 - [Acknowledgements](#ack)
 
 # <a name="requirements"></a> Requirements
-PAF has been extensively tested on Ubuntu 16.04 running Python 3.5 (also with Python 3.7).
+PAF has been extensively tested on Ubuntu 16.04 running Python 3.5 (tested also with Python 3.7).
 The global optimizer Gelpia seems to work properly only on Ubuntu 16 
-(maybe also with Ubuntu 18 at your own risk), thus we inherit the same limitations in PAF.
+(maybe also with Ubuntu 18 at your own risk), thus we inherit the same limitations here in PAF.
 
 #### Setup
-The script ```install``` can install all the requirements automatically.
+The script ```install``` attempts to install all the requirements automatically.
 
 After you clone this repository, from the home directory of PAF digit:
 
 ```./install```
 
 The script is going to install:
-* Python 3.7 (only if you do not have it). Do not worry, it does not overwrite your default Python3.
+* Python 3.7 (only if you do not have it). Do not worry, it does not overwrite your default Python3. In case you already have Python3.7 installed in your OS, the script attempts to install the required modules. You must have a working *Python3.7 -m pip install* at user level (no sudo). 
 * All the Python3.7 modules required in PAF (only if you do not have them already installed)
 * [Gelpia](https://github.com/soarlab/gelpia/) the global optimizer
 * [Z3](https://github.com/Z3Prover/z3) and [dReal](https://github.com/dreal/dreal4) (only in case they are not globally available in your OS)
