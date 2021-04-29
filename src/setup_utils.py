@@ -4,6 +4,8 @@ import os
 import psutil
 par=1
 os.environ["OPENBLAS_NUM_THREADS"] = str(par)
+os.environ["PATH"] = "/usr/bin" + os.pathsep + os.environ["PATH"]
+
 
 import sys
 import argparse
