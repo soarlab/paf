@@ -15,9 +15,7 @@ conditioned on the output range landing in the given confidence interval.
 - [Acknowledgements](#ack)
 
 # <a name="requirements"></a> Requirements
-PAF has been extensively tested on Ubuntu 16.04 running Python 3.7 (tested also with Python 3.5).
-The global optimizer Gelpia seems to work properly only on Ubuntu 16 
-(maybe also with Ubuntu 18 at your own risk), thus we inherit the same limitations here in PAF.
+PAF has been extensively tested only on Ubuntu 16.04 running Python 3.7 (tested also with Python 3.5).
 
 #### Setup
 The script ```install``` attempts to install all the requirements automatically.
@@ -27,7 +25,7 @@ After you clone this repository, from the home directory of PAF digit:
 ```./install```
 
 The script is going to install:
-* Python 3.7 (only if you do not have it). Do not worry, it does not overwrite your default Python3. In case you already have Python3.7 installed in your OS, the script attempts to install the required modules. You **must** have a working ```python3.7 -m pip install``` at user level (no sudo). 
+* Python 3.7 (only if you do not have it). It does not overwrite your default ```python3```. In case you already have ```python3.7``` installed in your OS, the script attempts to install the required modules. You **must** have a working ```python3.7 -m pip install``` at user level (no sudo). 
 * All the Python3.7 modules required in PAF (only if you do not have them already installed)
 * [Gelpia](https://github.com/soarlab/gelpia/) the global optimizer
 * [Z3](https://github.com/Z3Prover/z3) and [dReal](https://github.com/dreal/dreal4) (only in case they are not globally available in your OS)
@@ -37,7 +35,7 @@ From the home directory of PAF please run
 
 ``` python3.7 src/main.py -h ``` 
 
-This command is going to show you the most updated *help message* with the description of the input parameters to properly run PAF from the command line.
+This command is going to show you how to properly run PAF from the command line.
 
 # <a name="input"></a> Input Programs
 
@@ -68,7 +66,7 @@ The arithmetic expression is the function you want to analyze with PAF. Clearly,
 
 At the moment PAF supports the 4 basic arithmetic operations (+,-,\*,/).
 
-Please note in your arithmetic expression you **must** enclose any binary operation into parenthesis (e.g. (X+Y)). 
+Please note you **must** enclose any binary operation into parenthesis (e.g. (X+Y)). 
 This is because we want to be sure the user knows the order of the operations in the expression, since floating-point arithmetic does not respect the rules of real arithmetic (e.g. (X+Y)+Z != X+(Y+Z) in floating-point).
 
 # <a name="output"></a> Output from PAF
@@ -89,7 +87,7 @@ From the home directory of PAF, please run
 
 ``` ./CAV_Motivation ```
 
-**Note:** due to the simplicity of these benchmarks no extraordinary hardware is requested. This experiment can be run on a average machine (e.g. laptop) with a reasonable execution time (≈ 3hours). The results of the analysis are dumped in the folder results.
+**Note:** due to the simplicity of these benchmarks no extraordinary hardware is required. This experiment can be run on a average machine (e.g. laptop) with a reasonable execution time (≈ 3hours). The results of the analysis are dumped in the folder results.
 
 #### Reproduce the results from the (existing) Experimental Evaluation section
 From the home directory of PAF, please run
@@ -142,5 +140,7 @@ is going to run PAF (with default parameters) on each input program in the folde
 Please run ``` python3.7 src/main.py -h ``` for the most updated command line options.
 
 # <a name="ack"></a> Acknowledgements
-TODO
+We thank Ian Briggs and Mark Baranowski for their generous and prompt support with Gelpia.
+We also thank Alexey Solovyev for his detailed feedback and suggestions for improvements.
 
+PAF is supported in part by the National Science Foundation awards CCF 1552975, 1704715,  the Engineering and Physical Sciences Research Council (EP/P010040/1), and the Leverhulme Project Grant ''Verification of Machine Learning Algorithms''.
