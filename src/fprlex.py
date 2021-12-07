@@ -45,7 +45,11 @@ class FPRlex(object):
                                     'NEWLINE',
                                     'SLPAREN',
                                     'SRPAREN',
-                                    'COLON'] + list(reserved.values())))
+                                    'COLON',
+                                    'GTHAN',
+                                    'STHAN',
+                                    'GETHAN',
+                                    'SETHAN'] + list(reserved.values())))
 
     # Regular expression rules for simple tokens
     t_PLUS = r'\+'
@@ -58,6 +62,10 @@ class FPRlex(object):
     t_SRPAREN = r'\]'
     t_COMMA = r','
     t_COLON = r':'
+    t_GTHAN = r'>'
+    t_STHAN = r'<'
+    t_GETHAN = r'>='
+    t_SETHAN = r'<='
 
     def t_POSNUMBER(self, t):
         r'([0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)'

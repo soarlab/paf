@@ -44,7 +44,18 @@ class FPRyacc:
         self.myPrint("FileInput", p)
 
     def p_IfStatement(self, p):
-        ''' IfStatement :   IF LPAREN Expression RPAREN COLON NEWLINE Expression NEWLINE ELSE COLON NEWLINE Expression
+        ''' IfStatement :   IF LPAREN Expression GTHAN Expression RPAREN COLON NEWLINE Expression NEWLINE ELSE COLON NEWLINE Expression
+                        |   IF LPAREN Expression GETHAN Expression RPAREN COLON NEWLINE Expression NEWLINE ELSE COLON NEWLINE Expression
+    	'''
+        # if len(p)>2:
+        #	p[0]=str(p[1])+str(p[2])+str(p[3])
+        # elif len(p)==2:
+        #	p[0]=str(p[1])
+        self.myPrint("VarDeclaration", p)
+
+    def p_IfStatement1(self, p):
+        ''' IfStatement :   IF LPAREN Expression STHAN Expression RPAREN COLON NEWLINE Expression NEWLINE ELSE COLON NEWLINE Expression
+                        |   IF LPAREN Expression SETHAN Expression RPAREN COLON NEWLINE Expression NEWLINE ELSE COLON NEWLINE Expression
     	'''
         # if len(p)>2:
         #	p[0]=str(p[1])+str(p[2])+str(p[3])
