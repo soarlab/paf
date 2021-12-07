@@ -38,9 +38,19 @@ class FPRyacc:
 
     def p_FileInput(self, p):
         ''' FileInput : VarDeclaration NEWLINE Expression
+                      | VarDeclaration NEWLINE IfStatement
 		'''
         p[0] = p[3]
         self.myPrint("FileInput", p)
+
+    def p_IfStatement(self, p):
+        ''' IfStatement :   IF LPAREN Expression RPAREN COLON NEWLINE Expression NEWLINE ELSE COLON NEWLINE Expression
+    	'''
+        # if len(p)>2:
+        #	p[0]=str(p[1])+str(p[2])+str(p[3])
+        # elif len(p)==2:
+        #	p[0]=str(p[1])
+        self.myPrint("VarDeclaration", p)
 
     def p_VarDeclaration(self, p):
         ''' VarDeclaration : Distribution
